@@ -33,7 +33,7 @@ func init() {
 	mail_sender := os.Getenv("MAIL_SENDER")
 
 	if gmail_key == "" || mail_sender == ""{
-		log.Fatal("ERROR: No mail sending data found")
+		log.Fatal("ERROR: No mail sending data found in .env file")
 	}
 }
 

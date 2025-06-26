@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
+	// "log"
 	"net/http"
-	"os"
+	// "os"
 
 	"time"
 
@@ -12,27 +12,15 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 )
 
 var sessionManager *scs.SessionManager
 
 func main() {
 
-	err := godotenv.Load()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	gmail_key := os.Getenv("GMAIL_APP_PASS")
-
-	if gmail_key == "" {
-		log.Fatal("No GMAIL_APP_PASS found")
-	}
-
 	var db models.DataBase
-	err = db.InitDatabase()
+	err := db.InitDatabase()
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +33,9 @@ func main() {
 
 	router := gin.Default()
 
-	router.GET("/")
+	router.LoadHTMLGlob("templates/*")   // loads all templates from the templates directory
+
+	router.GET("/", HandleGetHome())
 	router.GET("/error-page")
 
 	user_router := router.Group("/user")
@@ -54,12 +44,11 @@ func main() {
 	user_router.GET("/login", HandleGetLogin())
 	user_router.POST("/login", HandlePostLogin(&db))
 	user_router.GET("/logout", HandleGetLogout(&db))
-	user_router.GET("/signup")
-	user_router.POST("/signup")
-	user_router.GET("/signup/mail-sent")
-	user_router.GET("/signup/from-mail/:id/:email")
-	user_router.POST("/signup/from-mail")
-	user_router.GET("/check_mail")
+	user_router.GET("/signup", HandleGetSignup())
+	user_router.POST("/signup/send-mail", HandlePostSignupSendMail(&db))
+	user_router.GET("/signup/mail-sent", HandleGetSignupMailSent())
+	user_router.GET("/signup/from-mail/:id/:email", HandleGetSignupFromMail())
+	user_router.POST("/signup/from-mail/:id/:email", HandlePostSignupFromMail(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 

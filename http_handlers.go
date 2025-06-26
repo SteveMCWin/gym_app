@@ -12,6 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func HandleGetHome() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	}
+}
+
 func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
@@ -26,8 +32,10 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		c.HTML(http.StatusOK, "profile.html", usr)
+
 		// display user data somehow ig
-		_ = usr
+
 	}
 }
 
@@ -65,20 +73,45 @@ func HandleGetSignup() func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 			return
 		}
+
 		// just display the html ig using which you send a post request
 		// there is supposed to be an input field that takes in an email and a button for sending the user creation email
+		// this page is supposed to lead you to the HandlePostSignupSendMail()
+		c.HTML(http.StatusOK, "signup.html", gin.H{})
 	}
 }
 
-func HandlePostSignupMailSent() func(c *gin.Context) {
+// func HandlePostSignup(db *models.DataBase) func(c *gin.Context) {
+// 	return func(c *gin.Context) {
+// 		email := c.PostForm("email")
+// 		if email_exists := db.EmailExists(email); email_exists == false {
+// 			log.Println("You already have an account!")
+// 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+// 			return
+// 		}
+//
+// 		// sends email
+// 		c.Redirect(http.StatusTemporaryRedirect, "/signup/send")
+// 	}
+// }
+
+func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		usr_email := c.PostForm("email")
-		token_val := CreateToken(usr_email, 3 * time.Minute)
+		if email_exists := db.EmailExists(usr_email); email_exists == false {
+			log.Println("You already have an account!")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+
+		token_val := CreateToken(usr_email, 3*time.Minute)
+
 		new_mail := &mail.Mail{
-			Recievers: []string{usr_email},
-			Subject: "Signup Verification",
+			Recievers:    []string{usr_email},
+			Subject:      "Signup Verification",
 			TempaltePath: "./templates/test_mail.html",
-			ExtLink: "user/signup/from-mail/"+strconv.Itoa(token_val)+"/"+usr_email}
+			ExtLink:      "user/signup/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email}
+
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
 			log.Fatalln(err) // WARNING: handle better than just panicing
@@ -87,18 +120,29 @@ func HandlePostSignupMailSent() func(c *gin.Context) {
 	}
 }
 
+func HandleGetSignupMailSent() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// render html that says the mail has been sent
+		c.HTML(http.StatusOK, "mail_sent.html", gin.H{})
+	}
+}
+
 func HandleGetSignupFromMail() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		// token_val, err := strconv.Atoi(c.Param("id"))
-		// if err != nil {
-		// 	log.Fatalln(err) // WARNING: handle better than just panicing
-		// }
-		// usr_email := c.Param("email")
+		// render forms with html and whatnot to get the user data such as usrname etc. etc.
+		token_val, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Fatalln(err) // WARNING: handle better than just panicing
+		}
+		usr_email := c.Param("email")
 
-		// if t_val, exists := signupTokens[token_val]; exists == true && t_val == usr_email {
-			// render forms with html and whatnot to get the user data such as usrname etc. etc.
-		// c.Redirect(http.StatusTemporaryRedirect, "user/signup/from-mail/" + c.Param("id") + "/" + c.Param("email"))
-		// }
+		if t_val, exists := signupTokens[token_val]; exists != true || t_val != usr_email {
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
+		}
+
+		c.HTML(http.StatusOK, "account_creation.html", gin.H{"ID": token_val, "Email": usr_email})
 	}
 }
 
@@ -111,54 +155,41 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 		}
 		usr_email := c.Param("email")
 		if t_val, exists := signupTokens[token_val]; exists == true && t_val == usr_email {
-
-			training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
-			if err != nil {
-				panic(err)
-			}
-			is_t := c.PostForm("is_trainer")
-			is_trainer := is_t != ""
-
-			new_user := models.User{
-				Id: 0,
-				Name: c.PostForm("name"),
-				Email: c.Param("email"),
-				Password: c.PostForm("password"),
-				TrainingSince: training_since,
-				IsTrainer: is_trainer,
-				GymGoals: c.PostForm("gym_goals"),
-				CurrentGym: c.PostForm("current_gym"),
-			}
-
-			usr_id, err := db.CreateUser(c, new_user)
-
-			if err != nil {
-				panic(err)
-			}
-
-			sessionManager.Put(c, "user_id", usr_id)
-
-			delete(signupTokens, token_val)
-
-			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
-			return
-		}
-		// display page saying Invalid token or something
-		log.Println("Invalid token")
-	}
-}
-
-func HandlePostSignup(db *models.DataBase) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		email := c.PostForm("email")
-		if email_exists := db.EmailExists(email); email_exists == false {
-			log.Println("You already have an account!")
-			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
 			return
 		}
 
-		// sends email
-		c.Redirect(http.StatusTemporaryRedirect, "/user/check_mail")
+		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
+		if err != nil {
+			panic(err)
+		}
+		
+		is_trainer := c.PostForm("is_trainer") != ""
+
+		new_user := models.User{
+			Id:            0,
+			Name:          c.PostForm("name"),
+			Email:         usr_email,
+			Password:      c.PostForm("password"),
+			TrainingSince: training_since,
+			IsTrainer:     is_trainer,
+			GymGoals:      c.PostForm("gym_goals"),
+			CurrentGym:    c.PostForm("current_gym"),
+		}
+
+		usr_id, err := db.CreateUser(c, new_user)
+
+		if err != nil {
+			panic(err)
+		}
+
+		sessionManager.Put(c, "user_id", usr_id)
+
+		delete(signupTokens, token_val)
+
+		c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+		return
 	}
 }
 

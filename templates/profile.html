@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 50px;
+            text-align: center;
+        }
+        .profile {
+            display: inline-block;
+            text-align: left;
+            background-color: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .profile h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .profile p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile">
+        <h2>Your Profile</h2>
+        <p><span class="label">Name:</span> {{.Name}}</p>
+        <p><span class="label">Email:</span> {{.Email}}</p>
+        <p><span class="label">Training Since:</span> {{.TrainingSince}}</p>
+        <p><span class="label">Is Trainer:</span> {{if .IsTrainer}}Yes{{else}}No{{end}}</p>
+        <p><span class="label">Gym Goals:</span> {{.GymGoals}}</p>
+        <p><span class="label">Current Gym:</span> {{.CurrentGym}}</p>
+    </div>
+</body>
+</html>

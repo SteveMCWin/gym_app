@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Complete Your Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fafafa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        form {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        input, select, button {
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        label {
+            margin-top: 15px;
+            font-weight: bold;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <form method="POST" action="/signup/from-mail/{{.ID}}/{{.Email}}">
+        <!-- Email (pre-filled and read-only) -->
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{.Email}}" readonly>
+
+        <!-- Password (required) -->
+		<label for="password">Password (required)</label>
+		<input type="password" id="password" name="password" required maxlength="25">
+
+        <!-- Optional Fields -->
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name">
+
+        <label for="training_since">Training Since</label>
+        <input type="date" id="training_since" name="training_since">
+
+        <label for="is_trainer">
+            <input type="checkbox" id="is_trainer" name="is_trainer">
+            Are you a trainer?
+        </label>
+
+        <label for="gym_goals">Gym Goals</label>
+        <select id="gym_goals" name="gym_goals">
+            <option value="">-- Select --</option>
+            <option value="health">Health</option>
+            <option value="strength">Strength</option>
+            <option value="mobility">Mobility</option>
+            <option value="athleticism">Athleticism</option>
+            <option value="bodybuilding">Bodybuilding</option>
+        </select>
+
+        <label for="current_gym">Current Gym</label>
+        <input type="text" id="current_gym" name="current_gym">
+
+        <button type="submit">Create Account</button>
+    </form>
+</body>
+</html>
