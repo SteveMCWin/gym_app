@@ -89,23 +89,62 @@ func HandlePostSignupMailSent() func(c *gin.Context) {
 
 func HandleGetSignupFromMail() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		token_val, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			log.Fatalln(err) // WARNING: handle better than just panicing
-		}
-		usr_email := c.Param("email")
+		// token_val, err := strconv.Atoi(c.Param("id"))
+		// if err != nil {
+		// 	log.Fatalln(err) // WARNING: handle better than just panicing
+		// }
+		// usr_email := c.Param("email")
 
-		if t_val, exists := signupTokens[token_val]; exists == true && t_val == usr_email {
+		// if t_val, exists := signupTokens[token_val]; exists == true && t_val == usr_email {
 			// render forms with html and whatnot to get the user data such as usrname etc. etc.
-			delete(signupTokens, token_val)
-			c.Redirect(http.StatusTemporaryRedirect, "user/signup/from-mail")
-		}
+		// c.Redirect(http.StatusTemporaryRedirect, "user/signup/from-mail/" + c.Param("id") + "/" + c.Param("email"))
+		// }
 	}
 }
 
 func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// get the form data which is the user's credentials and whatever and call db.create user and such
+		token_val, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Fatalln(err) // WARNING: handle better than just panicing
+		}
+		usr_email := c.Param("email")
+		if t_val, exists := signupTokens[token_val]; exists == true && t_val == usr_email {
+
+			training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
+			if err != nil {
+				panic(err)
+			}
+			is_t := c.PostForm("is_trainer")
+			is_trainer := is_t != ""
+
+			new_user := models.User{
+				Id: 0,
+				Name: c.PostForm("name"),
+				Email: c.Param("email"),
+				Password: c.PostForm("password"),
+				TrainingSince: training_since,
+				IsTrainer: is_trainer,
+				GymGoals: c.PostForm("gym_goals"),
+				CurrentGym: c.PostForm("current_gym"),
+			}
+
+			usr_id, err := db.CreateUser(c, new_user)
+
+			if err != nil {
+				panic(err)
+			}
+
+			sessionManager.Put(c, "user_id", usr_id)
+
+			delete(signupTokens, token_val)
+
+			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+			return
+		}
+		// display page saying Invalid token or something
+		log.Println("Invalid token")
 	}
 }
 

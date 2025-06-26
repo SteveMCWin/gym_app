@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
@@ -10,14 +11,14 @@ import (
 )
 
 type User struct {
-	Id            int     `json:"id"`
-	Name          string  `json:"name"`
-	Email         string  `json:"email"`
-	Password      string  `json:"password"`
-	TrainingSince float32 `json:"training_since"`
-	IsTrainer     bool    `json:"is_trainer"`
-	GymGoals      string  `json:"gym_goals"`
-	CurrentGym    string  `json:"current_gym"` // perhaps change this to be an id of a gym in the database
+	Id            int       `json:"id"`
+	Name          string    `json:"name"`
+	Email         string    `json:"email"`
+	Password      string    `json:"password"`
+	TrainingSince time.Time `json:"training_since"`
+	IsTrainer     bool      `json:"is_trainer"`
+	GymGoals      string    `json:"gym_goals"`
+	CurrentGym    string    `json:"current_gym"` // perhaps change this to be an id of a gym in the database
 }
 
 type DataBase struct {
