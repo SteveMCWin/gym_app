@@ -20,18 +20,28 @@ func HandleGetHome() func(c *gin.Context) {
 
 func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
+
+		log.Println("VIEWING USER PROFILE")
+
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
 		}
 		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		log.Println("user_id from sessionManager:", user_id)
 
 		usr, err := db.ReadUser(user_id)
 
 		if err != nil {
+			log.Println("ERROR")
+			log.Println(err)
+			log.Println("ERROR")
 			c.Redirect(http.StatusInternalServerError, "/error-page")
 			return
 		}
 
+		log.Println("RENDERING USER PROFILE")
 		c.HTML(http.StatusOK, "profile.html", usr)
 
 		// display user data somehow ig
@@ -62,7 +72,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		sessionManager.Put(c, "user_id", usr_id)
+		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
 		c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 	}
 }
@@ -194,13 +204,13 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 
 		log.Println("HandlePostSignupSendMail: created user")
 
-		sessionManager.Put(c, "user_id", usr_id)
+		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
 
 		log.Println("HandlePostSignupSendMail: created session cookie for user")
 
 		delete(signupTokens, token_val)
 
-		c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+		c.Redirect(http.StatusSeeOther, "/user/profile")
 		return
 	}
 }

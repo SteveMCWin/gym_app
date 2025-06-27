@@ -43,8 +43,10 @@ func main() {
 
 	sessionManager = scs.New()
 	// sessionManager.Lifetime = time.Hour * 24 * 30
-	sessionManager.Lifetime = time.Minute * 2   // NOTE: this one is just for debugging
+	sessionManager.Lifetime = time.Minute * 10   // NOTE: this one is just for debugging
 	sessionManager.Store = sqlite3store.New(db.Data)
+	sessionManager.Cookie.Persist = true
+	sessionManager.Cookie.Secure = true
 
 	router := gin.Default()
 

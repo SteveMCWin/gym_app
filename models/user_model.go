@@ -87,9 +87,9 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 	return 0, errors.New("ERROR: user already has an account")
 }
 
-func (Db *DataBase) ReadUser(id int) (*User, error) {
+func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	usr := &User{}
-	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym where id = ?", id).Scan(
+	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym from users where id = ?", usr_id).Scan(
 		&usr.Id,
 		&usr.Name,
 		&usr.Email,
