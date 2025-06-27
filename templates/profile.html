@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +18,7 @@
             padding: 30px 40px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
         }
         .profile h2 {
             text-align: center;
@@ -28,6 +30,23 @@
         }
         .label {
             font-weight: bold;
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .buttons a {
+            text-decoration: none;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 15px;
+            transition: background-color 0.2s;
+        }
+        .buttons a:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
@@ -41,5 +60,12 @@
         <p><span class="label">Gym Goals:</span> {{.GymGoals}}</p>
         <p><span class="label">Current Gym:</span> {{.CurrentGym}}</p>
     </div>
+
+    <div class="buttons">
+        <a href="/">Home</a>
+        <a href="/user/edit_profile">Edit Profile</a>
+        <a href="/user/change_password">Change Password</a>
+    </div>
 </body>
 </html>
+

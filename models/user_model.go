@@ -106,9 +106,9 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	return usr, nil
 }
 
-func (Db *DataBase) AuthUser(email, password string) (int, error) { // returns the id if the credentials are right, 0 if not (as well as an error)
+func (Db *DataBase) AuthUserByEmail(email, password string) (int, error) { // returns the id if the credentials are right, 0 if not (as well as an error)
 	if email == "" || password == "" {
-		return 0, errors.New("Empty email and password provided")
+		return 0, errors.New("Empty email or password provided")
 	}
 
 	var usr_id int
@@ -129,6 +129,28 @@ func (Db *DataBase) AuthUser(email, password string) (int, error) { // returns t
 	return usr_id, nil
 }
 
+func (Db *DataBase) AuthUserByID(usr_id int, password string) error { // returns the id if the credentials are right, 0 if not (as well as an error)
+	if usr_id == 0 || password == "" {
+		return errors.New("Invalid ID or password provided")
+	}
+
+	var stored_password string
+
+	err := Db.Data.QueryRow("select password from users where id = ?", usr_id).Scan(&stored_password)
+
+	if err != nil { // not account with provided email
+		return errors.New("ERROR: no account with provided id")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(stored_password), []byte(password))
+
+	if err != nil {
+		return errors.New("ERROR: wrong password")
+	}
+
+	return nil
+}
+
 func (Db *DataBase) EmailExists(email string) bool {
 	var tmp int
 	err := Db.Data.QueryRow("select id form users where email like ?", email).Scan(&tmp)
@@ -142,14 +164,14 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE users SET name = ?, email = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE Id = ?")
+	stmt, err := tx.Prepare("UPDATE users SET name = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE Id = ?")
 	if err != nil {
 		return false, err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(usr.Name, usr.Email, usr.TrainingSince, usr.IsTrainer, usr.GymGoals, usr.CurrentGym, usr.Id)
+	_, err = stmt.Exec(usr.Name, usr.TrainingSince, usr.IsTrainer, usr.GymGoals, usr.CurrentGym, usr.Id)
 
 	if err != nil {
 		return false, err

@@ -18,6 +18,12 @@ func HandleGetHome() func(c *gin.Context) {
 	}
 }
 
+func HandleGetError() func (c *gin.Context) {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "error.html", gin.H{})
+	}
+}
+
 func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
@@ -44,8 +50,6 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 		log.Println("RENDERING USER PROFILE")
 		c.HTML(http.StatusOK, "profile.html", usr)
 
-		// display user data somehow ig
-
 	}
 }
 
@@ -55,7 +59,8 @@ func HandleGetLogin() func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 			return
 		}
-		// just display the html ig using which you send a post request
+
+		c.HTML(http.StatusOK, "login.html", gin.H{})
 	}
 }
 
@@ -64,7 +69,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 		email := c.PostForm("email")
 		password := c.PostForm("password")
 
-		usr_id, err := db.AuthUser(email, password)
+		usr_id, err := db.AuthUserByEmail(email, password)
 
 		if err != nil {
 			log.Println(err)
@@ -73,7 +78,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
-		c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+		c.Redirect(http.StatusSeeOther, "/user/profile")
 	}
 }
 
@@ -84,26 +89,9 @@ func HandleGetSignup() func(c *gin.Context) {
 			return
 		}
 
-		// just display the html ig using which you send a post request
-		// there is supposed to be an input field that takes in an email and a button for sending the user creation email
-		// this page is supposed to lead you to the HandlePostSignupSendMail()
 		c.HTML(http.StatusOK, "signup.html", gin.H{})
 	}
 }
-
-// func HandlePostSignup(db *models.DataBase) func(c *gin.Context) {
-// 	return func(c *gin.Context) {
-// 		email := c.PostForm("email")
-// 		if email_exists := db.EmailExists(email); email_exists == false {
-// 			log.Println("You already have an account!")
-// 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
-// 			return
-// 		}
-//
-// 		// sends email
-// 		c.Redirect(http.StatusTemporaryRedirect, "/signup/send")
-// 	}
-// }
 
 func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -215,12 +203,103 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-// NOTE: Remember to limit the length of user password to less than 70 characters!
+// NOTE: Remember to limit the length of user password to less than 70 characters! That is handled in the html and I hope that's enough
+
+func HandleGetDeleteAccount() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		var usr_id int
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			usr_id = 0
+		} else {
+			usr_id = sessionManager.GetInt(c.Request.Context(), "user_id")
+		}
+
+		c.HTML(http.StatusOK, "delete_accout.html", gin.H{ "UserID": usr_id })
+	}
+}
+
+func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		password := c.PostForm("password")
+		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		log.Println("Got here")
+
+		err := db.AuthUserByID(usr_id, password)
+		if err != nil {
+			log.Println("Couldn't delete accoutn")
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/user/delete_account")
+			return
+		}
+
+		db.DeleteUser(usr_id)
+		sessionManager.Clear(c.Request.Context())
+		log.Println("Deleted user with id", usr_id)
+		c.Redirect(http.StatusSeeOther, "/")
+
+	}
+}
 
 func HandleGetLogout(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		sessionManager.Clear(c.Request.Context())
 
 		c.Redirect(http.StatusTemporaryRedirect, "/")
+	}
+}
+
+func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		old_user, err := db.ReadUser(sessionManager.GetInt(c.Request.Context(), "user_id"))
+		if err != nil {
+			log.Println("COULDN'T GET USERS OLD DATA")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+		}
+		old_user_view := gin.H {
+			"Name": old_user.Name,
+			"TrainingSince": old_user.TrainingSince.Format("2006-01-02"),
+			"IsTrainer": old_user.IsTrainer,
+			"GymGoals": old_user.GymGoals,
+			"CurrentGym": old_user.CurrentGym,
+		}
+		c.HTML(http.StatusOK, "edit_profile.html", old_user_view)
+	}
+}
+
+func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
+		if err != nil {
+			panic(err)
+		}
+		
+		log.Println("HandlePostSignupSendMail: got parsed training_since")
+
+		is_trainer := c.PostForm("is_trainer") != ""
+
+		edited_user := models.User{
+			Id:            sessionManager.GetInt(c.Request.Context(), "user_id"),
+			Name:          c.PostForm("name"),
+			TrainingSince: training_since,
+			IsTrainer:     is_trainer,
+			GymGoals:      c.PostForm("gym_goals"),
+			CurrentGym:    c.PostForm("current_gym"),
+		}
+
+		_, err = db.UpdateUserPublicData(&edited_user)
+
+		if err != nil {
+			log.Println("Couldn't edit user data?!")
+		}
+
+		c.Redirect(http.StatusSeeOther, "/user/profile")
+	}
+}
+
+func HandleGetChangePassword() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// TODO
 	}
 }

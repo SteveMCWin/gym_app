@@ -42,8 +42,7 @@ func main() {
 	defer db.Close()
 
 	sessionManager = scs.New()
-	// sessionManager.Lifetime = time.Hour * 24 * 30
-	sessionManager.Lifetime = time.Minute * 10   // NOTE: this one is just for debugging
+	sessionManager.Lifetime = time.Hour * 24 * 30
 	sessionManager.Store = sqlite3store.New(db.Data)
 	sessionManager.Cookie.Persist = true
 	sessionManager.Cookie.Secure = true
@@ -53,7 +52,7 @@ func main() {
 	router.LoadHTMLGlob("templates/*")   // loads all templates from the templates directory
 
 	router.GET("/", HandleGetHome())
-	router.GET("/error-page")
+	router.GET("/error-page", HandleGetError())
 
 	user_router := router.Group("/user")
 	
@@ -66,6 +65,10 @@ func main() {
 	user_router.GET("/signup/mail-sent", HandleGetSignupMailSent())
 	user_router.GET("/signup/from-mail/:id/:email", HandleGetSignupFromMail())
 	user_router.POST("/signup/from-mail/:id/:email", HandlePostSignupFromMail(&db))
+	user_router.GET("/delete_account", HandleGetDeleteAccount())
+	user_router.POST("/delete_account", HandlePostDeleteAccount(&db))
+	user_router.GET("/edit_profile", HandleGetEditProfile(&db))
+	user_router.POST("/edit_profile", HandlePostEditProfile(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 
