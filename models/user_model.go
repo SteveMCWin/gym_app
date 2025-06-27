@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,9 @@ func (dataBase *DataBase) InitDatabase() error {
 }
 
 func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
+
+	log.Println("CREATING USERRRRR")
+
 	if usr.Email == "" {
 		return 0, errors.New("Cannot store a user without their email")
 	}
@@ -55,7 +59,7 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 
 	if err != nil {
 		// user is signing up
-		statement := "insert into users (name, email, password, training_since, is_trainer, gym_goals, current_gym) values (?, ?, ?, ?, ?, ?, ?, ?) returning id"
+		statement := "insert into users (name, email, password, training_since, is_trainer, gym_goals, current_gym) values (?, ?, ?, ?, ?, ?, ?) returning id"
 		var stmt *sql.Stmt
 		stmt, err = Db.Data.Prepare(statement)
 		if err != nil {

@@ -2,22 +2,22 @@ package mail
 
 import (
 	"bytes"
-	"html/template"
-	"net/smtp"
 	"github.com/joho/godotenv"
+	"html/template"
 	"log"
+	"net/smtp"
 	"os"
 )
 
 var LoadedTempaltes map[string]*template.Template
-var mail_pass string
 var mail_sender string
+var mail_pass string
 
 type Mail struct {
-	Recievers []string
-	Subject string
+	Recievers    []string
+	Subject      string
 	TempaltePath string
-	ExtLink string
+	ExtLink      string
 }
 
 func init() {
@@ -29,12 +29,14 @@ func init() {
 		log.Fatal(err)
 	}
 
-	gmail_key := os.Getenv("GMAIL_APP_PASS")
-	mail_sender := os.Getenv("MAIL_SENDER")
+	mail_pass = os.Getenv("GMAIL_APP_PASS")
+	mail_sender = os.Getenv("MAIL_SENDER")
 
-	if gmail_key == "" || mail_sender == ""{
+	if mail_pass == "" || mail_sender == "" {
 		log.Fatal("ERROR: No mail sending data found in .env file")
 	}
+	log.Println("INITIALIZED MAIL HANDLER")
+	log.Println("mail_sender: ", mail_sender)
 }
 
 func SendMailHtml(mail *Mail) error {
@@ -42,7 +44,7 @@ func SendMailHtml(mail *Mail) error {
 		"",
 		mail_sender,
 		mail_pass,
-		"stmp.gmail.com",
+		"smtp.gmail.com",
 	)
 
 	if _, exists := LoadedTempaltes[mail.TempaltePath]; exists == false {
@@ -75,8 +77,7 @@ func SendMailHtml(mail *Mail) error {
 		mail_sender,
 		mail.Recievers,
 		[]byte(msg),
-		)
+	)
 
 	return err
-
 }

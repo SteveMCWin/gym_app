@@ -1,9 +1,9 @@
 package main
 
 import (
-	// "log"
+	"log"
 	"net/http"
-	// "os"
+	"os"
 
 	"time"
 
@@ -12,15 +12,30 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/gin-gonic/gin"
-	// "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 var sessionManager *scs.SessionManager
 
+var domain string
+var port string
+
 func main() {
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Couldn't load the .env")
+	}
+
+	domain = os.Getenv("DOMAIN")
+	// port = os.Getenv("PORT")
+
+	if domain == "" {
+		log.Fatal("Couldn't load .env variables")
+	}
+
 	var db models.DataBase
-	err := db.InitDatabase()
+	err = db.InitDatabase()
 	if err != nil {
 		panic(err)
 	}

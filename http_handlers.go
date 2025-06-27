@@ -98,7 +98,7 @@ func HandleGetSignup() func(c *gin.Context) {
 func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		usr_email := c.PostForm("email")
-		if email_exists := db.EmailExists(usr_email); email_exists == false {
+		if email_exists := db.EmailExists(usr_email); email_exists == true {
 			log.Println("You already have an account!")
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
@@ -110,19 +110,20 @@ func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 			Recievers:    []string{usr_email},
 			Subject:      "Signup Verification",
 			TempaltePath: "./templates/test_mail.html",
-			ExtLink:      "user/signup/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email}
+			ExtLink:      domain + "/user/signup/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
 
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
 			log.Fatalln(err) // WARNING: handle better than just panicing
 		}
-		c.Redirect(http.StatusTemporaryRedirect, "user/signup/mail-sent")
+		c.Redirect(http.StatusSeeOther, "/user/signup/mail-sent")
 	}
 }
 
 func HandleGetSignupMailSent() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// render html that says the mail has been sent
+		log.Println("IT GOT TO HandleGetSignupMailSent")
 		c.HTML(http.StatusOK, "mail_sent.html", gin.H{})
 	}
 }
@@ -153,18 +154,25 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 		if err != nil {
 			log.Fatalln(err) // WARNING: handle better than just panicing
 		}
+		
+		log.Println("HandlePostSignupSendMail: got token_val")
+
 		usr_email := c.Param("email")
-		if t_val, exists := signupTokens[token_val]; exists == true && t_val == usr_email {
+		if t_val, exists := signupTokens[token_val]; exists != true || t_val != usr_email {
 			log.Println("ERROR: invalid token or token value")
 			c.Redirect(http.StatusTemporaryRedirect, "/")
 			return
 		}
+
+		log.Println("HandlePostSignupSendMail: got usr_email")
 
 		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
 		if err != nil {
 			panic(err)
 		}
 		
+		log.Println("HandlePostSignupSendMail: got parsed training_since")
+
 		is_trainer := c.PostForm("is_trainer") != ""
 
 		new_user := models.User{
@@ -184,7 +192,11 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			panic(err)
 		}
 
+		log.Println("HandlePostSignupSendMail: created user")
+
 		sessionManager.Put(c, "user_id", usr_id)
+
+		log.Println("HandlePostSignupSendMail: created session cookie for user")
 
 		delete(signupTokens, token_val)
 
