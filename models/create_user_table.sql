@@ -9,4 +9,5 @@ CREATE TABLE users (
     is_trainer BOOLEAN NOT NULL DEFAULT 0,
     gym_goals TEXT CHECK (gym_goals IN ('health', 'strength', 'mobility', 'athleticism', 'bodybuilding', '')),
     current_gym TEXT
+    --NOTE: Should add a 'current plan field'
 );
