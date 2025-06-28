@@ -13,7 +13,7 @@ var LoadedTempaltes map[string]*template.Template
 var mail_sender string
 var mail_pass string
 
-type Mail struct {
+type Mail struct { // NOTE: could rework this to have more stuff, such as the message text and whatnot so it's more reusable
 	Recievers    []string
 	Subject      string
 	TempaltePath string

@@ -116,7 +116,7 @@ func (Db *DataBase) AuthUserByEmail(email, password string) (int, error) { // re
 
 	err := Db.Data.QueryRow("select id, password from users where email like ?", email).Scan(&usr_id, &stored_password)
 
-	if err != nil { // not account with provided email
+	if err != nil {
 		return 0, errors.New("ERROR: no account with provided email")
 	}
 

@@ -69,6 +69,9 @@ func main() {
 	user_router.POST("/delete_account", HandlePostDeleteAccount(&db))
 	user_router.GET("/edit_profile", HandleGetEditProfile(&db))
 	user_router.POST("/edit_profile", HandlePostEditProfile(&db))
+	user_router.GET("/change_password", HandleGetChangePassword(&db))
+	user_router.GET("/change_password/:id/:email", HandleGetChangePasswordFromMail())
+	user_router.POST("/change_password/:id/:email", HandlePostChangePasswordFromMail(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 

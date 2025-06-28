@@ -18,7 +18,7 @@ func HandleGetHome() func(c *gin.Context) {
 	}
 }
 
-func HandleGetError() func (c *gin.Context) {
+func HandleGetError() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "error.html", gin.H{})
 	}
@@ -71,9 +71,9 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 
 		usr_id, err := db.AuthUserByEmail(email, password)
 
-		if err != nil {
+		if err != nil { // TODO: Handle errors better
 			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			c.Redirect(http.StatusSeeOther, "/user/login")
 			return
 		}
 
@@ -102,17 +102,19 @@ func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		token_val := CreateToken(usr_email, 3*time.Minute)
+		token_val := CreateToken(usr_email, 5*time.Minute)
 
 		new_mail := &mail.Mail{
 			Recievers:    []string{usr_email},
 			Subject:      "Signup Verification",
-			TempaltePath: "./templates/test_mail.html",
+			TempaltePath: "./templates/mail_register.html",
 			ExtLink:      domain + "/user/signup/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
 
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
-			log.Fatalln(err) // WARNING: handle better than just panicing
+			// log.Fatalln(err) // WARNING: handle better than just panicing
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
 		c.Redirect(http.StatusSeeOther, "/user/signup/mail-sent")
 	}
@@ -122,7 +124,7 @@ func HandleGetSignupMailSent() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// render html that says the mail has been sent
 		log.Println("IT GOT TO HandleGetSignupMailSent")
-		c.HTML(http.StatusOK, "mail_sent.html", gin.H{})
+		c.HTML(http.StatusOK, "sent_mail.html", gin.H{})
 	}
 }
 
@@ -131,7 +133,9 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 		// render forms with html and whatnot to get the user data such as usrname etc. etc.
 		token_val, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			log.Fatalln(err) // WARNING: handle better than just panicing
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
 		}
 		usr_email := c.Param("email")
 
@@ -152,7 +156,7 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 		if err != nil {
 			log.Fatalln(err) // WARNING: handle better than just panicing
 		}
-		
+
 		log.Println("HandlePostSignupSendMail: got token_val")
 
 		usr_email := c.Param("email")
@@ -168,7 +172,7 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 		if err != nil {
 			panic(err)
 		}
-		
+
 		log.Println("HandlePostSignupSendMail: got parsed training_since")
 
 		is_trainer := c.PostForm("is_trainer") != ""
@@ -215,7 +219,7 @@ func HandleGetDeleteAccount() func(c *gin.Context) {
 			usr_id = sessionManager.GetInt(c.Request.Context(), "user_id")
 		}
 
-		c.HTML(http.StatusOK, "delete_accout.html", gin.H{ "UserID": usr_id })
+		c.HTML(http.StatusOK, "delete_accout.html", gin.H{"UserID": usr_id})
 	}
 }
 
@@ -257,12 +261,12 @@ func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 			log.Println("COULDN'T GET USERS OLD DATA")
 			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 		}
-		old_user_view := gin.H {
-			"Name": old_user.Name,
+		old_user_view := gin.H{
+			"Name":          old_user.Name,
 			"TrainingSince": old_user.TrainingSince.Format("2006-01-02"),
-			"IsTrainer": old_user.IsTrainer,
-			"GymGoals": old_user.GymGoals,
-			"CurrentGym": old_user.CurrentGym,
+			"IsTrainer":     old_user.IsTrainer,
+			"GymGoals":      old_user.GymGoals,
+			"CurrentGym":    old_user.CurrentGym,
 		}
 		c.HTML(http.StatusOK, "edit_profile.html", old_user_view)
 	}
@@ -274,7 +278,7 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 		if err != nil {
 			panic(err)
 		}
-		
+
 		log.Println("HandlePostSignupSendMail: got parsed training_since")
 
 		is_trainer := c.PostForm("is_trainer") != ""
@@ -298,8 +302,89 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-func HandleGetChangePassword() func(c *gin.Context) {
+func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		// TODO
+
+		usr, err := db.ReadUser(sessionManager.GetInt(c.Request.Context(), "user_id"))
+
+		if err != nil {
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		token_val := CreateToken(usr.Email, 5*time.Minute)
+
+		new_mail := &mail.Mail{
+			Recievers:    []string{usr.Email},
+			Subject:      "Password Change",
+			TempaltePath: "./templates/mail_change_password.html",
+			ExtLink:      domain + "/user/change_password/" + strconv.Itoa(token_val) + "/" + usr.Email} // NOTE: the domain mustn't end with a '/'
+
+		err = mail.SendMailHtml(new_mail)
+		if err != nil {
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "sent_mail.html", gin.H{})
+	}
+}
+
+func HandleGetChangePasswordFromMail() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token_val, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
+		}
+		usr_email := c.Param("email")
+
+		if t_val, exists := signupTokens[token_val]; exists != true || t_val != usr_email {
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
+		}
+
+		c.HTML(http.StatusOK, "change_password.html", gin.H{"ID": token_val, "Email": usr_email})
+	}
+}
+
+func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// NOTE: technically the cookie could expire while the user is using the website and reaching this point but scs should be handling that properly so it doesn't happen
+		log.Println("Got to Password Change POST!!!!!")
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		new_password := c.PostForm("password")
+
+		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		_, err := db.UpdateUserPassword(usr_id, new_password)
+
+		if err != nil {
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		log.Println("Updated user password successfully")
+
+		token, err := strconv.Atoi(c.Param("id"))
+
+		if err != nil {
+			log.Println("ERROR")
+			log.Println("COULDN'T DELETE SIGNUP TOKEN")
+			log.Println("ERROR")
+		} else {
+			delete(signupTokens, token)
+		}
+
+		log.Println("Deleted token successfully")
+
+		c.Redirect(http.StatusSeeOther, "/user/profile")
 	}
 }
