@@ -36,6 +36,7 @@
 </head>
 <body>
     <form method="POST" action="/user/signup/from-mail/{{.ID}}/{{.Email}}">
+        {{ .csrfField }}
         <!-- Email (pre-filled and read-only) -->
         <label for="email">Email</label>
         <input type="email" id="email" name="email" value="{{.Email}}" readonly>

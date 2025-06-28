@@ -9,6 +9,7 @@ import (
 
 	"fitness_app/models"
 
+	"github.com/gorilla/csrf"
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,6 @@ import (
 var sessionManager *scs.SessionManager
 
 var domain string
-var port string
 
 func main() {
 
@@ -28,9 +28,9 @@ func main() {
 	}
 
 	domain = os.Getenv("DOMAIN")
-	// port = os.Getenv("PORT")
+	csrf_key := os.Getenv("CSRF_KEY")
 
-	if domain == "" {
+	if domain == "" || csrf_key == "" {
 		log.Fatal("Couldn't load .env variables")
 	}
 
@@ -74,6 +74,10 @@ func main() {
 	user_router.POST("/change_password/:id/:email", HandlePostChangePasswordFromMail(&db))
 
 	handler := sessionManager.LoadAndSave(router)
+	handler = csrf.Protect(
+		[]byte(csrf_key),
+		csrf.Secure(true),
+		)(handler)
 
 	http.ListenAndServe(":8080", handler)
 }

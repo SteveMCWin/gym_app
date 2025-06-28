@@ -36,6 +36,7 @@
 </head>
 <body>
     <form method="POST" action="/user/edit_profile">
+        {{ .csrfField }}
         <label for="name">Full Name</label>
         <input type="text" id="name" name="name" value="{{.Name}}">
 

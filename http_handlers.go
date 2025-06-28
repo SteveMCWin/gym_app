@@ -10,6 +10,7 @@ import (
 	"fitness_app/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/csrf"
 )
 
 func HandleGetHome() func(c *gin.Context) {
@@ -60,7 +61,7 @@ func HandleGetLogin() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "login.html", gin.H{})
+		c.HTML(http.StatusOK, "login.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request) })
 	}
 }
 
@@ -89,7 +90,7 @@ func HandleGetSignup() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "signup.html", gin.H{})
+		c.HTML(http.StatusOK, "signup.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request) })
 	}
 }
 
@@ -145,7 +146,7 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "account_creation.html", gin.H{"ID": token_val, "Email": usr_email})
+		c.HTML(http.StatusOK, "account_creation.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email})
 	}
 }
 
@@ -219,7 +220,7 @@ func HandleGetDeleteAccount() func(c *gin.Context) {
 			usr_id = sessionManager.GetInt(c.Request.Context(), "user_id")
 		}
 
-		c.HTML(http.StatusOK, "delete_accout.html", gin.H{"UserID": usr_id})
+		c.HTML(http.StatusOK, "delete_accout.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "UserID": usr_id })
 	}
 }
 
@@ -262,6 +263,7 @@ func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 		}
 		old_user_view := gin.H{
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
 			"Name":          old_user.Name,
 			"TrainingSince": old_user.TrainingSince.Format("2006-01-02"),
 			"IsTrainer":     old_user.IsTrainer,
@@ -346,7 +348,7 @@ func HandleGetChangePasswordFromMail() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "change_password.html", gin.H{"ID": token_val, "Email": usr_email})
+		c.HTML(http.StatusOK, "change_password.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email })
 	}
 }
 
