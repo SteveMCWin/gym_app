@@ -2,21 +2,49 @@ DROP TABLE IF EXISTS exercise_day;
 
 CREATE TABLE exercise_day (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    day_name TEXT UNIQUE NOT NULL,
+    plan INTEGER NOT NULL,
+    day_name TEXT NOT NULL,
     exercise INTEGER NOT NULL,
     sets INTEGER NOT NULL,
     min_reps TEXT NOT NULL, --NOTE: this should support a variety of vals like 2, 14, 30s, 2m
-    max_reps TEXT, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps 
-    -- but like 5 sets of 5
+    max_reps TEXT, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps but like 5 sets of 5
+    day_order INTEGER NOT NULL,
+    exercise_order INTEGER NOT NULL,
+    UNIQUE(plan, day_name)
+    FOREIGN KEY(plan) REFERENCES workout_plan(id),
     FOREIGN KEY(exercise) REFERENCES exercises(id)
-); -- NOTE: this seems waaay to inefficient, reconsider how it's done
+);
 
-DROP TABLE IF EXISTS plan_template;
+DROP TABLE IF EXISTS workout_plan;
 
-CREATE TABLE plan_template (
+CREATE TABLE workout_plan (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    -- creator INTEGER NOT NULL, -- shouldn't be here, but in another table
-    exercise_day INTEGER UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    creator INTEGER NOT NULL,
+    description TEXT,
+    UNIQUE(name, creator)
+);
 
-    FOREIGN KEY(exercise_day) REFERENCES exercise_day(id)
-)
+DROP TABLE IF EXISTS workout_track_data;
+
+CREATE TABLE workout_track_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    track INTEGER NOT NULL,
+    ex_day INTEGER NOT NULL,
+    set_num INTEGER,
+    rep_num INTEGER,
+    FOREIGN KEY(ex_day) REFERENCES exercise_day(id),
+    FOREIGN KEY(track) REFERENCES workout_track(id)
+);
+
+DROP TABLE IF EXISTS workout_track;
+
+CREATE TABLE workout_track (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan INTEGER NOT NULL,
+    usr INTEGER NOT NULL,
+    workout_date DATE,
+    FOREIGN KEY(plan) REFERENCES workout_plan(id),
+    FOREIGN KEY(usr) REFERENCES users(id),
+    UNIQUE(plan, usr, workout_date)
+);

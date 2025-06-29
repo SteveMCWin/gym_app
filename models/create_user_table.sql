@@ -5,9 +5,10 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    training_since DATETIME,
+    training_since DATE,
     is_trainer BOOLEAN NOT NULL DEFAULT 0,
     gym_goals TEXT CHECK (gym_goals IN ('health', 'strength', 'mobility', 'athleticism', 'bodybuilding', '')),
-    current_gym TEXT
-    --NOTE: Should add a 'current plan field'
+    current_gym TEXT,
+    current_plan INTEGER,
+    FOREIGN KEY(current_plan) REFERENCES workout_plan(id)
 );
