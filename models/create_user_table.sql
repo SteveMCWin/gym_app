@@ -10,5 +10,6 @@ CREATE TABLE users (
     gym_goals TEXT CHECK (gym_goals IN ('health', 'strength', 'mobility', 'athleticism', 'bodybuilding', '')),
     current_gym TEXT,
     current_plan INTEGER,
+    date_created DATE NOT NULL,
     FOREIGN KEY(current_plan) REFERENCES workout_plan(id)
 );

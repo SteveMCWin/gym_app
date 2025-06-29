@@ -20,6 +20,8 @@ type User struct {
 	IsTrainer     bool      `json:"is_trainer"`
 	GymGoals      string    `json:"gym_goals"`
 	CurrentGym    string    `json:"current_gym"` // perhaps change this to be an id of a gym in the database
+	CurrentPlan   int       `json:"current_plan"`
+	DateCreated   time.Time `json:"time_created"`
 }
 
 type DataBase struct {
@@ -59,7 +61,7 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 
 	if err != nil {
 		// user is signing up
-		statement := "insert into users (name, email, password, training_since, is_trainer, gym_goals, current_gym) values (?, ?, ?, ?, ?, ?, ?) returning id"
+		statement := "insert into users (name, email, password, training_since, is_trainer, gym_goals, current_gym, current_plan, date_created) values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id"
 		var stmt *sql.Stmt
 		stmt, err = Db.Data.Prepare(statement)
 		if err != nil {
@@ -75,7 +77,17 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 			return 0, err
 		}
 
-		err = stmt.QueryRow(usr.Name, usr.Email, string(encrypted_pass), usr.TrainingSince, usr.IsTrainer, usr.GymGoals, usr.CurrentGym).Scan(&usr_id)
+		err = stmt.QueryRow(
+			usr.Name,
+			usr.Email,
+			string(encrypted_pass),
+			usr.TrainingSince.Format("2006-01-02"),
+			usr.IsTrainer,
+			usr.GymGoals,
+			usr.CurrentGym,
+			1, // WARNING: I am assuming there will be a default plan number 1 that is used only for indicating there is no plan
+			time.Now().Format("2006-01-02")).Scan(&usr_id)
+
 		if err != nil {
 			return 0, err
 		}
@@ -89,19 +101,27 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 
 func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	usr := &User{}
+
+	var trainingSinceStr, dateCreatedStr string
+
 	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym from users where id = ?", usr_id).Scan(
 		&usr.Id,
 		&usr.Name,
 		&usr.Email,
-		&usr.TrainingSince,
+		&trainingSinceStr,
 		&usr.IsTrainer,
 		&usr.GymGoals,
 		&usr.CurrentGym,
+		&usr.CurrentPlan,
+		&dateCreatedStr,
 	) // gets the public data of the user
 
 	if err != nil {
 		return nil, err
 	}
+
+	usr.TrainingSince, _ = time.Parse("2006-01-02", trainingSinceStr)
+	usr.DateCreated, _ = time.Parse("2006-01-02", dateCreatedStr)
 
 	return usr, nil
 }
@@ -181,6 +201,31 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 
 	return true, nil
 }
+
+func (Db *DataBase) UpdateUserPlan(usr *User) (bool, error) {
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("UPDATE users SET plan = ? WHERE Id = ?")
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(usr.CurrentPlan, usr.Id)
+
+	if err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+
+	return true, nil
+}
+
 
 func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { // before this, should send email from which you change your password
 	tx, err := Db.Data.Begin()
