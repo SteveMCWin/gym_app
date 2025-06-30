@@ -173,7 +173,7 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) UpdateUserPlan(usr *User) (bool, error) {
+func (Db *DataBase) UpdateUserCurrentPlan(usr *User) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err

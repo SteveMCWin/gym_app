@@ -20,13 +20,12 @@ CREATE TABLE exercise_day (
     plan INTEGER NOT NULL,
     day_name TEXT NOT NULL,
     exercise INTEGER NOT NULL,
-    weigth INTEGER,
-    sets INTEGER NOT NULL,
+    weight FLOAT,
+    sets INTEGER NOT NULL, --NOTE: check if >= 1
     min_reps TEXT NOT NULL, --NOTE: this should support a variety of vals like 2, 14, 30s, 2m
     max_reps TEXT, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps but like 5 sets of 5
     day_order INTEGER NOT NULL,
     exercise_order INTEGER NOT NULL,
-    UNIQUE(plan, day_name)
     FOREIGN KEY(plan) REFERENCES workout_plan(id),
     FOREIGN KEY(exercise) REFERENCES exercises(id)
 );
@@ -53,6 +52,7 @@ CREATE TABLE workout_track_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     track INTEGER NOT NULL,
     ex_day INTEGER NOT NULL,
+    weigth FLOAT, -- NOTE: This doesn't neccessarily have to be the weight that is specified in the ex_day, unless it's null
     set_num INTEGER,
     rep_num INTEGER,
     FOREIGN KEY(ex_day) REFERENCES exercise_day(id),

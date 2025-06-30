@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Column-Based Table with Names</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f8f8f8;
+            text-align: center;
+        }
+
+        .columns {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .column {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 6px rgba(0,0,0,0.1);
+            min-width: 170px;
+        }
+
+        .column input[type="text"] {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+
+        .column input[data-type="col-name"] {
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 2px solid #007bff;
+        }
+
+        button {
+            margin: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Build Your Table</h2>
+
+<form method="POST" action="/submit-table" id="columnForm">
+    <div class="columns" id="columnsContainer">
+        <!-- Columns inserted here -->
+    </div>
+
+    <div>
+        <button type="button" onclick="addColumn()">Add Column</button>
+        <button type="submit">Done</button>
+    </div>
+</form>
+
+<script>
+    let columnCount = 0;
+    const container = document.getElementById("columnsContainer");
+
+    function addColumn() {
+        const col = document.createElement("div");
+        col.className = "column";
+        col.setAttribute("data-col-index", columnCount);
+
+        // Column name input
+        const nameInput = document.createElement("input");
+        nameInput.name = `column_name_${columnCount}`;
+        nameInput.placeholder = "Column name";
+        nameInput.setAttribute("data-type", "col-name");
+        nameInput.type = "text";
+        col.appendChild(nameInput);
+
+        // Input container
+        const inputContainer = document.createElement("div");
+        inputContainer.className = "inputContainer";
+        col.appendChild(inputContainer);
+
+        // Add Row button
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.textContent = "Add Row";
+        addBtn.onclick = () => addRow(inputContainer, columnCount);
+        col.appendChild(addBtn);
+
+        container.appendChild(col);
+        columnCount++;
+    }
+
+    function addRow(container, colIndex) {
+        const inputCount = container.children.length;
+        const input = document.createElement("input");
+        input.name = `cell_${colIndex}_${inputCount}`;
+        input.type = "text";
+        container.appendChild(input);
+    }
+</script>
+
+</body>
+</html>

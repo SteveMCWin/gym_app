@@ -16,6 +16,19 @@ type WorkoutPlan struct {
 	Description string `json:"description"`
 }
 
+type ExerciseDay struct {
+	Id            int     `json:"id"`
+	Plan          int     `json:"plan"`
+	Exercise      int     `json:"exercise"`
+	DayName       string  `json:"day"`
+	Weight        float32 `json:"weight"`
+	Sets          int     `json:"sets"`
+	MinReps       int     `json:"min_reps"`
+	MaxReps       int     `json:"max_reps"` // if == -1 then no max reps
+	DayOrder      int     `json:"day_order"`
+	ExerciseOrder int     `json:"exercise_order"`
+}
+
 func (Db *DataBase) CreateWorkoutPlan(c *gin.Context, wp *WorkoutPlan) (int, error) {
 
 	log.Println("CREATING WORKOUT PLANNN")
@@ -24,12 +37,11 @@ func (Db *DataBase) CreateWorkoutPlan(c *gin.Context, wp *WorkoutPlan) (int, err
 		return 0, errors.New("You need to be logged in to create a workout plan")
 	}
 
-	var tmp int
-	err := Db.Data.QueryRow("select id from workout_plan where name like ?", wp.Name).Scan(&tmp)
-
 	if wp.Name == "" {
 		wp.Name = "WorkoutPlan"
 	}
+
+	err := Db.Data.QueryRow("select id from workout_plan where name like ? AND creator like ?", wp.Name, wp.Creator).Scan()
 
 	if err == nil {
 		// A plan with a name like this already exists, add _2 at the end
@@ -58,7 +70,7 @@ func (Db *DataBase) CreateWorkoutPlan(c *gin.Context, wp *WorkoutPlan) (int, err
 		return 0, err
 	}
 
-	err = Db.AddWorkoutPlanToUser(wp.Creator, wp.Id)
+	err = Db.AddWorkoutPlanToUser(wp.Creator, workout_plan_id)
 	if err != nil {
 		return 0, err
 	}
@@ -71,7 +83,7 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, wp_id int) error { // adds the 
 		return errors.New("Cannot add workout without wp_id and usr_id")
 	}
 
-	statement := "insert into workout_plan (usr, plan) values (?, ?)"
+	statement := "insert into users_plans (usr, plan) values (?, ?)"
 	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return err
@@ -176,3 +188,94 @@ func (Db *DataBase) DeleteWorkoutPlan(id *WorkoutPlan) (bool, error) { // NOTE: 
 	return true, nil
 }
 
+func (Db *DataBase) CreateExerciseDay(ex_day *ExerciseDay) (int, error) {
+
+	err := ValidateExerciseDayInput(ex_day)
+	if err != nil {
+		return 0, err
+	}
+
+	statement := "insert into exercise_day (plan, day_name, exercise, weight, sets, min_reps, max_reps, day_order, exercise_order) values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id"
+	var stmt *sql.Stmt
+	stmt, err = Db.Data.Prepare(statement)
+	if err != nil {
+		return 0, err
+	}
+
+	defer stmt.Close()
+
+	var ex_day_id int
+	err = stmt.QueryRow(
+		ex_day.Plan,
+		ex_day.DayName,
+		ex_day.Exercise,
+		ex_day.Weight,
+		ex_day.Sets,
+		ex_day.MinReps,
+		ex_day.MaxReps,
+		ex_day.DayOrder,
+		ex_day.ExerciseOrder,
+	).Scan(&ex_day_id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return ex_day_id, nil
+}
+
+func ValidateExerciseDayInput(ex_day *ExerciseDay) error {
+
+	if ex_day.Plan == 0 || ex_day.Exercise == 0 {
+		return errors.New("Cannot create ExerciseDay without Plan and Exercise ID")
+	}
+
+	if ex_day.Sets < 0 {
+		ex_day.Sets = 1
+	}
+
+	if ex_day.Weight < 0.0 {
+		ex_day.Weight = 0.0
+	}
+
+	if ex_day.MinReps < 0 {
+		ex_day.MinReps = 0
+	}
+
+	if ex_day.MaxReps < 0 {
+		ex_day.MaxReps = 0
+	}
+
+	return nil
+
+}
+
+func (Db *DataBase) UpdateExerciseDay(ex_day *ExerciseDay) error {
+
+	err := ValidateExerciseDayInput(ex_day)
+	if err != nil {
+		return err
+	}
+
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("UPDATE exercise_day SET day_name = ?, exercise = ?, weight = ?, sets = ?, min_rep = ?, max_reps = ?, day_order = ?, exercise_order = ? WHERE id = ?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(ex_day.DayName, ex_day.Exercise, ex_day.Weight, ex_day.Sets, ex_day.MinReps, ex_day.MaxReps, ex_day.DayOrder, ex_day.ExerciseOrder, ex_day.Id)
+
+	if err != nil {
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}

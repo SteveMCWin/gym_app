@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"html/template"
 	"os"
 
 	"time"
@@ -17,8 +18,20 @@ import (
 )
 
 var sessionManager *scs.SessionManager
-
 var domain string
+
+// used by gin to load template funcs
+func templateFuncs() template.FuncMap {
+    return template.FuncMap{
+        "until": func(n int) []int {
+			result := make([]int, n)
+			for i := 0; i < n; i++ {
+				result[i] = i
+			}
+			return result
+        },
+    }
+}
 
 func main() {
 
@@ -49,6 +62,7 @@ func main() {
 
 	router := gin.Default()
 
+    router.SetFuncMap(templateFuncs())
 	router.LoadHTMLGlob("templates/*") // loads all templates from the templates directory
 
 	router.GET("/", HandleGetHome())
@@ -66,12 +80,13 @@ func main() {
 	user_router.GET("/signup/from-mail/:id/:email", HandleGetSignupFromMail())
 	user_router.POST("/signup/from-mail/:id/:email", HandlePostSignupFromMail(&db))
 	user_router.GET("/delete_account", HandleGetDeleteAccount())
-	user_router.POST("/delete_account", /* MiddlewareNoCache(), */ HandlePostDeleteAccount(&db))
+	user_router.POST("/delete_account", HandlePostDeleteAccount(&db))
 	user_router.GET("/edit_profile", HandleGetEditProfile(&db))
 	user_router.POST("/edit_profile", HandlePostEditProfile(&db))
 	user_router.GET("/change_password", HandleGetChangePassword(&db))
 	user_router.GET("/change_password/:id/:email", HandleGetChangePasswordFromMail())
 	user_router.POST("/change_password/:id/:email", HandlePostChangePasswordFromMail(&db))
+	user_router.GET("/create_plan", HandleGetCreatePlan())
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

@@ -54,7 +54,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			"GymGoals": usr.GymGoals,
 			"CurrentGym": usr.CurrentGym,
 			"CurrentPlan": usr.CurrentPlan,
-			"DateCreated": usr.DateCreated.Format("2006-01-02"),
+			"DateCreated": usr.DateCreated.Format("2006-01-02"), // consider doing a .split on the string and rearrange
 		}
 
 		c.HTML(http.StatusOK, "profile.html", user_view)
@@ -405,5 +405,12 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 		log.Println("Deleted token successfully")
 
 		c.Redirect(http.StatusSeeOther, "/user/profile")
+	}
+}
+
+func HandleGetCreatePlan() func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		c.HTML(http.StatusOK, "make_plan.html", gin.H{})
 	}
 }
