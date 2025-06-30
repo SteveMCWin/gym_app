@@ -30,6 +30,8 @@ go.work.sum
 # databases
 models/*.db
 
+fitness_app
+
 # Editor/IDE
 # .idea/
 # .vscode/

@@ -28,15 +28,13 @@ func HandleGetError() func(c *gin.Context) {
 func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
-		log.Println("VIEWING USER PROFILE")
-
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
 		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		log.Println("user_id from sessionManager:", user_id)
+		// log.Println("user_id from sessionManager:", user_id)
 
 		usr, err := db.ReadUser(user_id)
 
@@ -48,8 +46,18 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		log.Println("RENDERING USER PROFILE")
-		c.HTML(http.StatusOK, "profile.html", usr)
+		user_view := gin.H {
+			"Name": usr.Name,
+			"Email": usr.Email,
+			"TrainingSince": usr.TrainingSince.Format("2006-01-02"), // consider doing a .split on the string and rearrange
+			"IsTrainer": usr.IsTrainer,
+			"GymGoals": usr.GymGoals,
+			"CurrentGym": usr.CurrentGym,
+			"CurrentPlan": usr.CurrentPlan,
+			"DateCreated": usr.DateCreated.Format("2006-01-02"),
+		}
+
+		c.HTML(http.StatusOK, "profile.html", user_view)
 
 	}
 }
@@ -247,9 +255,18 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
+func MiddlewareNoCache() func(c *gin.Context) {
+    return func(c *gin.Context) {
+        c.Writer.Header().Set("Cache-Control", "no-store")
+        c.Writer.Header().Set("Pragma", "no-cache")
+        c.Writer.Header().Set("Expires", "0")
+        c.Next()
+    }
+}
+
 func HandleGetLogout(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		sessionManager.Clear(c.Request.Context())
+		sessionManager.Destroy(c.Request.Context())
 
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 	}

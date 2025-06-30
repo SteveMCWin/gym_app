@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+
 type User struct {
 	Id            int       `json:"id"`
 	Name          string    `json:"name"`
@@ -22,31 +23,6 @@ type User struct {
 	CurrentGym    string    `json:"current_gym"` // perhaps change this to be an id of a gym in the database
 	CurrentPlan   int       `json:"current_plan"`
 	DateCreated   time.Time `json:"time_created"`
-}
-
-type DataBase struct {
-	Data      *sql.DB
-	is_opened bool
-}
-
-func (dataBase *DataBase) Close() {
-	dataBase.Data.Close()
-	dataBase.is_opened = false
-}
-
-func (dataBase *DataBase) InitDatabase() error {
-	if dataBase.is_opened {
-		return errors.New("ERROR: Database already opened")
-	}
-	var err error
-	dataBase.Data, err = sql.Open("sqlite3", "models/database.db")
-	if err != nil {
-		return errors.New("ERROR: Couldn't open database")
-	}
-
-	dataBase.is_opened = true
-
-	return nil
 }
 
 func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
@@ -96,32 +72,27 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 	}
 
 	// user already has an account
-	return 0, errors.New("ERROR: user already has an account")
+	return 0, errors.New("ERROR: user already has an account") // NOTE: handle this better, lead the user to the login page
 }
 
 func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	usr := &User{}
 
-	var trainingSinceStr, dateCreatedStr string
-
-	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym from users where id = ?", usr_id).Scan(
+	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym, current_plan, date_created from users where id = ?", usr_id).Scan(
 		&usr.Id,
 		&usr.Name,
 		&usr.Email,
-		&trainingSinceStr,
+		&usr.TrainingSince,
 		&usr.IsTrainer,
 		&usr.GymGoals,
 		&usr.CurrentGym,
 		&usr.CurrentPlan,
-		&dateCreatedStr,
+		&usr.DateCreated,
 	) // gets the public data of the user
 
 	if err != nil {
 		return nil, err
 	}
-
-	usr.TrainingSince, _ = time.Parse("2006-01-02", trainingSinceStr)
-	usr.DateCreated, _ = time.Parse("2006-01-02", dateCreatedStr)
 
 	return usr, nil
 }
@@ -184,7 +155,7 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE users SET name = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE Id = ?")
+	stmt, err := tx.Prepare("UPDATE users SET name = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE id = ?")
 	if err != nil {
 		return false, err
 	}

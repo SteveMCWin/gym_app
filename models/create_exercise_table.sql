@@ -8,28 +8,21 @@ CREATE TABLE exercises (
     difficulty INTEGER CHECK (difficulty IN (1, 2, 3))
 );
 
+DROP TABLE IF EXISTS target;
+
+CREATE TABLE target (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    standard_name TEXT,
+    latin_name TEXT,
+    CHECK( standard_name IS NOT NULL OR latin_name IS NOT NULL)
+)
+
 DROP TABLE IF EXISTS exercise_targets;
 
 CREATE TABLE exercise_targets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     exercise INTEGER NOT NULL,
-    target TEXT NOT NULL, -- NOTE: CONSIDER MAKING A TABLE OF ALL THINGS AN EXERCISE CAN TARGET
-    FOREIGN KEY(exercise) REFERENCES exercises(id)
-);
-
-DROP TABLE IF EXISTS gym_equipment;
-
-CREATE TABLE gym_equipment (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
-);
-
-DROP TABLE IF EXISTS exercise_equipment;
-
-CREATE TABLE exercise_equipment (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    equipment INTEGER NOT NULL,
-    exercise INTEGER NOT NULL,
+    target INTEGER NOT NULL,
+    PRIMARY KEY (exercise, target),
     FOREIGN KEY(exercise) REFERENCES exercises(id),
-    FOREIGN KEY(equipment) REFERENCES gym_equipment(id)
+    FOREIGN KEY(target) REFERENCES target(id)
 );
