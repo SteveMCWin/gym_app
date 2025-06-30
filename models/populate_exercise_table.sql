@@ -51,3 +51,69 @@ INSERT into exercises (name, exercise_type, difficulty) VALUES ('hamstring curls
 INSERT into exercises (name, exercise_type, difficulty) VALUES ('romanian deadlift', '', 2);
 INSERT into exercises (name, exercise_type, difficulty) VALUES ('good mornings', '', 2);
 INSERT into exercises (name, exercise_type, difficulty) VALUES ('hamstring raise', '', 2);
+
+
+---------------
+--- TARGETS ---
+---------------
+
+INSERT into target (standard_name, latin_name) VALUES ('chest', '');
+INSERT into target (standard_name, latin_name) VALUES ('back', '');
+INSERT into target (standard_name, latin_name) VALUES ('biceps', '');
+INSERT into target (standard_name, latin_name) VALUES ('triceps', '');
+INSERT into target (standard_name, latin_name) VALUES ('shoulders', '');
+INSERT into target (standard_name, latin_name) VALUES ('quads', '');
+INSERT into target (standard_name, latin_name) VALUES ('hamstrings', '');
+
+------------------------
+--- EXERCISE TARGETS ---
+------------------------
+
+
+INSERT into exercise_targets (exercise, target) VALUES (1, 1);
+INSERT into exercise_targets (exercise, target) VALUES (2, 1);
+INSERT into exercise_targets (exercise, target) VALUES (3, 1);
+INSERT into exercise_targets (exercise, target) VALUES (4, 1);
+INSERT into exercise_targets (exercise, target) VALUES (5, 1);
+INSERT into exercise_targets (exercise, target) VALUES (6, 1);
+INSERT into exercise_targets (exercise, target) VALUES (7, 2);
+INSERT into exercise_targets (exercise, target) VALUES (8, 2);
+INSERT into exercise_targets (exercise, target) VALUES (9, 2);
+INSERT into exercise_targets (exercise, target) VALUES (10, 2);
+INSERT into exercise_targets (exercise, target) VALUES (11, 2);
+INSERT into exercise_targets (exercise, target) VALUES (12, 2);
+INSERT into exercise_targets (exercise, target) VALUES (13, 2);
+INSERT into exercise_targets (exercise, target) VALUES (14, 4);
+INSERT into exercise_targets (exercise, target) VALUES (15, 4);
+INSERT into exercise_targets (exercise, target) VALUES (16, 4);
+INSERT into exercise_targets (exercise, target) VALUES (17, 4);
+INSERT into exercise_targets (exercise, target) VALUES (18, 3);
+INSERT into exercise_targets (exercise, target) VALUES (19, 3);
+INSERT into exercise_targets (exercise, target) VALUES (20, 3);
+INSERT into exercise_targets (exercise, target) VALUES (21, 3);
+INSERT into exercise_targets (exercise, target) VALUES (22, 3);
+INSERT into exercise_targets (exercise, target) VALUES (23, 3);
+INSERT into exercise_targets (exercise, target) VALUES (24, 3);
+INSERT into exercise_targets (exercise, target) VALUES (25, 3);
+INSERT into exercise_targets (exercise, target) VALUES (26, 5);
+INSERT into exercise_targets (exercise, target) VALUES (27, 5);
+INSERT into exercise_targets (exercise, target) VALUES (28, 5);
+INSERT into exercise_targets (exercise, target) VALUES (29, 5);
+INSERT into exercise_targets (exercise, target) VALUES (30, 5);
+INSERT into exercise_targets (exercise, target) VALUES (31, 5);
+INSERT into exercise_targets (exercise, target) VALUES (32, 5);
+INSERT into exercise_targets (exercise, target) VALUES (33, 5);
+INSERT into exercise_targets (exercise, target) VALUES (34, 5);
+INSERT into exercise_targets (exercise, target) VALUES (35, 6);
+INSERT into exercise_targets (exercise, target) VALUES (36, 6);
+INSERT into exercise_targets (exercise, target) VALUES (37, 6);
+INSERT into exercise_targets (exercise, target) VALUES (38, 6);
+INSERT into exercise_targets (exercise, target) VALUES (39, 6);
+INSERT into exercise_targets (exercise, target) VALUES (40, 6);
+INSERT into exercise_targets (exercise, target) VALUES (41, 6);
+INSERT into exercise_targets (exercise, target) VALUES (42, 6);
+INSERT into exercise_targets (exercise, target) VALUES (43, 6);
+INSERT into exercise_targets (exercise, target) VALUES (44, 7);
+INSERT into exercise_targets (exercise, target) VALUES (45, 7);
+INSERT into exercise_targets (exercise, target) VALUES (46, 7);
+INSERT into exercise_targets (exercise, target) VALUES (47, 7);

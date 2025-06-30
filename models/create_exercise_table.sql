@@ -15,7 +15,7 @@ CREATE TABLE target (
     standard_name TEXT,
     latin_name TEXT,
     CHECK( standard_name IS NOT NULL OR latin_name IS NOT NULL)
-)
+);
 
 DROP TABLE IF EXISTS exercise_targets;
 
