@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Column-Based Table with Names</title>
+    <title>Create Workout Plan</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,6 +16,7 @@
             justify-content: center;
             gap: 20px;
             flex-wrap: wrap;
+            margin-top: 20px;
         }
 
         .column {
@@ -40,6 +41,30 @@
             border-bottom: 2px solid #007bff;
         }
 
+        form {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 8px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-section label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 6px;
+        }
+
         button {
             margin: 10px;
             padding: 8px 16px;
@@ -49,60 +74,84 @@
 </head>
 <body>
 
-<h2>Build Your Table</h2>
+    <h2>Create a New Workout Plan</h2>
 
-<form method="POST" action="/submit-table" id="columnForm">
-    <div class="columns" id="columnsContainer">
-        <!-- Columns inserted here -->
-    </div>
+    <form method="POST" action="/user/create_plan" id="columnForm">
+        {{ .csrfField }}
 
-    <div>
-        <button type="button" onclick="addColumn()">Add Column</button>
-        <button type="submit">Done</button>
-    </div>
-</form>
+        <div class="form-section">
+            <label for="plan_name">Plan Name</label>
+            <input type="text" id="plan_name" name="plan_name" required>
+        </div>
 
-<script>
-    let columnCount = 0;
-    const container = document.getElementById("columnsContainer");
+        <div class="form-section">
+            <label for="plan_description">Description</label>
+            <textarea id="plan_description" name="plan_description" placeholder="Describe your workout plan..."></textarea>
+        </div>
 
-    function addColumn() {
-        const col = document.createElement("div");
-        col.className = "column";
-        col.setAttribute("data-col-index", columnCount);
+        <div class="form-section">
+            <label>
+                <input type="checkbox" name="make_current" value="true">
+                Make current
+            </label>
+        </div>
 
-        // Column name input
-        const nameInput = document.createElement("input");
-        nameInput.name = `column_name_${columnCount}`;
-        nameInput.placeholder = "Column name";
-        nameInput.setAttribute("data-type", "col-name");
-        nameInput.type = "text";
-        col.appendChild(nameInput);
+        <div class="columns" id="columnsContainer">
+            <!-- Dynamic columns will go here -->
+        </div>
 
-        // Input container
-        const inputContainer = document.createElement("div");
-        inputContainer.className = "inputContainer";
-        col.appendChild(inputContainer);
+        <div>
+            <button type="button" onclick="addColumn()">Add Column</button>
+            <button type="submit">Done</button>
+        </div>
+    </form>
 
-        // Add Row button
-        const addBtn = document.createElement("button");
-        addBtn.type = "button";
-        addBtn.textContent = "Add Row";
-        addBtn.onclick = () => addRow(inputContainer, columnCount);
-        col.appendChild(addBtn);
+    <script>
+        let columnCount = 0;
 
-        container.appendChild(col);
-        columnCount++;
-    }
+        function addColumn() {
+            const colIndex = columnCount++;
+            const col = document.createElement("div");
+            col.className = "column";
+            col.setAttribute("data-col-index", colIndex);
 
-    function addRow(container, colIndex) {
-        const inputCount = container.children.length;
-        const input = document.createElement("input");
-        input.name = `cell_${colIndex}_${inputCount}`;
-        input.type = "text";
-        container.appendChild(input);
-    }
-</script>
+            // Column name input
+            const nameInput = document.createElement("input");
+            nameInput.name = `column_name_${colIndex}`;
+            nameInput.placeholder = "Column name";
+            nameInput.setAttribute("data-type", "col-name");
+            nameInput.type = "text";
+            col.appendChild(nameInput);
+
+            // Input container
+            const inputContainer = document.createElement("div");
+            inputContainer.className = "inputContainer";
+            inputContainer.setAttribute("data-rows", "0");
+            inputContainer.setAttribute("data-col-index", colIndex);
+            col.appendChild(inputContainer);
+
+            // Add Row button
+            const addBtn = document.createElement("button");
+            addBtn.type = "button";
+            addBtn.textContent = "Add Row";
+            addBtn.onclick = () => addRow(inputContainer);
+            col.appendChild(addBtn);
+
+            document.getElementById("columnsContainer").appendChild(col);
+        }
+
+        function addRow(container) {
+            const colIndex = container.getAttribute("data-col-index");
+            let rowIndex = parseInt(container.getAttribute("data-rows"), 10);
+
+            const input = document.createElement("input");
+            input.name = `cell_${colIndex}_${rowIndex}`;
+            input.type = "text";
+            container.appendChild(input);
+
+            container.setAttribute("data-rows", rowIndex + 1);
+        }
+    </script>
 
 </body>
 </html>

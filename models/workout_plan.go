@@ -124,10 +124,9 @@ func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, wp_id int) error {
 }
 
 func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
-	wp := &WorkoutPlan{}
+	wp := &WorkoutPlan{ Id: id }
 
-	err := Db.Data.QueryRow("select id, name, creator, description from workout_plan where id = ?", id).Scan(
-		&wp.Id,
+	err := Db.Data.QueryRow("select name, creator, description from workout_plan where id = ?", id).Scan(
 		&wp.Name,
 		&wp.Creator,
 		&wp.Description,
@@ -248,6 +247,28 @@ func ValidateExerciseDayInput(ex_day *ExerciseDay) error {
 
 	return nil
 
+}
+
+func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
+	ex_day := &ExerciseDay{ Id : ex_day_id}
+
+	err := Db.Data.QueryRow("select plan, day_name, exercise, weight, sets, min_reps, max_reps, day_order, exercise_order from workout_plan where id = ?", ex_day_id).Scan(
+		&ex_day.Plan,
+		&ex_day.DayName,
+		&ex_day.Exercise,
+		&ex_day.Weight,
+		&ex_day.Sets,
+		&ex_day.MinReps,
+		&ex_day.MaxReps,
+		&ex_day.DayOrder,
+		&ex_day.ExerciseOrder,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ex_day, nil
 }
 
 func (Db *DataBase) UpdateExerciseDay(ex_day *ExerciseDay) error {

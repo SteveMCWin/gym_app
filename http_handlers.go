@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"fitness_app/mail"
@@ -410,7 +412,84 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 
 func HandleGetCreatePlan() func(c *gin.Context) {
 	return func(c *gin.Context) {
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+		}
+		c.HTML(http.StatusOK, "make_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request) })
+	}
+}
 
-		c.HTML(http.StatusOK, "make_plan.html", gin.H{})
+func HandlePostCreatePlan(db *models.DataBase) func (c *gin.Context) {
+	return func(c *gin.Context) {
+		c.Request.ParseForm()
+		form := c.Request.PostForm
+
+		var plan_name string
+		var plan_desc string
+		// var set_to_current bool
+
+		columns := make(map[int]string)
+		cells := make(map[int][]string)
+
+		fmt.Println()
+
+		for key, vals := range form {
+			value := vals[0]
+
+			fmt.Println("Key:", key)
+			fmt.Println("Vals:", vals)
+
+			if strings.HasPrefix(key, "column_name_") {
+				index, _ := strconv.Atoi(strings.TrimPrefix(key, "column_name_"))
+				columns[index] = value
+			} else if strings.HasPrefix(key, "cell_") {
+				parts := strings.Split(strings.TrimPrefix(key, "cell_"), "_")
+				if len(parts) != 2 {
+					continue
+				}
+				colIdx, _ := strconv.Atoi(parts[0])
+				rowIdx, _ := strconv.Atoi(parts[1])
+
+				for len(cells[colIdx]) <= rowIdx {
+					cells[colIdx] = append(cells[colIdx], "")
+				}
+				cells[colIdx][rowIdx] = value
+			} else if key == "plan_name" {
+				plan_name = value
+			} else if key == "plan_description" {
+				plan_desc = value
+			} else if key == "make_current" {
+				// set_to_current = value
+			}
+		}
+
+		fmt.Println(columns)
+		fmt.Println(cells)
+
+		new_plan := models.WorkoutPlan {
+			Name: plan_name,
+			Description: plan_desc,
+			Creator: sessionManager.GetInt(c.Request.Context(), "user_id"),
+		}
+
+		wp_id, err := db.CreateWorkoutPlan(c, &new_plan)
+
+		if err != nil {
+			c.Redirect(http.StatusSeeOther, "/error-page")
+		}
+
+		for i, day_name := range columns {
+			for j, ex_name := range cells[i] {
+				// Gotta figure out how Imma get the exercise id, other than that we shoul be ok
+				_ = day_name
+				_ = j
+				_ = ex_name
+				_ = wp_id
+			}
+		}
+
+
+		// Use columns + cells as needed
+		c.String(http.StatusOK, "Table submitted with %d columns", len(columns))
 	}
 }
