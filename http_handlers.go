@@ -466,30 +466,64 @@ func HandlePostCreatePlan(db *models.DataBase) func (c *gin.Context) {
 		fmt.Println(columns)
 		fmt.Println(cells)
 
+		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		log.Println("USR_ID:", usr_id)
+
 		new_plan := models.WorkoutPlan {
 			Name: plan_name,
 			Description: plan_desc,
-			Creator: sessionManager.GetInt(c.Request.Context(), "user_id"),
+			Creator: usr_id,
 		}
 
-		wp_id, err := db.CreateWorkoutPlan(c, &new_plan)
+		wp_id, err := db.CreateWorkoutPlan(&new_plan)
 
 		if err != nil {
+			log.Println("ERROR")
+			log.Println(err)
+			log.Println("ERROR")
 			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
+
+		log.Println("WP_ID:", wp_id)
 
 		for i, day_name := range columns {
 			for j, ex_name := range cells[i] {
-				// Gotta figure out how Imma get the exercise id, other than that we shoul be ok
-				_ = day_name
-				_ = j
-				_ = ex_name
-				_ = wp_id
+				// for now the ex_name is actually the id of the exercise
+				new_ex_id, err := strconv.Atoi(ex_name)
+				if err != nil {
+					panic(err)
+				}
+				new_ex := models.ExerciseDay {
+					Plan: wp_id,
+					Exercise: new_ex_id,
+					DayName: day_name,
+					Weight: 0.0,
+					Sets: 3,
+					MinReps: 6,
+					MaxReps: 12,
+					DayOrder: i,
+					ExerciseOrder: j,
+				}
+
+				_, err = db.CreateExerciseDay(&new_ex)
+				if err != nil {
+					log.Println("ERROR")
+					log.Println(err)
+					log.Println("ERROR")
+				}
 			}
 		}
 
+		_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
 
-		// Use columns + cells as needed
-		c.String(http.StatusOK, "Table submitted with %d columns", len(columns))
+		if err != nil {
+			log.Println("ERROR")
+			log.Println(err)
+			log.Println("ERROR")
+		}
+
+		c.Redirect(http.StatusSeeOther, "/user/profile")
 	}
 }

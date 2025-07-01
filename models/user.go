@@ -173,20 +173,24 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) UpdateUserCurrentPlan(usr *User) (bool, error) {
+func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
+
+	Db.AddWorkoutPlanToUser(usr_id, plan_id) // ensure the user and plan are linked
+	// WARNING: should check if returns error and handle accordingly
+
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE users SET plan = ? WHERE Id = ?")
+	stmt, err := tx.Prepare("UPDATE users SET current_plan = ? WHERE Id = ?")
 	if err != nil {
 		return false, err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(usr.CurrentPlan, usr.Id)
+	_, err = stmt.Exec(plan_id, usr_id)
 
 	if err != nil {
 		return false, err

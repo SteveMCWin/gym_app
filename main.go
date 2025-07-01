@@ -89,7 +89,7 @@ func main() {
 	user_router.GET("/change_password/:id/:email", HandleGetChangePasswordFromMail())
 	user_router.POST("/change_password/:id/:email", HandlePostChangePasswordFromMail(&db))
 	user_router.GET("/create_plan", HandleGetCreatePlan())
-	user_router.POST("/create_plan", HandlePostCreatePlan())
+	user_router.POST("/create_plan", HandlePostCreatePlan(&db))
 	user_router.GET("/profile/current_plan")
 	user_router.GET("/profile/all_plans")
 

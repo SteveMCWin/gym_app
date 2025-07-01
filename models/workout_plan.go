@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 
-	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -29,7 +28,7 @@ type ExerciseDay struct {
 	ExerciseOrder int     `json:"exercise_order"`
 }
 
-func (Db *DataBase) CreateWorkoutPlan(c *gin.Context, wp *WorkoutPlan) (int, error) {
+func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 
 	log.Println("CREATING WORKOUT PLANNN")
 
@@ -75,31 +74,52 @@ func (Db *DataBase) CreateWorkoutPlan(c *gin.Context, wp *WorkoutPlan) (int, err
 		return 0, err
 	}
 
+	log.Println("WP_ID BEFORE RETURN:", workout_plan_id)
+
 	return workout_plan_id, nil
 }
 
-func (Db *DataBase) AddWorkoutPlanToUser(usr_id, wp_id int) error { // adds the workout to the list of workouts the user has/uses/whatever
-	if wp_id == 0 || usr_id == 0 {
-		return errors.New("Cannot add workout without wp_id and usr_id")
+func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds the workout to the list of workouts the user has/uses/whatever
+	if plan_id == 0 || usr_id == 0 {
+		return errors.New("Cannot add workout without plan_id and usr_id")
 	}
 
-	statement := "insert into users_plans (usr, plan) values (?, ?)"
-	stmt, err := Db.Data.Prepare(statement)
+	var tmp int
+
+	err := Db.Data.QueryRow("select plan from users_plans where usr = ? AND plan = ?", usr_id, plan_id).Scan(&tmp)
+
+	if err == nil {
+		return errors.New("User was already linked with this workout plan")
+	}
+
+	tx, err := Db.Data.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("insert into users_plans (usr, plan) values (?, ?)")
 	if err != nil {
 		return err
 	}
 
 	defer stmt.Close()
 
-	err = stmt.QueryRow(usr_id, wp_id).Scan()
+	_, err = stmt.Exec(
+		usr_id,
+		plan_id,
+	)
+
 	if err != nil {
 		return err
 	}
 
+	tx.Commit()
+
 	return nil
 }
 
-func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, wp_id int) error {
+func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, plan_id int) error {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return err
@@ -112,7 +132,7 @@ func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, wp_id int) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(usr_id, wp_id)
+	_, err = stmt.Exec(usr_id, plan_id)
 
 	if err != nil {
 		return err
@@ -300,3 +320,4 @@ func (Db *DataBase) UpdateExerciseDay(ex_day *ExerciseDay) error {
 
 	return nil
 }
+
