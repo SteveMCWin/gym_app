@@ -28,6 +28,18 @@ type ExerciseDay struct {
 	ExerciseOrder int     `json:"exercise_order"`
 }
 
+type PlanColumn struct {
+	Name string   `json:"name"`
+	Rows []string `json:"rows"`
+}
+
+type PlanJSON struct {
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	MakeCurrent bool         `json:"make_current"`
+	Columns     []PlanColumn `json:"columns"`
+}
+
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 
 	log.Println("CREATING WORKOUT PLANNN")
@@ -144,7 +156,7 @@ func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, plan_id int) error {
 }
 
 func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
-	wp := &WorkoutPlan{ Id: id }
+	wp := &WorkoutPlan{Id: id}
 
 	err := Db.Data.QueryRow("select name, creator, description from workout_plan where id = ?", id).Scan(
 		&wp.Name,
@@ -270,7 +282,7 @@ func ValidateExerciseDayInput(ex_day *ExerciseDay) error {
 }
 
 func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
-	ex_day := &ExerciseDay{ Id : ex_day_id}
+	ex_day := &ExerciseDay{Id: ex_day_id}
 
 	err := Db.Data.QueryRow("select plan, day_name, exercise, weight, sets, min_reps, max_reps, day_order, exercise_order from workout_plan where id = ?", ex_day_id).Scan(
 		&ex_day.Plan,
@@ -320,4 +332,3 @@ func (Db *DataBase) UpdateExerciseDay(ex_day *ExerciseDay) error {
 
 	return nil
 }
-

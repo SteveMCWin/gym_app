@@ -1,0 +1,105 @@
+
+		c.Request.ParseForm()
+		form := c.Request.PostForm
+
+		var plan_name string
+		var plan_desc string
+		// var set_to_current bool
+
+		columns := make(map[int]string)
+		cells := make(map[int][]string)
+
+		fmt.Println()
+
+		for key, vals := range form {
+			value := vals[0]
+
+			fmt.Println("Key:", key)
+			fmt.Println("Vals:", vals)
+
+			if strings.HasPrefix(key, "column_name_") {
+				index, _ := strconv.Atoi(strings.TrimPrefix(key, "column_name_"))
+				columns[index] = value
+			} else if strings.HasPrefix(key, "cell_") {
+				parts := strings.Split(strings.TrimPrefix(key, "cell_"), "_")
+				if len(parts) != 2 {
+					continue
+				}
+				colIdx, _ := strconv.Atoi(parts[0])
+				rowIdx, _ := strconv.Atoi(parts[1])
+
+				for len(cells[colIdx]) <= rowIdx {
+					cells[colIdx] = append(cells[colIdx], "")
+				}
+				cells[colIdx][rowIdx] = value
+			} else if key == "plan_name" {
+				plan_name = value
+			} else if key == "plan_description" {
+				plan_desc = value
+			} else if key == "make_current" {
+				// set_to_current = value
+			}
+		}
+
+		fmt.Println(columns)
+		fmt.Println(cells)
+
+		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		log.Println("USR_ID:", usr_id)
+
+		new_plan := models.WorkoutPlan {
+			Name: plan_name,
+			Description: plan_desc,
+			Creator: usr_id,
+		}
+
+		wp_id, err := db.CreateWorkoutPlan(&new_plan)
+
+		if err != nil {
+			log.Println("ERROR")
+			log.Println(err)
+			log.Println("ERROR")
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		log.Println("WP_ID:", wp_id)
+
+		for i, day_name := range columns {
+			for j, ex_name := range cells[i] {
+				// for now the ex_name is actually the id of the exercise
+				new_ex_id, err := strconv.Atoi(ex_name)
+				if err != nil {
+					panic(err)
+				}
+				new_ex := models.ExerciseDay {
+					Plan: wp_id,
+					Exercise: new_ex_id,
+					DayName: day_name,
+					Weight: 0.0,
+					Sets: 3,
+					MinReps: 6,
+					MaxReps: 12,
+					DayOrder: i,
+					ExerciseOrder: j,
+				}
+
+				_, err = db.CreateExerciseDay(&new_ex)
+				if err != nil {
+					log.Println("ERROR")
+					log.Println(err)
+					log.Println("ERROR")
+				}
+			}
+		}
+
+		_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
+
+		if err != nil {
+			log.Println("ERROR")
+			log.Println(err)
+			log.Println("ERROR")
+		}
+
+		c.Redirect(http.StatusSeeOther, "/user/profile")

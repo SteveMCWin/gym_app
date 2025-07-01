@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"fitness_app/mail"
@@ -48,15 +47,15 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_view := gin.H {
-			"Name": usr.Name,
-			"Email": usr.Email,
+		user_view := gin.H{
+			"Name":          usr.Name,
+			"Email":         usr.Email,
 			"TrainingSince": usr.TrainingSince.Format("2006-01-02"), // consider doing a .split on the string and rearrange
-			"IsTrainer": usr.IsTrainer,
-			"GymGoals": usr.GymGoals,
-			"CurrentGym": usr.CurrentGym,
-			"CurrentPlan": usr.CurrentPlan,
-			"DateCreated": usr.DateCreated.Format("2006-01-02"), // consider doing a .split on the string and rearrange
+			"IsTrainer":     usr.IsTrainer,
+			"GymGoals":      usr.GymGoals,
+			"CurrentGym":    usr.CurrentGym,
+			"CurrentPlan":   usr.CurrentPlan,
+			"DateCreated":   usr.DateCreated.Format("2006-01-02"), // consider doing a .split on the string and rearrange
 		}
 
 		c.HTML(http.StatusOK, "profile.html", user_view)
@@ -71,7 +70,7 @@ func HandleGetLogin() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "login.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request) })
+		c.HTML(http.StatusOK, "login.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request)})
 	}
 }
 
@@ -100,7 +99,7 @@ func HandleGetSignup() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "signup.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request) })
+		c.HTML(http.StatusOK, "signup.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request)})
 	}
 }
 
@@ -156,7 +155,7 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "account_creation.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email})
+		c.HTML(http.StatusOK, "account_creation.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email})
 	}
 }
 
@@ -230,7 +229,7 @@ func HandleGetDeleteAccount() func(c *gin.Context) {
 			usr_id = sessionManager.GetInt(c.Request.Context(), "user_id")
 		}
 
-		c.HTML(http.StatusOK, "delete_accout.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "UserID": usr_id })
+		c.HTML(http.StatusOK, "delete_accout.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "UserID": usr_id})
 	}
 }
 
@@ -258,12 +257,12 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 }
 
 func MiddlewareNoCache() func(c *gin.Context) {
-    return func(c *gin.Context) {
-        c.Writer.Header().Set("Cache-Control", "no-store")
-        c.Writer.Header().Set("Pragma", "no-cache")
-        c.Writer.Header().Set("Expires", "0")
-        c.Next()
-    }
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Cache-Control", "no-store")
+		c.Writer.Header().Set("Pragma", "no-cache")
+		c.Writer.Header().Set("Expires", "0")
+		c.Next()
+	}
 }
 
 func HandleGetLogout(db *models.DataBase) func(c *gin.Context) {
@@ -283,11 +282,11 @@ func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 		}
 		old_user_view := gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
-			"Name":          old_user.Name,
-			"TrainingSince": old_user.TrainingSince.Format("2006-01-02"),
-			"IsTrainer":     old_user.IsTrainer,
-			"GymGoals":      old_user.GymGoals,
-			"CurrentGym":    old_user.CurrentGym,
+			"Name":           old_user.Name,
+			"TrainingSince":  old_user.TrainingSince.Format("2006-01-02"),
+			"IsTrainer":      old_user.IsTrainer,
+			"GymGoals":       old_user.GymGoals,
+			"CurrentGym":     old_user.CurrentGym,
 		}
 		c.HTML(http.StatusOK, "edit_profile.html", old_user_view)
 	}
@@ -367,7 +366,7 @@ func HandleGetChangePasswordFromMail() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "change_password.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email })
+		c.HTML(http.StatusOK, "change_password.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email})
 	}
 }
 
@@ -414,65 +413,32 @@ func HandleGetCreatePlan() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
 		}
-		c.HTML(http.StatusOK, "make_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request) })
+		c.HTML(http.StatusOK, "make_plan.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request)})
 	}
 }
 
-func HandlePostCreatePlan(db *models.DataBase) func (c *gin.Context) {
+func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		c.Request.ParseForm()
-		form := c.Request.PostForm
-
-		var plan_name string
-		var plan_desc string
-		// var set_to_current bool
-
-		columns := make(map[int]string)
-		cells := make(map[int][]string)
-
-		fmt.Println()
-
-		for key, vals := range form {
-			value := vals[0]
-
-			fmt.Println("Key:", key)
-			fmt.Println("Vals:", vals)
-
-			if strings.HasPrefix(key, "column_name_") {
-				index, _ := strconv.Atoi(strings.TrimPrefix(key, "column_name_"))
-				columns[index] = value
-			} else if strings.HasPrefix(key, "cell_") {
-				parts := strings.Split(strings.TrimPrefix(key, "cell_"), "_")
-				if len(parts) != 2 {
-					continue
-				}
-				colIdx, _ := strconv.Atoi(parts[0])
-				rowIdx, _ := strconv.Atoi(parts[1])
-
-				for len(cells[colIdx]) <= rowIdx {
-					cells[colIdx] = append(cells[colIdx], "")
-				}
-				cells[colIdx][rowIdx] = value
-			} else if key == "plan_name" {
-				plan_name = value
-			} else if key == "plan_description" {
-				plan_desc = value
-			} else if key == "make_current" {
-				// set_to_current = value
-			}
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
 		}
 
-		fmt.Println(columns)
-		fmt.Println(cells)
+		var plan models.PlanJSON
+		if err := c.BindJSON(&plan); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+			return
+		}
+
+		fmt.Printf("Got workout plan: %+v\n", plan)
 
 		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		log.Println("USR_ID:", usr_id)
-
 		new_plan := models.WorkoutPlan {
-			Name: plan_name,
-			Description: plan_desc,
+			Name: plan.Name,
+			Description: plan.Description,
 			Creator: usr_id,
 		}
 
@@ -488,17 +454,16 @@ func HandlePostCreatePlan(db *models.DataBase) func (c *gin.Context) {
 
 		log.Println("WP_ID:", wp_id)
 
-		for i, day_name := range columns {
-			for j, ex_name := range cells[i] {
-				// for now the ex_name is actually the id of the exercise
-				new_ex_id, err := strconv.Atoi(ex_name)
+		for i, col := range plan.Columns {
+			for j, row := range col.Rows {
+				new_ex_id, err := strconv.Atoi(row) // WARNING: This is just the pre alpha version, I am assuming the passed in value is an int
 				if err != nil {
 					panic(err)
 				}
 				new_ex := models.ExerciseDay {
 					Plan: wp_id,
 					Exercise: new_ex_id,
-					DayName: day_name,
+					DayName: col.Name,
 					Weight: 0.0,
 					Sets: 3,
 					MinReps: 6,
@@ -512,6 +477,8 @@ func HandlePostCreatePlan(db *models.DataBase) func (c *gin.Context) {
 					log.Println("ERROR")
 					log.Println(err)
 					log.Println("ERROR")
+					c.Redirect(http.StatusSeeOther, "/error-page")
+					return
 				}
 			}
 		}
@@ -522,6 +489,8 @@ func HandlePostCreatePlan(db *models.DataBase) func (c *gin.Context) {
 			log.Println("ERROR")
 			log.Println(err)
 			log.Println("ERROR")
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
 
 		c.Redirect(http.StatusSeeOther, "/user/profile")
