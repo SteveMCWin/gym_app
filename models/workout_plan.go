@@ -31,7 +31,7 @@ type ExerciseDay struct {
 
 type PlanRow struct {
 	Name    string   `json:"name"`
-	Weight  *float64 `json:"weight"`
+	Weight  float64 `json:"weight"`
 	Unit    string   `json:"unit"`
 	Sets    int      `json:"sets"`
 	MinReps int      `json:"min_reps"`
@@ -328,7 +328,7 @@ func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
 }
 
 func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]*ExerciseDay, error) {
-	rows, err := Db.Data.Query("select day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from exercise_day order by day_order asc, exercise_order asc")
+	rows, err := Db.Data.Query("select day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
 	if err != nil {
 		return nil, err
 	}

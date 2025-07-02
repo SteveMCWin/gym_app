@@ -465,13 +465,6 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 				log.Println("Exercise:", new_ex_id)
 				log.Println("row.Weight:", row.Weight)
 
-				var weight float32
-				if row.Weight == nil {
-					weight = -1.0
-				} else {
-					weight = float32(*row.Weight)
-				}
-
 				var max_reps int
 				if row.MaxReps == nil {
 					max_reps = -1
@@ -483,7 +476,7 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 					Plan: wp_id,
 					Exercise: new_ex_id,
 					DayName: col.Name,
-					Weight: weight,
+					Weight: float32(row.Weight),
 					Unit: row.Unit,
 					Sets: row.Sets,
 					MinReps: row.MinReps,
@@ -533,7 +526,6 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
 			return
 		}
-		log.Println("GOT TO POINT 1")
 
 		wp, err := db.ReadWorkoutPlan(user.CurrentPlan)
 		if err != nil {
@@ -541,7 +533,6 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
 			return
 		}
-		log.Println("GOT TO POINT 2")
 
 		ex_days, err := db.ReadAllExerciseDaysFromPlan(wp.Id)
 		if err != nil || len(ex_days) == 0 {
@@ -549,7 +540,6 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
 			return
 		}
-		log.Println("GOT TO POINT 3")
 
 		plan_view := models.PlanJSON {
 			Name: wp.Name,
@@ -573,11 +563,9 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 				}
 			}
 
-			weight := float64(ex_day.Weight)
-
 			current_row := models.PlanRow {
 				Name: strconv.Itoa(ex_day.Exercise),
-				Weight: &weight,
+				Weight: float64(ex_day.Weight),
 				Unit: ex_day.Unit,
 				Sets: ex_day.Sets,
 				MinReps: ex_day.MinReps,
@@ -588,7 +576,7 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 
 		}
 
-		log.Println("GOT TO POINT 4")
+		cols = append(cols, current_col) // append the last column since the first if never gets called at the last iteration
 
 		plan_view.Columns = cols
 

@@ -35,8 +35,6 @@ func init() {
 	if mail_pass == "" || mail_sender == "" {
 		log.Fatal("ERROR: No mail sending data found in .env file")
 	}
-	log.Println("INITIALIZED MAIL HANDLER")
-	log.Println("mail_sender: ", mail_sender)
 }
 
 func SendMailHtml(mail *Mail) error {
