@@ -71,7 +71,6 @@ func main() {
 	user_router := router.Group("/user")
 	// profile_router := router.Group("/user/profile") // NOTE: consider reorganizig the routing with more groups, this is getting kinda messy now
 
-	// profile_router.GET("/", MiddlewareNoCache(), HandleGetProfile(&db))
 	user_router.GET("/profile", MiddlewareNoCache(), HandleGetProfile(&db))
 	user_router.GET("/login", HandleGetLogin())
 	user_router.POST("/login", HandlePostLogin(&db))
@@ -90,7 +89,7 @@ func main() {
 	user_router.POST("/change_password/:id/:email", HandlePostChangePasswordFromMail(&db))
 	user_router.GET("/create_plan", HandleGetCreatePlan())
 	user_router.POST("/create_plan", HandlePostCreatePlan(&db))
-	user_router.GET("/profile/current_plan")
+	user_router.GET("/profile/plans/view_current", HandleGetViewCurrentPlan(&db))
 	user_router.GET("/profile/all_plans")
 
 	handler := sessionManager.LoadAndSave(router)

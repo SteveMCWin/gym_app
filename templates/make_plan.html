@@ -66,9 +66,16 @@
 
             wrapper.innerHTML = `
                 <input placeholder="Exercise name" class="ex-name"><br>
-                <input placeholder="Weight (optional)" type="number" step="any" class="ex-weight"><br>
-                <input placeholder="Sets" type="number" class="ex-sets"><br>
-                <input placeholder="Min reps" type="number" class="ex-min"><br>
+                <input placeholder="Weight" type="number" step="any" class="ex-weight" required>
+                <select class="ex-unit" required>
+                    <option value="">Select unit</option>
+                    <option value="kg">kg</option>
+                    <option value="lbs">lbs</option>
+                    <option value="s">s</option>
+                    <option value="m">m</option>
+                </select><br>
+                <input placeholder="Sets" type="number" class="ex-sets" required><br>
+                <input placeholder="Min reps" type="number" class="ex-min" required><br>
                 <input placeholder="Max reps (optional)" type="number" class="ex-max">
             `;
 
@@ -97,6 +104,7 @@
                 const row = {
                     name: ex.querySelector(".ex-name").value,
                     weight: parseFloat(ex.querySelector(".ex-weight").value) || 0,
+                    unit: ex.querySelector(".ex-unit").value,
                     sets: parseInt(ex.querySelector(".ex-sets").value),
                     min_reps: parseInt(ex.querySelector(".ex-min").value),
                     max_reps: ex.querySelector(".ex-max").value ? parseInt(ex.querySelector(".ex-max").value) : null
@@ -124,10 +132,11 @@
         });
 
         if (res.ok) {
-            alert("Workout plan submitted!");
+            <!-- alert("Workout plan submitted!"); -->
             window.location.href = "/user/profile";
         } else {
-            alert("Failed to submit plan.");
+            <!-- alert("Failed to submit plan."); -->
+            window.location.href = "/error-page";
         }
     }
 </script>

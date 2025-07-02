@@ -21,6 +21,7 @@ CREATE TABLE exercise_day (
     day_name TEXT NOT NULL,
     exercise INTEGER NOT NULL,
     weight FLOAT,
+    unit TEXT DEFAULT 'kg' CHECK (unit IN ('kg', 'lbs', 's', 'm', '')),
     sets INTEGER DEFAULT 1, --NOTE: check if >= 1
     min_reps TEXT NOT NULL, --NOTE: this should support a variety of vals like 2, 14, 30s, 2m
     max_reps TEXT, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps but like 5 sets of 5

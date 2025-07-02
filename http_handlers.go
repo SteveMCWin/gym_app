@@ -484,6 +484,7 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 					Exercise: new_ex_id,
 					DayName: col.Name,
 					Weight: weight,
+					Unit: row.Unit,
 					Sets: row.Sets,
 					MinReps: row.MinReps,
 					MaxReps: max_reps,
@@ -515,5 +516,83 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.Redirect(http.StatusSeeOther, "/user/profile")
+	}
+}
+
+func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user, err := db.ReadUser(user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+		log.Println("GOT TO POINT 1")
+
+		wp, err := db.ReadWorkoutPlan(user.CurrentPlan)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+		log.Println("GOT TO POINT 2")
+
+		ex_days, err := db.ReadAllExerciseDaysFromPlan(wp.Id)
+		if err != nil || len(ex_days) == 0 {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+		log.Println("GOT TO POINT 3")
+
+		plan_view := models.PlanJSON {
+			Name: wp.Name,
+			Description: wp.Description,
+		}
+
+		current_day := ex_days[0].DayName
+
+		cols := make([]models.PlanColumn, 0)
+
+		current_col := models.PlanColumn {
+			Name: current_day,
+		}
+
+		for _, ex_day := range ex_days {
+			if current_day != ex_day.DayName {
+				cols = append(cols, current_col)
+				current_day = ex_day.DayName
+				current_col = models.PlanColumn {
+					Name: current_day,
+				}
+			}
+
+			weight := float64(ex_day.Weight)
+
+			current_row := models.PlanRow {
+				Name: strconv.Itoa(ex_day.Exercise),
+				Weight: &weight,
+				Unit: ex_day.Unit,
+				Sets: ex_day.Sets,
+				MinReps: ex_day.MinReps,
+				MaxReps: &ex_day.MaxReps,
+			}
+
+			current_col.Rows = append(current_col.Rows, current_row)
+
+		}
+
+		log.Println("GOT TO POINT 4")
+
+		plan_view.Columns = cols
+
+		c.HTML(http.StatusOK, "view_current_plan.html", plan_view)
+
 	}
 }
