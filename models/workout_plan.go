@@ -28,9 +28,17 @@ type ExerciseDay struct {
 	ExerciseOrder int     `json:"exercise_order"`
 }
 
+type PlanRow struct {
+	Name    string   `json:"name"`
+	Weight  *float64 `json:"weight"`
+	Sets    int      `json:"sets"`
+	MinReps int      `json:"min_reps"`
+	MaxReps *int     `json:"max_reps"`
+}
+
 type PlanColumn struct {
-	Name string   `json:"name"`
-	Rows []string `json:"rows"`
+	Name string    `json:"name"`
+	Rows []PlanRow `json:"rows"`
 }
 
 type PlanJSON struct {
@@ -126,7 +134,10 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 		return err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -150,7 +161,10 @@ func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, plan_id int) error {
 		return err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -190,7 +204,10 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
 
 	return true, nil
 }
@@ -214,7 +231,10 @@ func (Db *DataBase) DeleteWorkoutPlan(id *WorkoutPlan) (bool, error) { // NOTE: 
 		return false, err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
 
 	return true, nil
 }
@@ -303,7 +323,7 @@ func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
 	return ex_day, nil
 }
 
-func (Db *DataBase) UpdateExerciseDay(ex_day *ExerciseDay) error {
+func (Db *DataBase) UpdateExerciseDayExercise(ex_day *ExerciseDay) error {
 
 	err := ValidateExerciseDayInput(ex_day)
 	if err != nil {
@@ -315,20 +335,91 @@ func (Db *DataBase) UpdateExerciseDay(ex_day *ExerciseDay) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare("UPDATE exercise_day SET day_name = ?, exercise = ?, weight = ?, sets = ?, min_rep = ?, max_reps = ?, day_order = ?, exercise_order = ? WHERE id = ?")
+	stmt, err := tx.Prepare("UPDATE exercise_day SET exercise = ?, weight = ?, sets = ?, min_rep = ?, max_reps = ? WHERE id = ?")
 	if err != nil {
 		return err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(ex_day.DayName, ex_day.Exercise, ex_day.Weight, ex_day.Sets, ex_day.MinReps, ex_day.MaxReps, ex_day.DayOrder, ex_day.ExerciseOrder, ex_day.Id)
+	_, err = stmt.Exec(ex_day.Exercise, ex_day.Weight, ex_day.Sets, ex_day.MinReps, ex_day.MaxReps, ex_day.Id)
 
 	if err != nil {
 		return err
 	}
 
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 
 	return nil
+}
+
+
+func (Db *DataBase) UpdateExerciseDayOrder(ex_day *ExerciseDay, old_day_order, old_ex_order int) error {
+
+	changed_day_oder := old_day_order != ex_day.DayOrder
+
+	var new_day_name string
+
+	if changed_day_oder {
+		err := Db.Data.QueryRow("select day_name from exercise_day where plan = ? and day_order = ? and exercise_order = 0", ex_day.Plan, ex_day.DayOrder).Scan(&new_day_name)
+		if err != nil {
+			return err
+		}
+	} else {
+		new_day_name = ex_day.DayName
+	}
+
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return err
+	}
+
+	var stmt1 *sql.Stmt
+	if changed_day_oder {
+		stmt1, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ?")
+		if err != nil {
+			return err
+		}
+	} else {
+		stmt1, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ? and exercise_order < ?")
+		if err != nil {
+			return err
+		}
+	}
+
+	stmt2, err := tx.Prepare("UPDATE exercise_day SET day_name = ?, day_order = ?, exercise_order = ? WHERE id = ?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt1.Close()
+	defer stmt2.Close()
+
+	if changed_day_oder {
+		_, err = stmt1.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = stmt1.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder, old_ex_order)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = stmt2.Exec(new_day_name, ex_day.DayOrder, ex_day.ExerciseOrder, ex_day.Id)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }

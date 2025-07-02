@@ -7,105 +7,129 @@
         body { font-family: sans-serif; padding: 40px; background-color: #f4f4f4; text-align: center; }
         input, textarea { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
         .columns { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
-        .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 180px; }
+        .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; }
+        .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; }
         button { padding: 8px 16px; margin: 10px 5px; }
         form.hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>Create Workout Plan</h2>
+<h2>Create Workout Plan</h2>
 
-    <div style="max-width: 600px; margin: auto; text-align: left;">
-        <label>Plan Name</label>
-        <input type="text" id="planName">
+<div style="max-width: 600px; margin: auto; text-align: left;">
+    <label>Plan Name</label>
+    <input type="text" id="planName">
 
-        <label>Description</label>
-        <textarea id="planDescription" rows="4"></textarea>
+    <label>Description</label>
+    <textarea id="planDescription" rows="4"></textarea>
 
-        <label><input type="checkbox" id="makeCurrent"> Make current</label>
-    </div>
+    <label><input type="checkbox" id="makeCurrent"> Make current</label>
+</div>
 
-    <div class="columns" id="columnsContainer"></div>
+<div class="columns" id="columnsContainer"></div>
 
-    <!-- CSRF field injected from backend -->
-    <form class="hidden">
-        {{ .csrfField }}
-    </form>
+<!-- CSRF field -->
+<form class="hidden">
+    {{ .csrfField }}
+</form>
 
-    <div>
-        <button onclick="addColumn()">Add Column</button>
-        <button onclick="submitPlan()">Done</button>
-    </div>
+<div>
+    <button onclick="addColumn()">Add Column</button>
+    <button onclick="submitPlan()">Done</button>
+</div>
 
-    <script>
-        let columnCount = 0;
+<script>
+    let columnCount = 0;
 
-        function addColumn() {
-            const colIndex = columnCount++;
-            const col = document.createElement("div");
-            col.className = "column";
-            col.setAttribute("data-col-index", colIndex);
+    function addColumn() {
+        const colIndex = columnCount++;
+        const col = document.createElement("div");
+        col.className = "column";
+        col.setAttribute("data-col-index", colIndex);
 
-            const titleInput = document.createElement("input");
-            titleInput.placeholder = "Column name";
-            titleInput.className = "col-title";
-            col.appendChild(titleInput);
+        const titleInput = document.createElement("input");
+        titleInput.placeholder = "Column name";
+        titleInput.className = "col-title";
+        col.appendChild(titleInput);
 
-            const cellContainer = document.createElement("div");
-            cellContainer.className = "cell-container";
-            col.appendChild(cellContainer);
+        const cellContainer = document.createElement("div");
+        cellContainer.className = "cell-container";
+        col.appendChild(cellContainer);
 
-            const addRowBtn = document.createElement("button");
-            addRowBtn.textContent = "Add Row";
-            addRowBtn.type = "button";
-            addRowBtn.onclick = () => {
-                const input = document.createElement("input");
-                input.placeholder = "Exercise";
-                cellContainer.appendChild(input);
-            };
-            col.appendChild(addRowBtn);
+        const addRowBtn = document.createElement("button");
+        addRowBtn.textContent = "Add Row";
+        addRowBtn.type = "button";
+        addRowBtn.onclick = () => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "exercise";
 
-            document.getElementById("columnsContainer").appendChild(col);
-        }
+            wrapper.innerHTML = `
+                <input placeholder="Exercise name" class="ex-name"><br>
+                <input placeholder="Weight (optional)" type="number" step="any" class="ex-weight"><br>
+                <input placeholder="Sets" type="number" class="ex-sets"><br>
+                <input placeholder="Min reps" type="number" class="ex-min"><br>
+                <input placeholder="Max reps (optional)" type="number" class="ex-max">
+            `;
 
-        async function submitPlan() {
-            const plan = {
-                name: document.getElementById("planName").value,
-                description: document.getElementById("planDescription").value,
-                make_current: document.getElementById("makeCurrent").checked,
-                columns: []
-            };
+            cellContainer.appendChild(wrapper);
+        };
+        col.appendChild(addRowBtn);
 
-            const columns = document.querySelectorAll(".column");
-            columns.forEach(col => {
-                const name = col.querySelector(".col-title").value;
-                const cells = Array.from(col.querySelectorAll(".cell-container input"))
-                                   .map(input => input.value)
-                                   .filter(v => v.trim() !== "");
-                if (name.trim() || cells.length > 0) {
-                    plan.columns.push({ name, rows: cells });
+        document.getElementById("columnsContainer").appendChild(col);
+    }
+
+    async function submitPlan() {
+        const plan = {
+            name: document.getElementById("planName").value,
+            description: document.getElementById("planDescription").value,
+            make_current: document.getElementById("makeCurrent").checked,
+            columns: []
+        };
+
+        const columns = document.querySelectorAll(".column");
+        columns.forEach(col => {
+            const name = col.querySelector(".col-title").value;
+            const rows = [];
+
+            const exercises = col.querySelectorAll(".exercise");
+            exercises.forEach(ex => {
+                const row = {
+                    name: ex.querySelector(".ex-name").value,
+                    weight: parseFloat(ex.querySelector(".ex-weight").value) || 0,
+                    sets: parseInt(ex.querySelector(".ex-sets").value),
+                    min_reps: parseInt(ex.querySelector(".ex-min").value),
+                    max_reps: ex.querySelector(".ex-max").value ? parseInt(ex.querySelector(".ex-max").value) : null
+                };
+
+                if (row.name && !isNaN(row.sets) && !isNaN(row.min_reps)) {
+                    rows.push(row);
                 }
             });
 
-            const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value;
-
-            const res = await fetch("/user/create_plan", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-Token": csrfToken
-                },
-                body: JSON.stringify(plan)
-            });
-
-            if (res.ok) {
-                alert("Workout plan submitted!");
-                window.location.href = "/user/profile";
-            } else {
-                alert("Failed to submit plan.");
+            if (name.trim() || rows.length > 0) {
+                plan.columns.push({ name, rows });
             }
+        });
+
+        const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value;
+
+        const res = await fetch("/user/create_plan", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrfToken
+            },
+            body: JSON.stringify(plan)
+        });
+
+        if (res.ok) {
+            alert("Workout plan submitted!");
+            window.location.href = "/user/profile";
+        } else {
+            alert("Failed to submit plan.");
         }
-    </script>
+    }
+</script>
 </body>
 </html>

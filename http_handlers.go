@@ -456,18 +456,37 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 
 		for i, col := range plan.Columns {
 			for j, row := range col.Rows {
-				new_ex_id, err := strconv.Atoi(row) // WARNING: This is just the pre alpha version, I am assuming the passed in value is an int
+				new_ex_id, err := strconv.Atoi(row.Name) // WARNING: This is just the pre alpha version, I am assuming the passed in value is an int
 				if err != nil {
 					panic(err)
 				}
+
+
+				log.Println("Exercise:", new_ex_id)
+				log.Println("row.Weight:", row.Weight)
+
+				var weight float32
+				if row.Weight == nil {
+					weight = -1.0
+				} else {
+					weight = float32(*row.Weight)
+				}
+
+				var max_reps int
+				if row.MaxReps == nil {
+					max_reps = -1
+				} else {
+					max_reps = *row.MaxReps
+				}
+
 				new_ex := models.ExerciseDay {
 					Plan: wp_id,
 					Exercise: new_ex_id,
 					DayName: col.Name,
-					Weight: 0.0,
-					Sets: 3,
-					MinReps: 6,
-					MaxReps: 12,
+					Weight: weight,
+					Sets: row.Sets,
+					MinReps: row.MinReps,
+					MaxReps: max_reps,
 					DayOrder: i,
 					ExerciseOrder: j,
 				}
@@ -483,7 +502,9 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			}
 		}
 
-		_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
+		if plan.MakeCurrent {
+			_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
+		}
 
 		if err != nil {
 			log.Println("ERROR")
