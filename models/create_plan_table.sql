@@ -4,7 +4,7 @@ CREATE TABLE workout_plan (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     creator INTEGER NOT NULL,
-    description TEXT,
+    description TEXT, --NOTE: add 'date_created' field
     UNIQUE(name, creator),
     FOREIGN KEY(creator) REFERENCES users(id)
 );
@@ -37,7 +37,7 @@ DROP TABLE IF EXISTS users_plans;
 
 CREATE TABLE users_plans (
     usr INTEGER NOT NULL,
-    plan INTEGER NOT NULL,
+    plan INTEGER NOT NULL, --ADD LIKE A DATE_ADDED OR SOMETHING THAT WOULD ALLOW SORTING
     PRIMARY KEY (usr, plan),
     FOREIGN KEY(usr) REFERENCES users(id),
     FOREIGN KEY(plan) REFERENCES workout_plan(id)

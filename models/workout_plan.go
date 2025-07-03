@@ -144,7 +144,7 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 	return nil
 }
 
-func (Db *DataBase) RemoveWorkoutPlanFromUser(usr_id, plan_id int) error {
+func (Db *DataBase) DeleteWorkoutPlanFromUser(usr_id, plan_id int) error {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return err
@@ -187,6 +187,36 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 	return wp, nil
 }
 
+func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) {
+
+	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	res := make([]*WorkoutPlan, 0)
+
+	for rows.Next() {
+		current_plan := WorkoutPlan{}
+
+		err = rows.Scan(
+			&current_plan.Id,
+			&current_plan.Name,
+			&current_plan.Creator,
+			&current_plan.Description,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, &current_plan)
+	}
+
+	return res, nil
+}
+
 func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
@@ -214,7 +244,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) DeleteWorkoutPlan(id *WorkoutPlan) (bool, error) { // NOTE: prolly not gonna use this at all tbh but I still gotta figure out how this is all gona work out (pun intended)
+func (Db *DataBase) DeleteWorkoutPlan(id int) (bool, error) { // NOTE: prolly not gonna use this at all tbh but I still gotta figure out how this is all gona work out (pun intended)
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
@@ -459,4 +489,31 @@ func (Db *DataBase) UpdateExerciseDayOrder(ex_day *ExerciseDay, old_day_order, o
 
 	return nil
 
+}
+
+func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("DELETE from exercise_day where id = ?")
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(id)
+
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

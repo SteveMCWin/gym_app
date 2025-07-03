@@ -106,6 +106,7 @@ func HandleGetSignup() func(c *gin.Context) {
 func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		usr_email := c.PostForm("email")
+		log.Println("User's email:", usr_email)
 		if email_exists := db.EmailExists(usr_email); email_exists == true {
 			log.Println("You already have an account!")
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
@@ -122,7 +123,7 @@ func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
-			// log.Fatalln(err) // WARNING: handle better than just panicing
+			log.Println("FAILLLLED TO SEND MAILLLL")
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
@@ -133,7 +134,6 @@ func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 func HandleGetSignupMailSent() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// render html that says the mail has been sent
-		log.Println("IT GOT TO HandleGetSignupMailSent")
 		c.HTML(http.StatusOK, "sent_mail.html", gin.H{})
 	}
 }
@@ -533,54 +533,124 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
 			return
 		}
+		if wp.Id == 1 {
+			log.Println("The user doesn't have a current plan (I mean he does but it's the placeholder one that serves as a 'no plan' plan)")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
+			return
+		}
 
-		ex_days, err := db.ReadAllExerciseDaysFromPlan(wp.Id)
-		if err != nil || len(ex_days) == 0 {
+		plan_view, err := GetPlanViewFromWorkout(db, wp)
+		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
 			return
 		}
 
-		plan_view := models.PlanJSON {
-			Name: wp.Name,
-			Description: wp.Description,
-		}
+		c.HTML(http.StatusOK, "view_current_plan.html", plan_view) // WARNING: consider adding csrf protection especially if you enable editing the plan
 
-		current_day := ex_days[0].DayName
+	}
+}
 
-		cols := make([]models.PlanColumn, 0)
+func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*models.PlanJSON, error) {
+	ex_days, err := db.ReadAllExerciseDaysFromPlan(wp.Id)
+	if err != nil {
+		return nil, err
+	}
+	 plan_view := &models.PlanJSON {
+		Name: wp.Name,
+		Description: wp.Description,
+	}
 
-		current_col := models.PlanColumn {
-			Name: current_day,
-		}
+	current_day := ex_days[0].DayName
 
-		for _, ex_day := range ex_days {
-			if current_day != ex_day.DayName {
-				cols = append(cols, current_col)
-				current_day = ex_day.DayName
-				current_col = models.PlanColumn {
-					Name: current_day,
-				}
+	cols := make([]models.PlanColumn, 0)
+
+	current_col := models.PlanColumn {
+		Name: current_day,
+	}
+
+	for _, ex_day := range ex_days {
+		if current_day != ex_day.DayName {
+			cols = append(cols, current_col)
+			current_day = ex_day.DayName
+			current_col = models.PlanColumn {
+				Name: current_day,
 			}
-
-			current_row := models.PlanRow {
-				Name: strconv.Itoa(ex_day.Exercise),
-				Weight: float64(ex_day.Weight),
-				Unit: ex_day.Unit,
-				Sets: ex_day.Sets,
-				MinReps: ex_day.MinReps,
-				MaxReps: &ex_day.MaxReps,
-			}
-
-			current_col.Rows = append(current_col.Rows, current_row)
-
 		}
 
-		cols = append(cols, current_col) // append the last column since the first if never gets called at the last iteration
+		current_row := models.PlanRow {
+			Name: strconv.Itoa(ex_day.Exercise),
+			Weight: float64(ex_day.Weight),
+			Unit: ex_day.Unit,
+			Sets: ex_day.Sets,
+			MinReps: ex_day.MinReps,
+			MaxReps: &ex_day.MaxReps,
+		}
 
-		plan_view.Columns = cols
+		current_col.Rows = append(current_col.Rows, current_row)
 
-		c.HTML(http.StatusOK, "view_current_plan.html", plan_view)
+	}
 
+	cols = append(cols, current_col) // append the last column since the first if never gets called at the last iteration
+
+	plan_view.Columns = cols
+
+	return plan_view, nil
+}
+
+func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		wps, err := Db.ReadAllWorkoutsUserUses(user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "view_all_user_plans.html", wps)
+	}
+}
+
+func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+
+		wp_id, err := strconv.Atoi(c.Param("wp_id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		wp, err := db.ReadWorkoutPlan(wp_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+		if wp.Id == 1 {
+			log.Println("The user doesn't have a current plan (I mean he does but it's the placeholder one that serves as a 'no plan' plan)")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
+			return
+		}
+
+		plan_view, err := GetPlanViewFromWorkout(db, wp)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "view_current_plan.html", plan_view) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Workout Plans</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        text-align: center;
+        padding: 40px;
+    }
+    h2 {
+        margin-bottom: 20px;
+    }
+    .plans {
+        display: inline-block;
+        text-align: left;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .plan {
+        border-bottom: 1px solid #ddd;
+        padding: 10px 0;
+    }
+    .plan:last-child {
+        border-bottom: none;
+    }
+    .plan-title {
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    .plan-desc {
+        margin-top: 5px;
+        font-size: 0.95em;
+        color: #555;
+    }
+    .plan-actions {
+        margin-top: 10px;
+    }
+    .plan-actions a {
+        margin-right: 10px;
+        text-decoration: none;
+        color: #007BFF;
+    }
+</style>
+</head>
+<body>
+
+<h2>Your Workout Plans</h2>
+
+{{if .}}
+<div class="plans">
+    {{range .}}
+    <div class="plan">
+        <div class="plan-title">{{.Name}}</div>
+        <div class="plan-desc">{{.Description}}</div>
+        <div class="plan-actions">
+            <a href="/user/profile/plans/view/{{.Id}}">View</a>
+            <!-- <a href="/user/edit_plan/{{.Id}}">Edit</a> -->
+            <!-- <a href="/user/delete_plan/{{.Id}}">Delete</a> -->
+        </div>
+    </div>
+    {{end}}
+</div>
+{{else}}
+<p>You have no workout plans yet.</p>
+{{end}}
+
+</body>
+</html>
