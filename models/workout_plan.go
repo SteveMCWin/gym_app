@@ -30,12 +30,12 @@ type ExerciseDay struct {
 }
 
 type PlanRow struct {
-	Name    string   `json:"name"`
+	Name    string  `json:"name"`
 	Weight  float64 `json:"weight"`
-	Unit    string   `json:"unit"`
-	Sets    int      `json:"sets"`
-	MinReps int      `json:"min_reps"`
-	MaxReps *int     `json:"max_reps"`
+	Unit    string  `json:"unit"`
+	Sets    int     `json:"sets"`
+	MinReps int     `json:"min_reps"`
+	MaxReps *int    `json:"max_reps"`
 }
 
 type PlanColumn struct {
@@ -44,6 +44,7 @@ type PlanColumn struct {
 }
 
 type PlanJSON struct {
+	Id          int          `json:"id"`
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	MakeCurrent bool         `json:"make_current"`
@@ -368,7 +369,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]*ExerciseDay, er
 	res := make([]*ExerciseDay, 0)
 
 	for rows.Next() {
-		ex_day := ExerciseDay{ Plan: plan_id }
+		ex_day := ExerciseDay{Plan: plan_id}
 
 		err = rows.Scan(
 			&ex_day.DayName,

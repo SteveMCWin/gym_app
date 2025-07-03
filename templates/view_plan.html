@@ -53,5 +53,8 @@
     {{ end }}
 
     <a class="btn" href="/user/profile">Back to Profile</a>
+    {{ if .MakeCurrent }}
+    <a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .Id }}">Make Current</a>
+    {{ end }}
 </body>
 </html>

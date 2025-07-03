@@ -89,9 +89,11 @@ func main() {
 	user_router.POST("/change_password/:id/:email", HandlePostChangePasswordFromMail(&db))
 	user_router.GET("/create_plan", HandleGetCreatePlan())
 	user_router.POST("/create_plan", HandlePostCreatePlan(&db))
-	user_router.GET("/profile/plans/view_current", HandleGetViewCurrentPlan(&db))
+	user_router.GET("/profile/plans/view/current", HandleGetViewCurrentPlan(&db))
 	user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))
 	user_router.GET("/profile/plans/all_plans", HandleGetViewAllUserPlans(&db))
+	user_router.GET("/profile/plans/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
+
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(
 		[]byte(csrf_key),
