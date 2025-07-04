@@ -48,6 +48,7 @@ func SendMailHtml(mail *Mail) error {
 	if _, exists := LoadedTempaltes[mail.TempaltePath]; exists == false {
 		t, err := template.ParseFiles(mail.TempaltePath)
 		if err != nil {
+			log.Println("Fail 1")
 			return err
 		}
 
@@ -59,6 +60,7 @@ func SendMailHtml(mail *Mail) error {
 
 	err := LoadedTempaltes[mail.TempaltePath].Execute(&body, mail)
 	if err != nil {
+		log.Println("Fail 2")
 		return err
 	}
 

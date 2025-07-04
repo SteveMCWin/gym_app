@@ -102,7 +102,7 @@ func (Db *DataBase) ReadUserIdByEmail(email string) (int, error) {
 
 	err := Db.Data.QueryRow("select id from users where email like ?", email).Scan(
 		&usr_id,
-	) // gets the public data of the user
+	)
 
 	if err != nil {
 		return 0, err
@@ -158,8 +158,7 @@ func (Db *DataBase) AuthUserByID(usr_id int, password string) error { // returns
 
 func (Db *DataBase) EmailExists(email string) bool {
 	var tmp int
-	err := Db.Data.QueryRow("select id form users where email like ?", email).Scan(&tmp)
-
+	err := Db.Data.QueryRow("select id from users where email = ?", email).Scan(&tmp)
 	return err == nil
 }
 

@@ -116,7 +116,7 @@ func HandlePostSignup(db *models.DataBase) func(c *gin.Context) {
 		log.Println("User's email:", usr_email)
 		if email_exists := db.EmailExists(usr_email); email_exists == true {
 			log.Println("You already have an account!")
-			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			c.Redirect(http.StatusSeeOther, "/user/login")
 			return
 		}
 
@@ -742,12 +742,13 @@ func HandlePostForgotPassword(db *models.DataBase) func(c *gin.Context) {
 		new_mail := &mail.Mail{
 			Recievers:    []string{usr_email},
 			Subject:      "Password Change",
-			TempaltePath: "./templates/password_change.html",
+			TempaltePath: "./templates/mail_change_password.html",
 			ExtLink:      domain + "/user/forgot_password/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
 
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
 			log.Println("FAILLLLED TO SEND MAILLLL")
+			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
