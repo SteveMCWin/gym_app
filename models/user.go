@@ -97,6 +97,20 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	return usr, nil
 }
 
+func (Db *DataBase) ReadUserIdByEmail(email string) (int, error) {
+	var usr_id int
+
+	err := Db.Data.QueryRow("select id from users where email like ?", email).Scan(
+		&usr_id,
+	) // gets the public data of the user
+
+	if err != nil {
+		return 0, err
+	}
+
+	return usr_id, nil
+}
+
 func (Db *DataBase) AuthUserByEmail(email, password string) (int, error) { // returns the id if the credentials are right, 0 if not (as well as an error)
 	if email == "" || password == "" {
 		return 0, errors.New("Empty email or password provided")

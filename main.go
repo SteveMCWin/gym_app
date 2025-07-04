@@ -67,6 +67,7 @@ func main() {
 
 	router.GET("/", HandleGetHome())
 	router.GET("/error-page", HandleGetError())
+	router.GET("/mail-sent", HandleGetSignupMailSent())
 
 	user_router := router.Group("/user")
 	// profile_router := router.Group("/user/profile") // NOTE: consider reorganizig the routing with more groups, this is getting kinda messy now
@@ -76,8 +77,7 @@ func main() {
 	user_router.POST("/login", HandlePostLogin(&db))
 	user_router.GET("/logout", HandleGetLogout(&db))
 	user_router.GET("/signup", HandleGetSignup())
-	user_router.POST("/signup/send-mail", HandlePostSignupSendMail(&db))
-	user_router.GET("/signup/mail-sent", HandleGetSignupMailSent())
+	user_router.POST("/signup/send-mail", HandlePostSignup(&db))
 	user_router.GET("/signup/from-mail/:id/:email", HandleGetSignupFromMail())
 	user_router.POST("/signup/from-mail/:id/:email", HandlePostSignupFromMail(&db))
 	user_router.GET("/delete_account", HandleGetDeleteAccount())
@@ -93,6 +93,10 @@ func main() {
 	user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))
 	user_router.GET("/profile/plans/all_plans", HandleGetViewAllUserPlans(&db))
 	user_router.GET("/profile/plans/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
+	user_router.GET("/forgot_password", HandleGetForgotPassword())
+	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
+	user_router.GET("/forgot_password/from-mail/:id/:email", HandleGetChangePassFromMail())
+	user_router.POST("/forgot_password/from-mail/:id/:email")
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

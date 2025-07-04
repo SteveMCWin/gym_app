@@ -9,7 +9,7 @@ CREATE TABLE workout_plan (
     FOREIGN KEY(creator) REFERENCES users(id)
 );
 
-INSERT INTO workout_plan (name, creator, description) VALUES ('Defualt', 1, '');
+INSERT INTO workout_plan (name, creator, description) VALUES ('/', 1, '');
 
 
 

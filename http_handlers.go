@@ -47,6 +47,13 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		current_plan, err := db.ReadWorkoutPlan(usr.CurrentPlan)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
 		user_view := gin.H{
 			"Name":          usr.Name,
 			"Email":         usr.Email,
@@ -54,7 +61,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			"IsTrainer":     usr.IsTrainer,
 			"GymGoals":      usr.GymGoals,
 			"CurrentGym":    usr.CurrentGym,
-			"CurrentPlan":   usr.CurrentPlan,
+			"CurrentPlan":   current_plan.Name,
 			"DateCreated":   usr.DateCreated.Format("2006-01-02"), // consider doing a .split on the string and rearrange
 		}
 
@@ -103,7 +110,7 @@ func HandleGetSignup() func(c *gin.Context) {
 	}
 }
 
-func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
+func HandlePostSignup(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		usr_email := c.PostForm("email")
 		log.Println("User's email:", usr_email)
@@ -127,7 +134,7 @@ func HandlePostSignupSendMail(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
-		c.Redirect(http.StatusSeeOther, "/user/signup/mail-sent")
+		c.Redirect(http.StatusSeeOther, "/mail-sent")
 	}
 }
 
@@ -269,7 +276,7 @@ func HandleGetLogout(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		sessionManager.Destroy(c.Request.Context())
 
-		c.Redirect(http.StatusTemporaryRedirect, "/")
+		c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 	}
 }
 
@@ -346,6 +353,8 @@ func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		log.Println("SENT CHANGE PASSWORD MAIL")
+
 		c.HTML(http.StatusOK, "sent_mail.html", gin.H{})
 	}
 }
@@ -372,19 +381,25 @@ func HandleGetChangePasswordFromMail() func(c *gin.Context) {
 
 func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		// NOTE: technically the cookie could expire while the user is using the website and reaching this point but scs should be handling that properly so it doesn't happen
-		log.Println("Got to Password Change POST!!!!!")
+		// if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+		// 	c.Redirect(http.StatusSeeOther, "/error-page")
+		// 	return
+		// }
 
-		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+		new_password := c.PostForm("password")
+
+		usr_email := c.Param("email")
+
+		usr_id, err := db.ReadUserIdByEmail(usr_email)
+		if err != nil {
+			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
 
-		new_password := c.PostForm("password")
+		// usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
-
-		_, err := db.UpdateUserPassword(usr_id, new_password)
+		_, err = db.UpdateUserPassword(usr_id, new_password)
 
 		if err != nil {
 			c.Redirect(http.StatusSeeOther, "/error-page")
@@ -405,7 +420,7 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 
 		log.Println("Deleted token successfully")
 
-		c.Redirect(http.StatusSeeOther, "/user/profile")
+		c.Redirect(http.StatusSeeOther, "/user/logout")
 	}
 }
 
@@ -436,10 +451,10 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 
 		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		new_plan := models.WorkoutPlan {
-			Name: plan.Name,
+		new_plan := models.WorkoutPlan{
+			Name:        plan.Name,
 			Description: plan.Description,
-			Creator: usr_id,
+			Creator:     usr_id,
 		}
 
 		wp_id, err := db.CreateWorkoutPlan(&new_plan)
@@ -461,7 +476,6 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 					panic(err)
 				}
 
-
 				log.Println("Exercise:", new_ex_id)
 				log.Println("row.Weight:", row.Weight)
 
@@ -472,16 +486,16 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 					max_reps = *row.MaxReps
 				}
 
-				new_ex := models.ExerciseDay {
-					Plan: wp_id,
-					Exercise: new_ex_id,
-					DayName: col.Name,
-					Weight: float32(row.Weight),
-					Unit: row.Unit,
-					Sets: row.Sets,
-					MinReps: row.MinReps,
-					MaxReps: max_reps,
-					DayOrder: i,
+				new_ex := models.ExerciseDay{
+					Plan:          wp_id,
+					Exercise:      new_ex_id,
+					DayName:       col.Name,
+					Weight:        float32(row.Weight),
+					Unit:          row.Unit,
+					Sets:          row.Sets,
+					MinReps:       row.MinReps,
+					MaxReps:       max_reps,
+					DayOrder:      i,
 					ExerciseOrder: j,
 				}
 
@@ -559,8 +573,8 @@ func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*model
 	if err != nil {
 		return nil, err
 	}
-	 plan_view := &models.PlanJSON {
-		Name: wp.Name,
+	plan_view := &models.PlanJSON{
+		Name:        wp.Name,
 		Description: wp.Description,
 	}
 
@@ -568,7 +582,7 @@ func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*model
 
 	cols := make([]models.PlanColumn, 0)
 
-	current_col := models.PlanColumn {
+	current_col := models.PlanColumn{
 		Name: current_day,
 	}
 
@@ -576,16 +590,16 @@ func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*model
 		if current_day != ex_day.DayName {
 			cols = append(cols, current_col)
 			current_day = ex_day.DayName
-			current_col = models.PlanColumn {
+			current_col = models.PlanColumn{
 				Name: current_day,
 			}
 		}
 
-		current_row := models.PlanRow {
-			Name: strconv.Itoa(ex_day.Exercise),
-			Weight: float64(ex_day.Weight),
-			Unit: ex_day.Unit,
-			Sets: ex_day.Sets,
+		current_row := models.PlanRow{
+			Name:    strconv.Itoa(ex_day.Exercise),
+			Weight:  float64(ex_day.Weight),
+			Unit:    ex_day.Unit,
+			Sets:    ex_day.Sets,
 			MinReps: ex_day.MinReps,
 			MaxReps: &ex_day.MaxReps,
 		}
@@ -697,3 +711,63 @@ func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 	}
 
 }
+
+func HandleGetForgotPassword() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.HTML(http.StatusOK, "forgot_password.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request)}) // may not need csrf protection here
+	}
+}
+
+func HandlePostForgotPassword(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		usr_email := c.PostForm("email")
+		log.Println("User's email:", usr_email)
+		if email_exists := db.EmailExists(usr_email); email_exists != true {
+			log.Println("There is no user with the email", usr_email)
+			c.Redirect(http.StatusSeeOther, "/user/forgot_password")
+			return
+		}
+
+		token_val := CreateToken(usr_email, 5*time.Minute)
+
+		new_mail := &mail.Mail{
+			Recievers:    []string{usr_email},
+			Subject:      "Password Change",
+			TempaltePath: "./templates/password_change.html",
+			ExtLink:      domain + "/user/forgot_password/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
+
+		err := mail.SendMailHtml(new_mail)
+		if err != nil {
+			log.Println("FAILLLLED TO SEND MAILLLL")
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+		c.Redirect(http.StatusSeeOther, "/mail-sent")
+	}
+}
+
+func HandleGetChangePassFromMail() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token_val, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
+		}
+		usr_email := c.Param("email")
+
+		if t_val, exists := signupTokens[token_val]; exists != true || t_val != usr_email {
+			log.Println("ERROR: invalid token or token value")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
+		}
+
+		c.HTML(http.StatusOK, "change_password.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email})
+	}
+}
+
+// handle get change pass
+// handle post change pass
+// HandleGetSignupMailSent
+// handle get change pass from mail
+// handle post change pass from mail
