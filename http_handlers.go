@@ -332,14 +332,23 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			log.Println("No session token found")
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
 		usr, err := db.ReadUser(sessionManager.GetInt(c.Request.Context(), "user_id"))
 
 		if err != nil {
+			log.Println("Couldn't find user in database")
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
 
 		token_val := CreateToken(usr.Email, 5*time.Minute)
+
+		log.Println("Sending change pass mail to", usr.Email)
 
 		new_mail := &mail.Mail{
 			Recievers:    []string{usr.Email},
