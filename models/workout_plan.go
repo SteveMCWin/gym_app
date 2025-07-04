@@ -3,7 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"log"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -31,7 +31,7 @@ type ExerciseDay struct {
 
 type PlanRow struct {
 	Name    string  `json:"name"`
-	Weight  float64 `json:"weight"`
+	Weight  float32 `json:"weight"`
 	Unit    string  `json:"unit"`
 	Sets    int     `json:"sets"`
 	MinReps int     `json:"min_reps"`
@@ -52,8 +52,6 @@ type PlanJSON struct {
 }
 
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
-
-	log.Println("CREATING WORKOUT PLANNN")
 
 	if wp.Creator == 0 {
 		return 0, errors.New("You need to be logged in to create a workout plan")
@@ -97,8 +95,6 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 		return 0, err
 	}
 
-	log.Println("WP_ID BEFORE RETURN:", workout_plan_id)
-
 	return workout_plan_id, nil
 }
 
@@ -121,7 +117,7 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 		return err
 	}
 
-	stmt, err := tx.Prepare("insert into users_plans (usr, plan) values (?, ?)")
+	stmt, err := tx.Prepare("insert into users_plans (usr, plan, date_added) values (?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -131,6 +127,7 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 	_, err = stmt.Exec(
 		usr_id,
 		plan_id,
+		time.Now(),
 	)
 
 	if err != nil {
@@ -190,7 +187,8 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 
 func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) {
 
-	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id)
+	// NOTE: figure out how to get the date added. 
+	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id) 
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +230,6 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(wp.Name, wp.Description)
-
 	if err != nil {
 		return false, err
 	}

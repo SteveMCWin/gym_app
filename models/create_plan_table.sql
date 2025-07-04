@@ -22,6 +22,7 @@ CREATE TABLE exercise_day (
     exercise INTEGER NOT NULL,
     weight FLOAT,
     unit TEXT DEFAULT 'kg' CHECK (unit IN ('kg', 'lbs', 's', 'm', '')),
+    --NOTE: add a is_dropset field that will allow the user to add more fields than specified by the sets field (and do so when the sets value isn't provided) ((also set default for sets to 0 or smth))
     sets INTEGER DEFAULT 1, --NOTE: check if >= 1
     min_reps TEXT NOT NULL, --NOTE: this should support a variety of vals like 2, 14, 30s, 2m
     max_reps TEXT, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps but like 5 sets of 5
@@ -38,6 +39,7 @@ DROP TABLE IF EXISTS users_plans;
 CREATE TABLE users_plans (
     usr INTEGER NOT NULL,
     plan INTEGER NOT NULL, --ADD LIKE A DATE_ADDED OR SOMETHING THAT WOULD ALLOW SORTING
+    date_added DATE NOT NULL, --NOTE: probably will remove this since I think using other's plans will just actually be copying them and leaving the creator the same
     PRIMARY KEY (usr, plan),
     FOREIGN KEY(usr) REFERENCES users(id),
     FOREIGN KEY(plan) REFERENCES workout_plan(id)
@@ -53,7 +55,7 @@ CREATE TABLE workout_track_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     track INTEGER NOT NULL,
     ex_day INTEGER NOT NULL,
-    weigth FLOAT, -- NOTE: This doesn't neccessarily have to be the weight that is specified in the ex_day, unless it's null
+    weight FLOAT, -- NOTE: This doesn't neccessarily have to be the weight that is specified in the ex_day, unless it's null
     set_num INTEGER,
     rep_num INTEGER,
     FOREIGN KEY(ex_day) REFERENCES exercise_day(id),

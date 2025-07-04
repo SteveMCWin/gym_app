@@ -606,7 +606,7 @@ func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*model
 
 		current_row := models.PlanRow{
 			Name:    strconv.Itoa(ex_day.Exercise),
-			Weight:  float64(ex_day.Weight),
+			Weight:  ex_day.Weight,
 			Unit:    ex_day.Unit,
 			Sets:    ex_day.Sets,
 			MinReps: ex_day.MinReps,
@@ -776,8 +776,3 @@ func HandleGetChangePassFromMail() func(c *gin.Context) {
 	}
 }
 
-// handle get change pass
-// handle post change pass
-// HandleGetSignupMailSent
-// handle get change pass from mail
-// handle post change pass from mail
