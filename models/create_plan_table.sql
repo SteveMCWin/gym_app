@@ -4,7 +4,7 @@ CREATE TABLE workout_plan (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     creator INTEGER NOT NULL,
-    description TEXT, --NOTE: add 'date_created' field
+    description TEXT, --NOTE: add 'date_created' field and perhaps a 'last_tracked' field
     UNIQUE(name, creator),
     FOREIGN KEY(creator) REFERENCES users(id)
 );
@@ -52,7 +52,7 @@ CREATE TABLE users_plans (
 DROP TABLE IF EXISTS workout_track_data;
 
 CREATE TABLE workout_track_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- NOTE: NOT NECCESARY, CAN USE TRACK AND EX_DAY AND SET_NUM AS PRIMARY KEY
     track INTEGER NOT NULL,
     ex_day INTEGER NOT NULL,
     weight FLOAT, -- NOTE: This doesn't neccessarily have to be the weight that is specified in the ex_day, unless it's null

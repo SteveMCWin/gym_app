@@ -217,6 +217,46 @@ func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) 
 	return res, nil
 }
 
+func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, error) {
+
+	sql_query := `
+	select workout_plan.id, workout_plan.name, workout_plan.creator workout_plan.description, max(workout_date)
+	from workout_track inner join workout_plan on plan = workout_plan.id
+	group by plan
+	where usr = ?
+	order by max(workout_date) asc
+	`
+
+	rows, err := Db.Data.Query(sql_query, user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	plans := make([]*WorkoutPlan, 0)
+
+	for rows.Next() {
+		plan := WorkoutPlan {}
+		var last_used time.Time
+
+		err = rows.Scan(
+			&plan.Id,
+			&plan.Name,
+			&plan.Creator,
+			&plan.Description,
+			&last_used,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		plans = append(plans, &plan)
+	}
+
+	return plans, nil
+}
+
 func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
