@@ -69,6 +69,7 @@ CREATE TABLE workout_track (
     plan INTEGER NOT NULL,
     usr INTEGER NOT NULL,
     workout_date DATE,
+    is_private BOOLEAN DEFAULT TRUE,
     -- NOTE: Consider adding a is_private field, which controls whether other users can see your progress
     FOREIGN KEY(plan) REFERENCES workout_plan(id),
     FOREIGN KEY(usr) REFERENCES users(id),

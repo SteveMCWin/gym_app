@@ -45,6 +45,7 @@ type PlanColumn struct {
 
 type PlanJSON struct {
 	Id          int          `json:"id"`
+	// NOTE: Perhaps add an exercise id field
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	MakeCurrent bool         `json:"make_current"`

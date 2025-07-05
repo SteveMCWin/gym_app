@@ -35,8 +35,6 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 		}
 		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		// log.Println("user_id from sessionManager:", user_id)
-
 		usr, err := db.ReadUser(user_id)
 
 		if err != nil {
@@ -148,7 +146,7 @@ func HandleGetSignupMailSent() func(c *gin.Context) {
 func HandleGetSignupFromMail() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// render forms with html and whatnot to get the user data such as usrname etc. etc.
-		token_val, err := strconv.Atoi(c.Param("id"))
+		token_val, err := strconv.Atoi(c.Param("token_id"))
 		if err != nil {
 			log.Println("ERROR: invalid token or token value")
 			c.Redirect(http.StatusTemporaryRedirect, "/")
@@ -169,7 +167,7 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// get the form data which is the user's credentials and whatever and call db.create user and such
-		token_val, err := strconv.Atoi(c.Param("id"))
+		token_val, err := strconv.Atoi(c.Param("token_id"))
 		if err != nil {
 			log.Fatalln(err) // WARNING: handle better than just panicing
 		}
@@ -260,15 +258,6 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 		log.Println("Deleted user with id", usr_id)
 		c.Redirect(http.StatusSeeOther, "/")
 
-	}
-}
-
-func MiddlewareNoCache() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Cache-Control", "no-store")
-		c.Writer.Header().Set("Pragma", "no-cache")
-		c.Writer.Header().Set("Expires", "0")
-		c.Next()
 	}
 }
 
@@ -370,7 +359,7 @@ func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 
 func HandleGetChangePasswordFromMail() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		token_val, err := strconv.Atoi(c.Param("id"))
+		token_val, err := strconv.Atoi(c.Param("token_id"))
 		if err != nil {
 			log.Println("ERROR: invalid token or token value")
 			c.Redirect(http.StatusTemporaryRedirect, "/")
@@ -417,7 +406,7 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 
 		log.Println("Updated user password successfully")
 
-		token, err := strconv.Atoi(c.Param("id"))
+		token, err := strconv.Atoi(c.Param("token_id"))
 
 		if err != nil {
 			log.Println("ERROR")
@@ -758,7 +747,7 @@ func HandlePostForgotPassword(db *models.DataBase) func(c *gin.Context) {
 
 func HandleGetChangePassFromMail() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		token_val, err := strconv.Atoi(c.Param("id"))
+		token_val, err := strconv.Atoi(c.Param("token_id"))
 		if err != nil {
 			log.Println("ERROR: invalid token or token value")
 			c.Redirect(http.StatusTemporaryRedirect, "/")
@@ -776,3 +765,110 @@ func HandleGetChangePassFromMail() func(c *gin.Context) {
 	}
 }
 
+func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		
+		user_id, err := strconv.Atoi(c.Param("user_id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		workout_tracks, err := db.ReadUsersWorkoutTracks(user_id, requesting_user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "", workout_tracks) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+	}
+}
+
+func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		
+		user_id, err := strconv.Atoi(c.Param("user_id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		plans, err := db.ReadUsersRecentlyTrackedPlans(user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "", plans) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+	}
+}
+
+func HandlePostCreateTrack(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		p_id := c.Param("plan_id")
+		if p_id == "" {
+			log.Println("No plan id??")
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		plan_id, err := strconv.Atoi(p_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+
+		is_private := c.PostForm("is_private"+p_id) != "" // WARNING: I am assuming the post request will have each is_private field enumerated according to the plan it references
+
+		wt := models.WorkoutTrack {
+			Plan: plan_id,
+			User: user_id,
+			IsPrivate: is_private,
+			WorkoutDate: time.Now(),
+		}
+
+		_, err = db.CreateWorkoutTrack(&wt)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+	}
+}
+
+// MIDDLEWARE
+
+
+func MiddlewareNoCache() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Cache-Control", "no-store")
+		c.Writer.Header().Set("Pragma", "no-cache")
+		c.Writer.Header().Set("Expires", "0")
+		c.Next()
+	}
+}
