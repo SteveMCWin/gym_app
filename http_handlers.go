@@ -873,6 +873,12 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
 		user_id_param := c.Param("user_id")
 		wt_id_param := c.Param("wt_id")
 
@@ -888,12 +894,6 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
-
-		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
-			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
-			return
-		}
-		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
 		track, err := db.ReadWorkoutTrack(wt_id)
 		if err != nil {
@@ -918,6 +918,124 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 
 		_ = track_data
 
+	}
+}
+
+func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user_id_param := c.Param("user_id")
+		wt_id_param := c.Param("wt_id")
+
+		user_id, err := strconv.Atoi(user_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		if requesting_user_id != user_id {
+			log.Println("NU UUUUH")
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page") // NOTE: create a page for Private or something
+			return
+		}
+
+		wt_id, err := strconv.Atoi(wt_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		wt, err := db.ReadWorkoutTrack(wt_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		if wt.User != user_id {
+			log.Println("NU UUUUH")
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page") // NOTE: create a page for Private or something
+			return
+		}
+
+		td, err := db.ReadTrackDataForTrack(wt_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		// NOTE: wt and td are (slices of) pointers, saying just in case the html template doesn't work
+		c.HTML(http.StatusOK, "", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "wt": wt, "td": td})
+	}
+}
+
+func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user_id_param := c.Param("user_id")
+		wt_id_param := c.Param("wt_id")
+
+		user_id, err := strconv.Atoi(user_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		wt_id, err := strconv.Atoi(wt_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		wt, err := db.ReadWorkoutTrack(wt_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		if wt.User != user_id {
+			log.Println("NU UUUUH")
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page") // NOTE: create a page for Private or something
+			return
+		}
+
+		if requesting_user_id != user_id {
+			log.Println("NU UUUUH")
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		var track_json models.TrackJSON
+		if err := c.BindJSON(&track_json); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+			return
+		}
+
+		_, err = db.UpdateMultipleTrackData(track_json.Data)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.Redirect(http.StatusSeeOther, "/user/tracks/view/"+user_id_param+"/"+wt_id_param)
 	}
 }
 

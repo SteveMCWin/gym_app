@@ -100,8 +100,8 @@ func main() {
 	user_router.GET("/tracks/create", HandleGetTracksCreate(&db))
 	user_router.POST("/tracks/create/:plan_id", HandlePostTracksCreate(&db))
 	user_router.GET("/tracks/view/:user_id/:track_id", HandleGetViewTrack(&db)) // NOTE: perhaps store the last updated track in a cookie to allow the user a quick access to the tracking page
-	user_router.GET("/tracks/edit/:user_id/:track_id")
-	user_router.POST("/tracks/edit/:user_id/:track_id")
+	user_router.GET("/tracks/edit/:user_id/:track_id", HandleGetTracksEdit(&db))
+	user_router.POST("/tracks/edit/:user_id/:track_id", HandlePostTracksEdit(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

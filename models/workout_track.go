@@ -10,20 +10,25 @@ import (
 )
 
 type WorkoutTrack struct {
-	Id int
-	Plan int
-	User int
-	IsPrivate bool
-	WorkoutDate time.Time
+	Id int `json:"id"`
+	Plan int `json:"plan"`
+	User int `json:"user"`
+	IsPrivate bool `json:"is_private"`
+	WorkoutDate time.Time `json:"workout_date"`
 }
 
 type TrackData struct {
-	Id int
-	Track int
-	ExDay int
-	Weight float32
-	SetNum int
-	RepNum int
+	Id int `json:"id"`
+	Track int `json:"track"`
+	ExDay int `json:"ex_day"`
+	Weight float32 `json:"weight"`
+	SetNum int `json:"set_num"`
+	RepNum int `json:"rep_num"`
+}
+
+type TrackJSON struct {
+	WTrack WorkoutTrack `json:"wt"`
+	Data []TrackData `json:"td"`
 }
 
 func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
@@ -259,16 +264,52 @@ func (Db *DataBase) UpdateTrackData(td *TrackData) (bool, error) {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?")
+	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ?")
 	if err != nil {
 		return false, err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(td.Weight, td.RepNum)
+	_, err = stmt.Exec(td.Weight, td.RepNum, td.Track, td.ExDay)
 	if err != nil {
 		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
+
+	if len(tds) <= 0 {
+		return false, errors.New("Empty track data slice passed")
+	}
+
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ?")
+	if err != nil {
+		return false, err
+	}
+
+	track := tds[0].Track // WARNING: this works only assuming all of the track data is related to the same track and exercise day
+	ex_day := tds[0].ExDay
+
+	defer stmt.Close()
+
+	for _, td := range tds {
+		_, err = stmt.Exec(td.Weight, td.RepNum, track, ex_day)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	err = tx.Commit()
