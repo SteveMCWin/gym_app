@@ -96,11 +96,11 @@ func main() {
 	user_router.GET("/forgot_password", HandleGetForgotPassword())
 	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
 	user_router.GET("/forgot_password/from-mail/:token_id/:email", HandleGetChangePassFromMail())
-	user_router.GET("/tracks", HandleGetTracks(&db)) // NOTE: Maybe rename the uri to tracks/view/:user_id
-	user_router.GET("/tracks/:user_id", HandleGetTracks(&db)) // NOTE: Maybe rename the uri to tracks/view/:user_id
+	user_router.GET("/tracks/view", HandleGetTracks(&db))
+	user_router.GET("/tracks/view/:user_id", HandleGetTracks(&db)) // NOTE: this is for when someone is looking at another persons tracks
+	user_router.GET("/tracks/view/:user_id/:track_id", HandleGetViewTrack(&db)) // NOTE: perhaps store the last updated track in a cookie to allow the user a quick access to the tracking page
 	user_router.GET("/tracks/create", HandleGetTracksCreate(&db))
 	user_router.POST("/tracks/create/:plan_id", HandlePostTracksCreate(&db))
-	user_router.GET("/tracks/view/:user_id/:track_id", HandleGetViewTrack(&db)) // NOTE: perhaps store the last updated track in a cookie to allow the user a quick access to the tracking page
 	user_router.GET("/tracks/edit/:user_id/:track_id", HandleGetTracksEdit(&db))
 	user_router.POST("/tracks/edit/:user_id/:track_id", HandlePostTracksEdit(&db))
 

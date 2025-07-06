@@ -2,80 +2,92 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>View Workout Track Data</title>
+<title>Workout Track</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f9f9f9;
-        padding: 40px;
-        text-align: center;
-    }
-    h2 {
-        margin-bottom: 20px;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+    h2 { margin-top: 30px; }
     table {
-        margin: auto;
-        border-collapse: collapse;
         width: 80%;
-        background: #fff;
+        margin: 20px auto;
+        border-collapse: collapse;
+        background: white;
         box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
     th, td {
-        border: 1px solid #ddd;
-        padding: 10px;
+        border: 1px solid #ccc;
+        padding: 8px;
         text-align: center;
     }
     th {
         background-color: #eee;
     }
-    tr:nth-child(even) {
-        background-color: #f9f9f9;
+    .low-reps {
+        background-color: #f8d7da;
+        color: #721c24;
     }
-    .btn {
-        text-decoration: none;
-        padding: 8px 16px;
-        background-color: #007BFF;
-        color: white;
-        border-radius: 4px;
-        margin-top: 20px;
-        display: inline-block;
+    .high-reps {
+        background-color: #cce5ff;
+        color: #004085;
     }
 </style>
 </head>
 <body>
 
-<h2>Workout Track Data</h2>
+<h1>Workout Track Details</h1>
 
-{{ if . }}
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Track</th>
-            <th>Exercise Day</th>
-            <th>Weight</th>
-            <th>Set Number</th>
-            <th>Rep Number</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{ range . }}
-        <tr>
-            <td>{{ .Id }}</td>
-            <td>{{ .Track }}</td>
-            <td>{{ .ExDay }}</td>
-            <td>{{ printf "%.2f" .Weight }}</td>
-            <td>{{ .SetNum }}</td>
-            <td>{{ .RepNum }}</td>
-        </tr>
+{{ if .ex_days }}
+    {{ $trackData := .track_data }}
+    {{ $prevDayOrder := -1 }}
+
+    {{ range .ex_days }}
+        {{ if ne .DayOrder $prevDayOrder }}
+            <h2>{{ .DayName }}</h2>
+            {{ $prevDayOrder = .DayOrder }}
         {{ end }}
-    </tbody>
-</table>
+
+        <h3>{{ .Exercise }}</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Weight</th>
+                    <th>Rep Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ $exDayId := .Id }}
+                {{ $minReps := .MinReps }}
+                {{ $maxReps := .MaxReps }}
+                {{ $found := false }}
+                {{ range $td := $trackData }}
+                    {{ if eq $td.ExDay $exDayId }}
+                        {{ $found = true }}
+                        <tr>
+                            <td>{{ printf "%.2f" $td.Weight }}</td>
+                            <td
+                                {{ if lt $td.RepNum $minReps }}
+                                    class="low-reps"
+                                {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
+                                    class="high-reps"
+                                {{ end }}
+                            >
+                                {{ $td.RepNum }}
+                            </td>
+                        </tr>
+                    {{ end }}
+                {{ end }}
+                {{ if not $found }}
+                    <tr><td colspan="2">No data recorded</td></tr>
+                {{ end }}
+            </tbody>
+        </table>
+    {{ end }}
+
 {{ else }}
-<p>No data found for this track.</p>
+<p>No exercise days found for this track.</p>
 {{ end }}
 
-<a href="/user/profile" class="btn">Back to Profile</a>
+<a href="/user/profile">Back to Profile</a>
 
 </body>
 </html>

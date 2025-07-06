@@ -905,7 +905,7 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		if track.IsPrivate && user_id != requesting_user_id {
-			log.Println("NU UUUUH")
+			log.Println("NUH UUUUH")
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page") // NOTE: create a page for Private or something
 			return
 		}
@@ -918,7 +918,14 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "view_track.html", track_data)
+		ex_days, err := db.ReadAllExerciseDaysFromPlan(track.Plan)
+		if err != nil {
+			log.Println("ERROR: error while getting exercise days for track")
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+		}
+
+		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "ex_days": ex_days })
 
 	}
 }
@@ -975,8 +982,15 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		// NOTE: wt and td are (slices of) pointers, saying just in case the html template doesn't work
-		c.HTML(http.StatusOK, "", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "wt": wt, "td": td})
+		ex_days, err := db.ReadAllExerciseDaysFromPlan(wt.Plan)
+		if err != nil {
+			log.Println("ERROR: error while getting exercise days for track")
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+		}
+
+
+		c.HTML(http.StatusOK, "", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ex_days": ex_days, "track_data": td})
 	}
 }
 
