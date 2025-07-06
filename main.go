@@ -96,6 +96,7 @@ func main() {
 	user_router.GET("/forgot_password", HandleGetForgotPassword())
 	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
 	user_router.GET("/forgot_password/from-mail/:token_id/:email", HandleGetChangePassFromMail())
+	user_router.GET("/tracks", HandleGetTracks(&db)) // NOTE: Maybe rename the uri to tracks/view/:user_id
 	user_router.GET("/tracks/:user_id", HandleGetTracks(&db)) // NOTE: Maybe rename the uri to tracks/view/:user_id
 	user_router.GET("/tracks/create", HandleGetTracksCreate(&db))
 	user_router.POST("/tracks/create/:plan_id", HandlePostTracksCreate(&db))

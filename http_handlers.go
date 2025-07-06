@@ -772,15 +772,22 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
-		
-		user_id, err := strconv.Atoi(c.Param("user_id"))
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
-		}
 
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user_id_param := c.Param("user_id")
+		var user_id int
+		var err error
+		if user_id_param == "" {
+			user_id = requesting_user_id
+		} else {
+			user_id, err = strconv.Atoi(c.Param("user_id"))
+			if err != nil {
+				log.Println(err)
+				c.Redirect(http.StatusSeeOther, "/error-page")
+				return
+			}
+		}
 
 		workout_tracks, err := db.ReadUsersWorkoutTracks(user_id, requesting_user_id)
 		if err != nil {
@@ -789,7 +796,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "/users_tracks.html", workout_tracks) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+		c.HTML(http.StatusOK, "users_tracks.html", workout_tracks) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
 	}
 }
 
@@ -800,13 +807,8 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
-		
-		user_id, err := strconv.Atoi(c.Param("user_id"))
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
-		}
+
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
 		plans, err := db.ReadUsersRecentlyTrackedPlans(user_id)
 		if err != nil {
@@ -815,7 +817,7 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "/create_track.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "plans": plans }) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+		c.HTML(http.StatusOK, "create_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "plans": plans}) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
 	}
 }
 
@@ -842,13 +844,13 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		make_private := c.PostForm("make_private_"+p_id) != "" // WARNING: I am assuming the post request will have each is_private field enumerated according to the plan it references
+		// is_private := false
 
-		is_private := c.PostForm("is_private"+p_id) != "" // WARNING: I am assuming the post request will have each is_private field enumerated according to the plan it references
-
-		wt := models.WorkoutTrack {
-			Plan: plan_id,
-			User: user_id,
-			IsPrivate: is_private,
+		wt := models.WorkoutTrack{
+			Plan:        plan_id,
+			User:        user_id,
+			IsPrivate:   make_private,
 			WorkoutDate: time.Now(),
 		}
 
@@ -866,7 +868,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "users/tracks/view/"+strconv.Itoa(user_id)+"/"+strconv.Itoa(wt.Id))
+		c.Redirect(http.StatusSeeOther, "/user/tracks/view/"+strconv.Itoa(user_id)+"/"+strconv.Itoa(wt.Id))
 	}
 }
 
@@ -880,7 +882,7 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
 		user_id_param := c.Param("user_id")
-		wt_id_param := c.Param("wt_id")
+		wt_id_param := c.Param("track_id")
 
 		user_id, err := strconv.Atoi(user_id_param)
 		if err != nil {
@@ -915,8 +917,6 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
-
-		_ = track_data
 
 		c.HTML(http.StatusOK, "view_track.html", track_data)
 
@@ -1042,7 +1042,6 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 }
 
 // MIDDLEWARE
-
 
 func MiddlewareNoCache() func(c *gin.Context) {
 	return func(c *gin.Context) {

@@ -3,7 +3,6 @@ package models
 import (
 	"database/sql"
 	"errors"
-	// "log"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -56,6 +55,7 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 		wt.Plan,
 		wt.User,
 		wt.IsPrivate,
+		time.Now(),
 	).Scan(&workout_track_id)
 
 	if err != nil {
@@ -244,7 +244,7 @@ func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]*TrackData, error){
 		err = rows.Scan(
 			&d.Id,
 			&d.ExDay,
-			&d.ExDay,
+			&d.Weight,
 			&d.SetNum,
 			&d.RepNum,
 		)

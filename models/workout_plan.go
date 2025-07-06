@@ -220,14 +220,24 @@ func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) 
 func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, error) {
 
 	sql_query := `
-	select workout_plan.id, workout_plan.name, workout_plan.creator workout_plan.description, max(workout_date)
+	select workout_plan.id, workout_plan.name, workout_plan.creator, workout_plan.description, max(workout_date)
 	from workout_track inner join workout_plan on plan = workout_plan.id
-	group by plan
 	where usr = ?
+	group by plan
 	order by max(workout_date) asc
+	` // Doesn't work because the workout_track table is empty at first
+
+	sql_query2 := `
+	select id, name, creator, description
+	from workout_plan inner join users_plans on id = plan
+	where usr = ?
+	order by date_added desc
 	`
 
-	rows, err := Db.Data.Query(sql_query, user_id)
+	_ = sql_query
+	_ = sql_query2
+
+	rows, err := Db.Data.Query(sql_query2, user_id)
 	if err != nil {
 		return nil, err
 	}
@@ -238,14 +248,14 @@ func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, 
 
 	for rows.Next() {
 		plan := WorkoutPlan {}
-		var last_used time.Time
+		// var last_used time.Time
 
 		err = rows.Scan(
 			&plan.Id,
 			&plan.Name,
 			&plan.Creator,
 			&plan.Description,
-			&last_used,
+			// &last_used,
 		)
 		if err != nil {
 			return nil, err
@@ -397,7 +407,7 @@ func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
 }
 
 func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]*ExerciseDay, error) {
-	rows, err := Db.Data.Query("select day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
+	rows, err := Db.Data.Query("select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
 	if err != nil {
 		return nil, err
 	}
@@ -410,6 +420,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]*ExerciseDay, er
 		ex_day := ExerciseDay{Plan: plan_id}
 
 		err = rows.Scan(
+			&ex_day.Id,
 			&ex_day.DayName,
 			&ex_day.Exercise,
 			&ex_day.Weight,

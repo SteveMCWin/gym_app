@@ -38,8 +38,16 @@
         border-radius: 4px;
         font-size: 0.9em;
     }
-    .view { background-color: #007BFF; color: white; }
-    .create { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    .view {
+        background-color: #007BFF;
+        color: white;
+    }
+    .create {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
 </style>
 </head>
 <body>
@@ -64,8 +72,12 @@
             <td>{{ .Description }}</td>
             <td>
                 <a class="btn view" href="/user/profile/plans/view/{{ .Id }}">View</a>
+
                 <form method="POST" action="/user/tracks/create/{{ .Id }}" style="display:inline;">
                     {{ $.csrfField }}
+                    <label>
+                        <input type="checkbox" name="make_private_{{ .Id }}"> Make Private
+                    </label>
                     <button type="submit" class="btn create">Create</button>
                 </form>
             </td>
