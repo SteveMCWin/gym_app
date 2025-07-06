@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Create Workout Track</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        padding: 40px;
+        text-align: center;
+    }
+    h2 {
+        margin-bottom: 20px;
+    }
+    table {
+        margin: auto;
+        border-collapse: collapse;
+        width: 80%;
+        background: #fff;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+    }
+    th {
+        background-color: #eee;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .btn {
+        text-decoration: none;
+        padding: 6px 12px;
+        margin: 0 2px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    .view { background-color: #007BFF; color: white; }
+    .create { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h2>Create Workout Track</h2>
+
+{{ if .plans }}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range .plans }}
+        <tr>
+            <td>{{ .Id }}</td>
+            <td>{{ .Name }}</td>
+            <td>{{ .Description }}</td>
+            <td>
+                <a class="btn view" href="/user/profile/plans/view/{{ .Id }}">View</a>
+                <form method="POST" action="/user/tracks/create/{{ .Id }}" style="display:inline;">
+                    {{ $.csrfField }}
+                    <button type="submit" class="btn create">Create</button>
+                </form>
+            </td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+{{ else }}
+<p>You currently have no workout plans to base a track on.</p>
+{{ end }}
+
+</body>
+</html>

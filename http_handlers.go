@@ -789,7 +789,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "", workout_tracks) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+		c.HTML(http.StatusOK, "/users_tracks.html", workout_tracks) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
 	}
 }
 
@@ -815,7 +815,7 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "", plans) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+		c.HTML(http.StatusOK, "/create_track.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "plans": plans }) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
 	}
 }
 
@@ -917,6 +917,8 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		_ = track_data
+
+		c.HTML(http.StatusOK, "view_track.html", track_data)
 
 	}
 }
