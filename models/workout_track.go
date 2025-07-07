@@ -82,7 +82,7 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 }
 
 func (Db *DataBase) ReadUsersWorkoutTracks(user_id, requesting_user_id int) ([]*WorkoutTrack, error) {
-	rows, err := Db.Data.Query("select id, plan, workout_date, is_private from workout_track where usr = ? order by workout_date asc", user_id) // NOTE: add ordering options
+	rows, err := Db.Data.Query("select id, plan, workout_date, is_private from workout_track where usr = ? order by workout_date desc", user_id) // NOTE: add ordering options
 	if err != nil {
 		return nil, err
 	}

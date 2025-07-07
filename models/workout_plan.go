@@ -14,7 +14,7 @@ type WorkoutPlan struct {
 	Creator     int    `json:"creator"`
 	Description string `json:"description"`
 }
-
+// NOTE: Consider ditching these two and just use the PlanJSON
 type ExerciseDay struct {
 	Id            int     `json:"id"`
 	Plan          int     `json:"plan"`
@@ -50,6 +50,14 @@ type PlanJSON struct {
 	Description string       `json:"description"`
 	MakeCurrent bool         `json:"make_current"`
 	Columns     []PlanColumn `json:"columns"`
+}
+
+type Exercise struct {
+	Id int `json:"id"`
+	Name string `json:"name"`
+	Description string `json:"description"`
+	ExerciseType string `json:"exercise_type"`
+	Difficulty int `json:"difficulty"`
 }
 
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
@@ -566,4 +574,35 @@ func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (Db *DataBase) ReadAllExercises() ([]*Exercise, error) {
+
+	rows, err := Db.Data.Query("select id, name, description, exercise_type, difficulty from exercises") 
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	res := make([]*Exercise, 0)
+
+	for rows.Next() {
+		current_exercise := Exercise{}
+
+		err = rows.Scan(
+			&current_exercise.Id,
+			&current_exercise.Name,
+			&current_exercise.Description,
+			&current_exercise.ExerciseType,
+			&current_exercise.Difficulty,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, &current_exercise)
+	}
+
+	return res, nil
 }

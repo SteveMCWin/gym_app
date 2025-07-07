@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -169,7 +168,9 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 		// get the form data which is the user's credentials and whatever and call db.create user and such
 		token_val, err := strconv.Atoi(c.Param("token_id"))
 		if err != nil {
-			log.Fatalln(err) // WARNING: handle better than just panicing
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
 
 		log.Println("HandlePostSignupSendMail: got token_val")
@@ -185,7 +186,9 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 
 		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
 
 		log.Println("HandlePostSignupSendMail: got parsed training_since")
@@ -422,13 +425,22 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 	}
 }
 
-func HandleGetCreatePlan() func(c *gin.Context) {
+func HandleGetCreatePlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
-		c.HTML(http.StatusOK, "make_plan.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request)})
+
+		all_exercises, err := db.ReadAllExercises()
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+
+		c.HTML(http.StatusOK, "make_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "all_exercises": all_exercises })
 	}
 }
 
@@ -444,8 +456,6 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 			return
 		}
-
-		fmt.Printf("Got workout plan: %+v\n", plan)
 
 		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
@@ -465,11 +475,22 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		log.Println("WP_ID:", wp_id)
+		all_exercises, err := db.ReadAllExercises()
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		exercise_map := make(map[string]int)
+
+		for _, exercise := range all_exercises {
+			exercise_map[exercise.Name] = exercise.Id
+		}
 
 		for i, col := range plan.Columns {
 			for j, row := range col.Rows {
-				new_ex_id, err := strconv.Atoi(row.Name) // WARNING: This is just the pre alpha version, I am assuming the passed in value is an int
+				new_ex_id := exercise_map[row.Name]
 				if err != nil {
 					panic(err)
 				}
@@ -796,7 +817,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "users_tracks.html", workout_tracks) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+		c.HTML(http.StatusOK, "users_tracks.html", workout_tracks)
 	}
 }
 
@@ -817,7 +838,7 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "create_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "plans": plans}) // WARNING: Still not template and perhaps the workout tracks cannot be passed in as is
+		c.HTML(http.StatusOK, "create_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "plans": plans})
 	}
 }
 
@@ -844,8 +865,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		make_private := c.PostForm("make_private_"+p_id) != "" // WARNING: I am assuming the post request will have each is_private field enumerated according to the plan it references
-		// is_private := false
+		make_private := c.PostForm("make_private_"+p_id) != ""
 
 		wt := models.WorkoutTrack{
 			Plan:        plan_id,
