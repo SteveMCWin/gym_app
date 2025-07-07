@@ -14,7 +14,9 @@ type WorkoutPlan struct {
 	Creator     int    `json:"creator"`
 	Description string `json:"description"`
 }
+
 // NOTE: Consider ditching these two and just use the PlanJSON
+
 type ExerciseDay struct {
 	Id            int     `json:"id"`
 	Plan          int     `json:"plan"`

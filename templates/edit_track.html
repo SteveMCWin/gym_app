@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Workout Track</title>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+    h2 { margin-top: 30px; }
+    table {
+        width: 80%;
+        margin: 20px auto;
+        border-collapse: collapse;
+        background: white;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background-color: #eee;
+    }
+    .low-reps {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .high-reps {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+</style>
+</head>
+<body>
+
+<h1>Edit Workout Track</h1>
+
+<form id="editTrackForm">
+    {{ .csrfField }}
+    {{ $trackData := .track_data }}
+    {{ $trackID := (index .track_data 0).Track }}
+    {{ $userID := .user_id }}
+    {{ $prevDayOrder := -1 }}
+
+    {{ if .ex_days }}
+        {{ range .ex_days }}
+            {{ if ne .DayOrder $prevDayOrder }}
+                <h2>{{ .DayName }}</h2>
+                {{ $prevDayOrder = .DayOrder }}
+            {{ end }}
+
+            <h3>{{ .Exercise }}</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Weight</th>
+                        <th>Rep Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ $exDayId := .Id }}
+                    {{ $minReps := .MinReps }}
+                    {{ $maxReps := .MaxReps }}
+                    {{ $found := false }}
+                    {{ range $td := $trackData }}
+                        {{ if eq $td.ExDay $exDayId }}
+                            {{ $found = true }}
+                                <tr>
+                                    <td>
+                                        <input type="number" step="0.1" name="weight" value="{{ printf "%.2f" $td.Weight }}" 
+                                            data-id="{{ $td.Id }}" data-exday="{{ $td.ExDay }}" data-setnum="{{ $td.SetNum }}">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="repnum" value="{{ $td.RepNum }}" 
+                                            data-id="{{ $td.Id }}" data-exday="{{ $td.ExDay }}" data-setnum="{{ $td.SetNum }}">
+                                    </td>
+                                </tr>
+                        {{ end }}
+                    {{ end }}
+                    {{ if not $found }}
+                        <tr><td colspan="2">No data recorded</td></tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        {{ end }}
+    {{ else }}
+        <p>No exercise days found for this track.</p>
+    {{ end }}
+
+    <button type="button" onclick="submitEdit()">Update</button>
+</form>
+
+<a href="/user/profile">Back to Profile</a>
+
+<script>
+async function submitEdit() {
+    const form = document.getElementById('editTrackForm');
+    const csrfToken = form.querySelector('input[name="gorilla.csrf.Token"]').value;
+    const userID = {{ .user_id }};
+    const trackID = {{ (index .track_data 0).Track }};
+    
+    const td = [];
+
+    document.querySelectorAll('input[name="weight"]').forEach(input => {
+        const exDay = parseInt(input.dataset.exday);
+        const setNum = parseInt(input.dataset.setnum);
+        const weight = parseFloat(input.value);
+        const id = parseInt(input.dataset.id);
+
+        const repInput = document.querySelector(`input[name="repnum"][data-exday="${exDay}"][data-setnum="${setNum}"]`);
+        const repNum = parseInt(repInput.value);
+
+        td.push({
+            id: id,
+            track: trackID,
+            ex_day: exDay,
+            set_num: setNum,
+            weight: weight,
+            rep_num: repNum
+        });
+    });
+
+    const payload = {
+        wt: {
+            id: trackID,
+            user: userID
+        },
+        td: td
+    };
+
+    const res = await fetch(`/user/tracks/edit/${userID}/${trackID}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        window.location.href = "/user/profile";
+    } else {
+        alert("Failed to update track.");
+    }
+}
+</script>
+
+</body>
+</html>

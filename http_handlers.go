@@ -946,7 +946,6 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "ex_days": ex_days })
-
 	}
 }
 
@@ -960,10 +959,11 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
 		user_id_param := c.Param("user_id")
-		wt_id_param := c.Param("wt_id")
+		wt_id_param := c.Param("track_id")
 
 		user_id, err := strconv.Atoi(user_id_param)
 		if err != nil {
+			log.Println("Get 1")
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
@@ -977,6 +977,7 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 
 		wt_id, err := strconv.Atoi(wt_id_param)
 		if err != nil {
+			log.Println("Get 2")
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
@@ -1010,7 +1011,7 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		}
 
 
-		c.HTML(http.StatusOK, "", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ex_days": ex_days, "track_data": td})
+		c.HTML(http.StatusOK, "edit_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ex_days": ex_days, "track_data": td, "user_id": user_id})
 	}
 }
 
@@ -1023,7 +1024,7 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
 		user_id_param := c.Param("user_id")
-		wt_id_param := c.Param("wt_id")
+		wt_id_param := c.Param("track_id")
 
 		user_id, err := strconv.Atoi(user_id_param)
 		if err != nil {

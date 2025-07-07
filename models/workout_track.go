@@ -68,8 +68,9 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 	wt := &WorkoutTrack{Id: wt_id}
 
-	err := Db.Data.QueryRow("select plan, is_private, workout_date from workout_track where id = ?", wt_id).Scan(
+	err := Db.Data.QueryRow("select plan, usr, is_private, workout_date from workout_track where id = ?", wt_id).Scan(
 		&wt.Plan,
+		&wt.User,
 		&wt.IsPrivate,
 		&wt.WorkoutDate,
 	)
@@ -295,18 +296,19 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ?")
+	// stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ? and set_num = ?")
+	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?")
 	if err != nil {
 		return false, err
 	}
 
-	track := tds[0].Track // WARNING: this works only assuming all of the track data is related to the same track and exercise day
-	ex_day := tds[0].ExDay
+	// track := tds[0].Track // WARNING: this works only assuming all of the track data is related to the same track and exercise day
+	// ex_day := tds[0].ExDay
 
 	defer stmt.Close()
 
 	for _, td := range tds {
-		_, err = stmt.Exec(td.Weight, td.RepNum, track, ex_day)
+		_, err = stmt.Exec(td.Weight, td.RepNum, td.Id)
 		if err != nil {
 			return false, err
 		}

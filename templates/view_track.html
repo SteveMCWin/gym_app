@@ -65,7 +65,7 @@
                         <tr>
                             <td>{{ printf "%.2f" $td.Weight }}</td>
                             <td
-                                {{ if lt $td.RepNum $minReps }}
+                                {{ if and (lt $td.RepNum $minReps) (ne $td.RepNum 0) }}
                                     class="low-reps"
                                 {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
                                     class="high-reps"
