@@ -33,6 +33,10 @@ func templateFuncs() template.FuncMap {
     }
 }
 
+// TODO: refactor the golang structs
+// TODO: caching
+// TODO: actual exercise name in track view
+
 func main() {
 
 	err := godotenv.Load()

@@ -475,14 +475,14 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		all_exercises, err := db.ReadAllExercises()
+		all_exercises, err := db.ReadAllExercises() 
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
 			return
 		}
 
-		exercise_map := make(map[string]int)
+		exercise_map := make(map[string]int) // WARNING: THIS SHOULD BE CACHED
 
 		for _, exercise := range all_exercises {
 			exercise_map[exercise.Name] = exercise.Id
@@ -605,6 +605,18 @@ func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*model
 		Name: current_day,
 	}
 
+	all_exercises, err := db.ReadAllExercises()
+	if err != nil {
+		return nil, err
+	}
+
+	exercise_map := make(map[int]string) // WARNING: THIS SHOULD BE CACHED AND IT'S REVERSED FROM THE OTHER EXERCISE MAP
+
+	for _, exercise := range all_exercises {
+		exercise_map[exercise.Id] = exercise.Name
+	}
+
+
 	for _, ex_day := range ex_days {
 		if current_day != ex_day.DayName {
 			cols = append(cols, current_col)
@@ -615,7 +627,7 @@ func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*model
 		}
 
 		current_row := models.PlanRow{
-			Name:    strconv.Itoa(ex_day.Exercise),
+			Name:    exercise_map[ex_day.Exercise],
 			Weight:  ex_day.Weight,
 			Unit:    ex_day.Unit,
 			Sets:    ex_day.Sets,

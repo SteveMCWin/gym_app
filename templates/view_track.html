@@ -29,6 +29,14 @@
         background-color: #cce5ff;
         color: #004085;
     }
+    .low-weight {
+        background-color: #fde2e2;
+        color: #b71c1c;
+    }
+    .high-weight {
+        background-color: #e2ecfd;
+        color: #0d47a1;
+    }
 </style>
 </head>
 <body>
@@ -54,32 +62,41 @@
                     <th>Rep Number</th>
                 </tr>
             </thead>
-            <tbody>
-                {{ $exDayId := .Id }}
-                {{ $minReps := .MinReps }}
-                {{ $maxReps := .MaxReps }}
-                {{ $found := false }}
-                {{ range $td := $trackData }}
-                    {{ if eq $td.ExDay $exDayId }}
-                        {{ $found = true }}
-                        <tr>
-                            <td>{{ printf "%.2f" $td.Weight }}</td>
-                            <td
-                                {{ if and (lt $td.RepNum $minReps) (ne $td.RepNum 0) }}
-                                    class="low-reps"
-                                {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
-                                    class="high-reps"
-                                {{ end }}
-                            >
-                                {{ $td.RepNum }}
-                            </td>
-                        </tr>
+                <tbody>
+                    {{ $exDayId := .Id }}
+                    {{ $minReps := .MinReps }}
+                    {{ $maxReps := .MaxReps }}
+                    {{ $expectedWeight := .Weight }}
+                    {{ $found := false }}
+                    {{ range $td := $trackData }}
+                        {{ if eq $td.ExDay $exDayId }}
+                            {{ $found = true }}
+                            <tr>
+                                <td
+                                    {{ if lt $td.Weight $expectedWeight }}
+                                        class="low-weight"
+                                    {{ else if gt $td.Weight $expectedWeight }}
+                                        class="high-weight"
+                                    {{ end }}
+                                >
+                                    {{ printf "%.2f" $td.Weight }}
+                                </td>
+                                <td
+                                    {{ if and (lt $td.RepNum $minReps) (ne $td.RepNum 0) }}
+                                        class="low-reps"
+                                    {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
+                                        class="high-reps"
+                                    {{ end }}
+                                >
+                                    {{ $td.RepNum }}
+                                </td>
+                            </tr>
+                        {{ end }}
                     {{ end }}
-                {{ end }}
-                {{ if not $found }}
-                    <tr><td colspan="2">No data recorded</td></tr>
-                {{ end }}
-            </tbody>
+                    {{ if not $found }}
+                        <tr><td colspan="2">No data recorded</td></tr>
+                    {{ end }}
+                </tbody>
         </table>
     {{ end }}
 

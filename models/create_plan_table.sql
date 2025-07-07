@@ -24,8 +24,8 @@ CREATE TABLE exercise_day (
     unit TEXT DEFAULT 'kg' CHECK (unit IN ('kg', 'lbs', 's', 'm', '')),
     --NOTE: add a is_dropset field that will allow the user to add more fields than specified by the sets field (and do so when the sets value isn't provided) ((also set default for sets to 0 or smth))
     sets INTEGER DEFAULT 1, --NOTE: check if >= 1
-    min_reps TEXT NOT NULL, --NOTE: this should support a variety of vals like 2, 14, 30s, 2m
-    max_reps TEXT, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps but like 5 sets of 5
+    min_reps INTEGER NOT NULL, --NOTE: this should support a variety of vals like 2, 14, 30s, 2m
+    max_reps INTEGER, --NOTE: if this is null then the exercise isn't ranged like 6-12 reps but like 5 sets of 5
     day_order INTEGER NOT NULL,
     exercise_order INTEGER NOT NULL,
     FOREIGN KEY(plan) REFERENCES workout_plan(id),
