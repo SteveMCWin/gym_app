@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -13,6 +14,7 @@ type WorkoutPlan struct {
 	Name        string    `json:"name"`
 	Creator     int       `json:"creator"`
 	Description string    `json:"description"`
+	MakeCurrent bool      `json:"make_current"`
 	Days        []PlanDay `json:"days"`
 }
 
@@ -79,11 +81,6 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 	}
 
 	wp.Id = workout_plan_id
-
-	err = Db.AddWorkoutPlanToUser(wp.Creator, wp.Id)
-	if err != nil {
-		return 0, err
-	}
 
 	err = Db.CreateExerciseDays(wp)
 	if err != nil {
@@ -186,6 +183,11 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 
 func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) {
 
+	usr, err := Db.ReadUser(usr_id)
+	if err != nil {
+		return nil, err
+	}
+
 	// NOTE: figure out how to get the date added.
 	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id)
 	if err != nil {
@@ -208,6 +210,7 @@ func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) 
 		if err != nil {
 			return nil, err
 		}
+		current_plan.MakeCurrent = current_plan.Id != usr.CurrentPlan
 
 		res = append(res, &current_plan)
 	}
@@ -336,6 +339,8 @@ func (Db *DataBase) CreateExerciseDays(wp *WorkoutPlan) error {
 				return err
 			}
 
+			log.Println("ex weight:", ex.Weight)
+
 			var ok bool
 			ex.Exercise, ok = FetchCachedExercise(exercisesByName[ex.Exercise.Name])
 			if !ok {
@@ -354,7 +359,6 @@ func (Db *DataBase) CreateExerciseDays(wp *WorkoutPlan) error {
 				i,
 				j,
 			).Scan(&ex.Id)
-
 			if err != nil {
 				return err
 			}
@@ -459,6 +463,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) 
 		day.Name = d.Name
 		day.Exercises = append(day.Exercises, ex)
 	}
+	res = append(res, day)
 
 	return res, nil
 }
@@ -618,6 +623,10 @@ func (Db *DataBase) CacheAllExercises() error {
 			return errors.New("Couldn't cache exercise")
 		}
 	}
+
+	log.Println("Cached exercises:", cachedExercises)
+	log.Println()
+	log.Println("Exercise by name:", exercisesByName)
 
 	return nil
 }

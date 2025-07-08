@@ -465,9 +465,9 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		// if plan.MakeCurrent {
+		if plan.MakeCurrent {
 		_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
-		// }
+		}
 
 		if err != nil {
 			log.Println("ERROR")

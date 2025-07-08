@@ -1,60 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{{ .Name }} - Workout Plan</title>
-    <style>
-        body { font-family: sans-serif; padding: 40px; background-color: #f9f9f9; }
-        h1, h2 { text-align: center; }
-        .plan-meta { text-align: center; margin-bottom: 20px; }
-        .column { margin-bottom: 40px; }
-        .column h3 { background-color: #eee; padding: 10px; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        .btn { margin-top: 20px; display: block; width: fit-content; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-left: auto; margin-right: auto; }
-    </style>
+<meta charset="UTF-8">
+<title>{{ .Name }} - Workout Plan</title>
+<style>
+    body { font-family: sans-serif; padding: 40px; background-color: #f9f9f9; }
+    h1, h2 { text-align: center; }
+    .plan-meta { text-align: center; margin-bottom: 20px; }
+    .day { margin-bottom: 40px; }
+    .day h3 { background-color: #eee; padding: 10px; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    .btn {
+        margin-top: 20px;
+        display: block;
+        width: fit-content;
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
 </head>
 <body>
 
-    <h1>{{ .Name }}</h1>
+<h1>{{ .Name }}</h1>
 
-    <div class="plan-meta">
-        <p><strong>Description:</strong> {{ .Description }}</p>
-    </div>
+<div class="plan-meta">
+    <p><strong>Description:</strong> {{ .Description }}</p>
+</div>
 
-    {{ range .Columns }}
-    <div class="column">
-        <h3>{{ .Name }}</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Exercise</th>
-                    <th>Weight</th>
-                    <th>Unit</th>
-                    <th>Sets</th>
-                    <th>Min Reps</th>
-                    <th>Max Reps</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ range .Rows }}
-                <tr>
-                    <td>{{ .Name }}</td>
-                    <td>{{ if .Weight }}{{ printf "%.2f" .Weight }}{{ else }}–{{ end }}</td>
-                    <td>{{ .Unit }}</td>
-                    <td>{{ .Sets }}</td>
-                    <td>{{ .MinReps }}</td>
-                    <td>{{ if .MaxReps }}{{ .MaxReps }}{{ else }}–{{ end }}</td>
-                </tr>
-                {{ end }}
-            </tbody>
-        </table>
-    </div>
-    {{ end }}
+{{ range .Days }}
+<div class="day">
+    <h3>{{ .Name }}</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Exercise</th>
+                <th>Weight</th>
+                <th>Unit</th>
+                <th>Sets</th>
+                <th>Min Reps</th>
+                <th>Max Reps</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Exercises }}
+            <tr>
+                <td>{{ .Exercise.Name }}</td>
+                <td>{{ if .Weight }}{{ printf "%.2f" .Weight }}{{ else }}–{{ end }}</td>
+                <td>{{ .Unit }}</td>
+                <td>{{ .Sets }}</td>
+                <td>{{ .MinReps }}</td>
+                <td>{{ if .MaxReps }}{{ .MaxReps }}{{ else }}–{{ end }}</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+</div>
+{{ end }}
 
-    <a class="btn" href="/user/profile">Back to Profile</a>
-    {{ if .MakeCurrent }}
-    <a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .Id }}">Make Current</a>
-    {{ end }}
+<a class="btn" href="/user/profile">Back to Profile</a>
+{{ if .MakeCurrent }}
+<a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .Id }}">Make Current</a>
+{{ end }}
+
 </body>
 </html>
