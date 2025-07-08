@@ -188,8 +188,10 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 
 func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 
-	Db.AddWorkoutPlanToUser(usr_id, plan_id) // ensure the user and plan are linked
-	// WARNING: should check if returns error and handle accordingly
+	err := Db.AddWorkoutPlanToUser(usr_id, plan_id) // ensure the user and plan are linked
+	if err != nil {
+		return false, err
+	}
 
 	tx, err := Db.Data.Begin()
 	if err != nil {

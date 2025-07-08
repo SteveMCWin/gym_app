@@ -425,20 +425,14 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 	}
 }
 
-func HandleGetCreatePlan(db *models.DataBase) func(c *gin.Context) {
+func HandleGetCreatePlan() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
 
-		all_exercises, err := db.ReadAllExercises()
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
+		all_exercises := models.GetAllCachedExercises()
 
 		c.HTML(http.StatusOK, "make_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "all_exercises": all_exercises })
 	}
@@ -451,21 +445,17 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		var plan models.PlanJSON
+		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		var plan models.WorkoutPlan
 		if err := c.BindJSON(&plan); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 			return
 		}
 
-		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		plan.Creator = usr_id
 
-		new_plan := models.WorkoutPlan{
-			Name:        plan.Name,
-			Description: plan.Description,
-			Creator:     usr_id,
-		}
-
-		wp_id, err := db.CreateWorkoutPlan(&new_plan)
+		wp_id, err := db.CreateWorkoutPlan(&plan)
 
 		if err != nil {
 			log.Println("ERROR")
@@ -475,63 +465,9 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		all_exercises, err := db.ReadAllExercises() 
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		exercise_map := make(map[string]int) // WARNING: THIS SHOULD BE CACHED
-
-		for _, exercise := range all_exercises {
-			exercise_map[exercise.Name] = exercise.Id
-		}
-
-		for i, col := range plan.Columns {
-			for j, row := range col.Rows {
-				new_ex_id := exercise_map[row.Name]
-				if err != nil {
-					panic(err)
-				}
-
-				log.Println("Exercise:", new_ex_id)
-				log.Println("row.Weight:", row.Weight)
-
-				var max_reps int
-				if row.MaxReps == nil {
-					max_reps = -1
-				} else {
-					max_reps = *row.MaxReps
-				}
-
-				new_ex := models.ExerciseDay{
-					Plan:          wp_id,
-					Exercise:      new_ex_id,
-					DayName:       col.Name,
-					Weight:        float32(row.Weight),
-					Unit:          row.Unit,
-					Sets:          row.Sets,
-					MinReps:       row.MinReps,
-					MaxReps:       max_reps,
-					DayOrder:      i,
-					ExerciseOrder: j,
-				}
-
-				_, err = db.CreateExerciseDay(&new_ex)
-				if err != nil {
-					log.Println("ERROR")
-					log.Println(err)
-					log.Println("ERROR")
-					c.Redirect(http.StatusSeeOther, "/error-page")
-					return
-				}
-			}
-		}
-
-		if plan.MakeCurrent {
-			_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
-		}
+		// if plan.MakeCurrent {
+		_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
+		// }
 
 		if err != nil {
 			log.Println("ERROR")
@@ -573,77 +509,9 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		plan_view, err := GetPlanViewFromWorkout(db, wp)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		plan_view.MakeCurrent = false
-
-		c.HTML(http.StatusOK, "view_plan.html", plan_view) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		c.HTML(http.StatusOK, "view_plan.html", wp) // WARNING: consider adding csrf protection especially if you enable editing the plan
 
 	}
-}
-
-func GetPlanViewFromWorkout(db *models.DataBase, wp *models.WorkoutPlan) (*models.PlanJSON, error) {
-	ex_days, err := db.ReadAllExerciseDaysFromPlan(wp.Id)
-	if err != nil {
-		return nil, err
-	}
-	plan_view := &models.PlanJSON{
-		Name:        wp.Name,
-		Description: wp.Description,
-	}
-
-	current_day := ex_days[0].DayName
-
-	cols := make([]models.PlanColumn, 0)
-
-	current_col := models.PlanColumn{
-		Name: current_day,
-	}
-
-	all_exercises, err := db.ReadAllExercises()
-	if err != nil {
-		return nil, err
-	}
-
-	exercise_map := make(map[int]string) // WARNING: THIS SHOULD BE CACHED AND IT'S REVERSED FROM THE OTHER EXERCISE MAP
-
-	for _, exercise := range all_exercises {
-		exercise_map[exercise.Id] = exercise.Name
-	}
-
-
-	for _, ex_day := range ex_days {
-		if current_day != ex_day.DayName {
-			cols = append(cols, current_col)
-			current_day = ex_day.DayName
-			current_col = models.PlanColumn{
-				Name: current_day,
-			}
-		}
-
-		current_row := models.PlanRow{
-			Name:    exercise_map[ex_day.Exercise],
-			Weight:  ex_day.Weight,
-			Unit:    ex_day.Unit,
-			Sets:    ex_day.Sets,
-			MinReps: ex_day.MinReps,
-			MaxReps: &ex_day.MaxReps,
-		}
-
-		current_col.Rows = append(current_col.Rows, current_row)
-
-	}
-
-	cols = append(cols, current_col) // append the last column since the first if never gets called at the last iteration
-
-	plan_view.Columns = cols
-
-	return plan_view, nil
 }
 
 func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
@@ -701,17 +569,9 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		plan_view, err := GetPlanViewFromWorkout(db, wp)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
+		makeCurrent := user.CurrentPlan != wp_id
 
-		plan_view.MakeCurrent = user.CurrentPlan != wp_id
-		plan_view.Id = wp_id
-
-		c.HTML(http.StatusOK, "view_plan.html", plan_view) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "make_current": makeCurrent }) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }
 

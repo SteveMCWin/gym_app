@@ -182,7 +182,7 @@ func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 		return errors.New("Cannot create track data for non-existing plan")
 	}
 
-	ex_days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan)
+	days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan)
 	if err != nil {
 		return err
 	}
@@ -195,26 +195,28 @@ func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 	}
 
 	defer stmt.Close()
-	for _, ex_day := range ex_days {
-		for j := range ex_day.Sets {
-			// td := TrackData {
-			// 	Track: wt.Id,
-			// 	ExDay: ex_day.Id,
-			// 	Weight: ex_day.Weight,
-			// 	SetNum: j,
-			// }
-			// _, err = Db.CreateTrackData(&td) // NOTE: perhaps may be done in a goroutine
+	for _, day := range days {
+		for _, ex := range day.Exercises {
+			for n := range ex.Sets {
+				// td := TrackData {
+				// 	Track: wt.Id,
+				// 	ExDay: ex_day.Id,
+				// 	Weight: ex_day.Weight,
+				// 	SetNum: j,
+				// }
+				// _, err = Db.CreateTrackData(&td) // NOTE: perhaps may be done in a goroutine
 
-			var tmp int
+				var tmp int
 
-			err = stmt.QueryRow(
-				wt.Id,
-				ex_day.Id,
-				ex_day.Weight,
-				j,
-			).Scan(&tmp)
-			if err != nil {
-				return err
+				err = stmt.QueryRow(
+					wt.Id,
+					ex.Id,
+					ex.Weight,
+					n,
+				).Scan(&tmp)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

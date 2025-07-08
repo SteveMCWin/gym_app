@@ -58,6 +58,11 @@ func main() {
 	}
 	defer db.Close()
 
+	err = db.CacheAllExercises()
+	if err != nil {
+		panic(err)
+	}
+
 	sessionManager = scs.New()
 	sessionManager.Lifetime = time.Hour * 24 * 30
 	sessionManager.Store = sqlite3store.New(db.Data)
@@ -91,7 +96,7 @@ func main() {
 	user_router.GET("/change_password", HandleGetChangePassword(&db))
 	user_router.GET("/change_password/:token_id/:email", HandleGetChangePasswordFromMail())
 	user_router.POST("/change_password/:tokenid/:email", HandlePostChangePasswordFromMail(&db))
-	user_router.GET("/create_plan", HandleGetCreatePlan(&db))
+	user_router.GET("/create_plan", HandleGetCreatePlan())
 	user_router.POST("/create_plan", HandlePostCreatePlan(&db))
 	user_router.GET("/profile/plans/view/current", HandleGetViewCurrentPlan(&db))
 	user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))

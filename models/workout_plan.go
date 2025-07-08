@@ -9,57 +9,34 @@ import (
 )
 
 type WorkoutPlan struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Creator     int    `json:"creator"`
-	Description string `json:"description"`
+	Id          int       `json:"id"`
+	Name        string    `json:"name"`
+	Creator     int       `json:"creator"`
+	Description string    `json:"description"`
+	Days        []PlanDay `json:"days"`
 }
 
-// NOTE: Consider ditching these two and just use the PlanJSON
-
-type ExerciseDay struct {
-	Id            int     `json:"id"`
-	Plan          int     `json:"plan"`
-	Exercise      int     `json:"exercise"`
-	DayName       string  `json:"day"`
-	Weight        float32 `json:"weight"`
-	Unit          string  `json:"unit"`
-	Sets          int     `json:"sets"`
-	MinReps       int     `json:"min_reps"`
-	MaxReps       int     `json:"max_reps"` // if == -1 then no max reps
-	DayOrder      int     `json:"day_order"`
-	ExerciseOrder int     `json:"exercise_order"`
+type PlanDay struct {
+	Name      string         `json:"name"`
+	Exercises []ExerciseData `json:"exercises"`
 }
 
-type PlanRow struct {
-	Name    string  `json:"name"`
-	Weight  float32 `json:"weight"`
-	Unit    string  `json:"unit"`
-	Sets    int     `json:"sets"`
-	MinReps int     `json:"min_reps"`
-	MaxReps *int    `json:"max_reps"`
-}
-
-type PlanColumn struct {
-	Name string    `json:"name"`
-	Rows []PlanRow `json:"rows"`
-}
-
-type PlanJSON struct {
-	Id          int          `json:"id"`
-	// NOTE: Perhaps add an exercise id field
-	Name        string       `json:"name"`
-	Description string       `json:"description"`
-	MakeCurrent bool         `json:"make_current"`
-	Columns     []PlanColumn `json:"columns"`
+type ExerciseData struct {
+	Id       int      `json:"id"`
+	Exercise Exercise `json:"exercise"`
+	Weight   float32  `json:"weigth"`
+	Unit     string   `json:"unit"`
+	Sets     int      `json:"sets"`
+	MinReps  int      `json:"min_reps"`
+	MaxReps  int      `json:"max_reps"`
 }
 
 type Exercise struct {
-	Id int `json:"id"`
-	Name string `json:"name"`
-	Description string `json:"description"`
+	Id           int    `json:"id"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
 	ExerciseType string `json:"exercise_type"`
-	Difficulty int `json:"difficulty"`
+	Difficulty   int    `json:"difficulty"`
 }
 
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
@@ -101,7 +78,14 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 		return 0, err
 	}
 
-	err = Db.AddWorkoutPlanToUser(wp.Creator, workout_plan_id)
+	wp.Id = workout_plan_id
+
+	err = Db.AddWorkoutPlanToUser(wp.Creator, wp.Id)
+	if err != nil {
+		return 0, err
+	}
+
+	err = Db.CreateExerciseDays(wp)
 	if err != nil {
 		return 0, err
 	}
@@ -188,7 +172,11 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 		&wp.Creator,
 		&wp.Description,
 	)
+	if err != nil {
+		return nil, err
+	}
 
+	wp.Days, err = Db.ReadAllExerciseDaysFromPlan(id)
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +186,8 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 
 func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) {
 
-	// NOTE: figure out how to get the date added. 
-	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id) 
+	// NOTE: figure out how to get the date added.
+	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +245,7 @@ func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, 
 	plans := make([]*WorkoutPlan, 0)
 
 	for rows.Next() {
-		plan := WorkoutPlan {}
+		plan := WorkoutPlan{}
 		// var last_used time.Time
 
 		err = rows.Scan(
@@ -330,226 +318,250 @@ func (Db *DataBase) DeleteWorkoutPlan(id int) (bool, error) { // NOTE: prolly no
 	return true, nil
 }
 
-func (Db *DataBase) CreateExerciseDay(ex_day *ExerciseDay) (int, error) {
-
-	err := ValidateExerciseDayInput(ex_day)
-	if err != nil {
-		return 0, err
-	}
+func (Db *DataBase) CreateExerciseDays(wp *WorkoutPlan) error {
 
 	statement := "insert into exercise_day (plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id"
-	var stmt *sql.Stmt
-	stmt, err = Db.Data.Prepare(statement)
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	defer stmt.Close()
 
-	var ex_day_id int
-	err = stmt.QueryRow(
-		ex_day.Plan,
-		ex_day.DayName,
-		ex_day.Exercise,
-		ex_day.Weight,
-		ex_day.Unit,
-		ex_day.Sets,
-		ex_day.MinReps,
-		ex_day.MaxReps,
-		ex_day.DayOrder,
-		ex_day.ExerciseOrder,
-	).Scan(&ex_day_id)
+	for i, day := range wp.Days {
+		for j, ex := range day.Exercises {
 
-	if err != nil {
-		return 0, err
+			err := ValidateExerciseDayInput(ex)
+			if err != nil {
+				return err
+			}
+
+			var ok bool
+			ex.Exercise, ok = FetchCachedExercise(exercisesByName[ex.Exercise.Name])
+			if !ok {
+				return errors.New("Couldn't fetch exercise from cached exercises")
+			}
+
+			err = stmt.QueryRow(
+				wp.Id,
+				day.Name,
+				ex.Exercise.Id,
+				ex.Weight,
+				ex.Unit,
+				ex.Sets,
+				ex.MinReps,
+				ex.MaxReps,
+				i,
+				j,
+			).Scan(&ex.Id)
+
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	return ex_day_id, nil
+	return nil
 }
 
-func ValidateExerciseDayInput(ex_day *ExerciseDay) error {
+func ValidateExerciseDayInput(ex ExerciseData) error {
 
-	if ex_day.Plan == 0 || ex_day.Exercise == 0 {
-		return errors.New("Cannot create ExerciseDay without Plan and Exercise ID")
+	// if ex_day.Plan == 0 || ex_day.Exercise == 0 {
+	// 	return errors.New("Cannot create ExerciseDay without Plan and Exercise ID")
+	// }
+
+	if ex.Sets <= 0 {
+		ex.Sets = 1
 	}
 
-	if ex_day.Sets < 0 {
-		ex_day.Sets = 1
+	if ex.Weight < 0.0 {
+		ex.Weight = 0.0
 	}
 
-	if ex_day.Weight < 0.0 {
-		ex_day.Weight = 0.0
+	if ex.MinReps < 0 {
+		ex.MinReps = 0
 	}
 
-	if ex_day.MinReps < 0 {
-		ex_day.MinReps = 0
-	}
-
-	if ex_day.MaxReps < 0 {
-		ex_day.MaxReps = 0
+	if ex.MaxReps < 0 {
+		ex.MaxReps = 0
 	}
 
 	return nil
 
 }
 
-func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
-	ex_day := &ExerciseDay{Id: ex_day_id}
+// func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
+// 	ex_day := &ExerciseDay{Id: ex_day_id}
+//
+// 	err := Db.Data.QueryRow("select plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from workout_plan where id = ?", ex_day_id).Scan(
+// 		&ex_day.Plan,
+// 		&ex_day.DayName,
+// 		&ex_day.Exercise,
+// 		&ex_day.Weight,
+// 		&ex_day.Unit,
+// 		&ex_day.Sets,
+// 		&ex_day.MinReps,
+// 		&ex_day.MaxReps,
+// 		&ex_day.DayOrder,
+// 		&ex_day.ExerciseOrder,
+// 	)
+//
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	return ex_day, nil
+// }
 
-	err := Db.Data.QueryRow("select plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from workout_plan where id = ?", ex_day_id).Scan(
-		&ex_day.Plan,
-		&ex_day.DayName,
-		&ex_day.Exercise,
-		&ex_day.Weight,
-		&ex_day.Unit,
-		&ex_day.Sets,
-		&ex_day.MinReps,
-		&ex_day.MaxReps,
-		&ex_day.DayOrder,
-		&ex_day.ExerciseOrder,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return ex_day, nil
-}
-
-func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]*ExerciseDay, error) {
-	rows, err := Db.Data.Query("select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
+func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) {
+	rows, err := Db.Data.Query("select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	res := make([]*ExerciseDay, 0)
+	res := make([]PlanDay, 0)
+
+	prev_day := 0
+	day := PlanDay{}
 
 	for rows.Next() {
-		ex_day := ExerciseDay{Plan: plan_id}
-
+		d := PlanDay{}
+		ex := ExerciseData{}
+		var curr_day int
 		err = rows.Scan(
-			&ex_day.Id,
-			&ex_day.DayName,
-			&ex_day.Exercise,
-			&ex_day.Weight,
-			&ex_day.Unit,
-			&ex_day.Sets,
-			&ex_day.MinReps,
-			&ex_day.MaxReps,
-			&ex_day.DayOrder,
-			&ex_day.ExerciseOrder,
+			&ex.Id,
+			&d.Name,
+			&ex.Exercise.Id,
+			&ex.Weight,
+			&ex.Unit,
+			&ex.Sets,
+			&ex.MinReps,
+			&ex.MaxReps,
+			&curr_day,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		res = append(res, &ex_day)
+		var ok bool
+		ex.Exercise, ok = FetchCachedExercise(ex.Exercise.Id)
+		if !ok {
+			return nil, err
+		}
+
+		if curr_day != prev_day {
+			prev_day = curr_day
+			res = append(res, day)
+			day = PlanDay{}
+		}
+		day.Name = d.Name
+		day.Exercises = append(day.Exercises, ex)
 	}
 
 	return res, nil
 }
 
-func (Db *DataBase) UpdateExerciseDayExercise(ex_day *ExerciseDay) error {
+// func (Db *DataBase) UpdateExerciseDayExercise(ex_day *ExerciseDay) error {
+//
+// 	// err := ValidateExerciseDayInput(ex_day)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+//
+// 	tx, err := Db.Data.Begin()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	stmt, err := tx.Prepare("UPDATE exercise_day SET exercise = ?, weight = ?, unit = ?, sets = ?, min_rep = ?, max_reps = ? WHERE id = ?")
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	defer stmt.Close()
+//
+// 	_, err = stmt.Exec(ex_day.Exercise, ex_day.Weight, ex_day.Unit, ex_day.Sets, ex_day.MinReps, ex_day.MaxReps, ex_day.Id)
+//
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+// }
 
-	err := ValidateExerciseDayInput(ex_day)
-	if err != nil {
-		return err
-	}
-
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return err
-	}
-
-	stmt, err := tx.Prepare("UPDATE exercise_day SET exercise = ?, weight = ?, unit = ?, sets = ?, min_rep = ?, max_reps = ? WHERE id = ?")
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(ex_day.Exercise, ex_day.Weight, ex_day.Unit, ex_day.Sets, ex_day.MinReps, ex_day.MaxReps, ex_day.Id)
-
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (Db *DataBase) UpdateExerciseDayOrder(ex_day *ExerciseDay, old_day_order, old_ex_order int) error {
-
-	changed_day_oder := old_day_order != ex_day.DayOrder
-
-	var new_day_name string
-
-	if changed_day_oder {
-		err := Db.Data.QueryRow("select day_name from exercise_day where plan = ? and day_order = ? and exercise_order = 0", ex_day.Plan, ex_day.DayOrder).Scan(&new_day_name)
-		if err != nil {
-			return err
-		}
-	} else {
-		new_day_name = ex_day.DayName
-	}
-
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return err
-	}
-
-	var stmt_update_day *sql.Stmt
-	if changed_day_oder {
-		stmt_update_day, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ?")
-		if err != nil {
-			return err
-		}
-	} else {
-		stmt_update_day, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ? and exercise_order < ?")
-		if err != nil {
-			return err
-		}
-	}
-
-	stmt_update_ex, err := tx.Prepare("UPDATE exercise_day SET day_name = ?, day_order = ?, exercise_order = ? WHERE id = ?")
-	if err != nil {
-		return err
-	}
-
-	defer stmt_update_day.Close()
-	defer stmt_update_ex.Close()
-
-	if changed_day_oder {
-		_, err = stmt_update_day.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder)
-		if err != nil {
-			return err
-		}
-	} else {
-		_, err = stmt_update_day.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder, old_ex_order)
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = stmt_update_ex.Exec(new_day_name, ex_day.DayOrder, ex_day.ExerciseOrder, ex_day.Id)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
+// func (Db *DataBase) UpdateExerciseDayOrder(ex_day *ExerciseDay, old_day_order, old_ex_order int) error {
+//
+// 	changed_day_oder := old_day_order != ex_day.DayOrder
+//
+// 	var new_day_name string
+//
+// 	if changed_day_oder {
+// 		err := Db.Data.QueryRow("select day_name from exercise_day where plan = ? and day_order = ? and exercise_order = 0", ex_day.Plan, ex_day.DayOrder).Scan(&new_day_name)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	} else {
+// 		new_day_name = ex_day.DayName
+// 	}
+//
+// 	tx, err := Db.Data.Begin()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	var stmt_update_day *sql.Stmt
+// 	if changed_day_oder {
+// 		stmt_update_day, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ?")
+// 		if err != nil {
+// 			return err
+// 		}
+// 	} else {
+// 		stmt_update_day, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ? and exercise_order < ?")
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+//
+// 	stmt_update_ex, err := tx.Prepare("UPDATE exercise_day SET day_name = ?, day_order = ?, exercise_order = ? WHERE id = ?")
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	defer stmt_update_day.Close()
+// 	defer stmt_update_ex.Close()
+//
+// 	if changed_day_oder {
+// 		_, err = stmt_update_day.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	} else {
+// 		_, err = stmt_update_day.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder, old_ex_order)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+//
+// 	_, err = stmt_update_ex.Exec(new_day_name, ex_day.DayOrder, ex_day.ExerciseOrder, ex_day.Id)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+//
+// }
 
 func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
 	tx, err := Db.Data.Begin()
@@ -578,16 +590,14 @@ func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) ReadAllExercises() ([]*Exercise, error) {
+func (Db *DataBase) CacheAllExercises() error {
 
-	rows, err := Db.Data.Query("select id, name, description, exercise_type, difficulty from exercises") 
+	rows, err := Db.Data.Query("select id, name, description, exercise_type, difficulty from exercises")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer rows.Close()
-
-	res := make([]*Exercise, 0)
 
 	for rows.Next() {
 		current_exercise := Exercise{}
@@ -600,11 +610,14 @@ func (Db *DataBase) ReadAllExercises() ([]*Exercise, error) {
 			&current_exercise.Difficulty,
 		)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		res = append(res, &current_exercise)
+		ok := CacheExercise(current_exercise)
+		if !ok {
+			return errors.New("Couldn't cache exercise")
+		}
 	}
 
-	return res, nil
+	return nil
 }
