@@ -30,12 +30,11 @@ func templateFuncs() template.FuncMap {
 			}
 			return result
         },
+		"add": func(a, b int) int {
+			return a + b
+		},
     }
 }
-
-// TODO: refactor the golang structs
-// TODO: caching
-// TODO: actual exercise name in track view
 
 func main() {
 

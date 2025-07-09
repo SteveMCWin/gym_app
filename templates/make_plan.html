@@ -6,8 +6,8 @@
 <style>
     body { font-family: sans-serif; padding: 40px; background-color: #f4f4f4; text-align: center; }
     input, textarea { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-    .days { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
-    .day { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; }
+    .columns { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
+    .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; }
     .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; }
     button { padding: 8px 16px; margin: 10px 5px; }
     form.hidden { display: none; }
@@ -27,19 +27,20 @@
     <label><input type="checkbox" id="makeCurrent"> Make current</label>
 </div>
 
-<div class="days" id="daysContainer"></div>
+<div class="columns" id="columnsContainer"></div>
 
 <!-- CSRF field -->
 <form class="hidden">
     {{ .csrfField }}
 </form>
 
+<!-- Allowed exercise names -->
 <script>
-const allowedExercises = [
-    {{- range $i, $ex := .all_exercises -}}
-        {{ if $i }},{{ end }}"{{ js .Name }}"
-    {{- end -}}
-];
+    const allowedExercises = [
+        {{- range $i, $ex := .all_exercises -}}
+            {{ if $i }},{{ end }}"{{ js .Name }}"
+        {{- end -}}
+    ];
 </script>
 
 <datalist id="exercise-list">
@@ -49,32 +50,32 @@ const allowedExercises = [
 </datalist>
 
 <div>
-    <button onclick="addDay()">Add Day</button>
+    <button onclick="addColumn()">Add Day</button>
     <button onclick="submitPlan()">Done</button>
 </div>
 
 <script>
-let dayCount = 0;
+let columnCount = 0;
 
-function addDay() {
-    const dayIndex = dayCount++;
-    const day = document.createElement("div");
-    day.className = "day";
-    day.setAttribute("data-day-index", dayIndex);
+function addColumn() {
+    const colIndex = columnCount++;
+    const col = document.createElement("div");
+    col.className = "column";
+    col.setAttribute("data-col-index", colIndex);
 
     const titleInput = document.createElement("input");
     titleInput.placeholder = "Day name";
-    titleInput.className = "day-title";
-    day.appendChild(titleInput);
+    titleInput.className = "col-title";
+    col.appendChild(titleInput);
 
-    const exerciseContainer = document.createElement("div");
-    exerciseContainer.className = "exercise-container";
-    day.appendChild(exerciseContainer);
+    const cellContainer = document.createElement("div");
+    cellContainer.className = "cell-container";
+    col.appendChild(cellContainer);
 
-    const addExerciseBtn = document.createElement("button");
-    addExerciseBtn.textContent = "Add Exercise";
-    addExerciseBtn.type = "button";
-    addExerciseBtn.onclick = () => {
+    const addRowBtn = document.createElement("button");
+    addRowBtn.textContent = "Add Exercise";
+    addRowBtn.type = "button";
+    addRowBtn.onclick = () => {
         const wrapper = document.createElement("div");
         wrapper.className = "exercise";
 
@@ -93,36 +94,36 @@ function addDay() {
             <input placeholder="Max reps (optional)" type="number" class="ex-max">
         `;
 
-        exerciseContainer.appendChild(wrapper);
+        cellContainer.appendChild(wrapper);
     };
-    day.appendChild(addExerciseBtn);
+    col.appendChild(addRowBtn);
 
-    document.getElementById("daysContainer").appendChild(day);
+    document.getElementById("columnsContainer").appendChild(col);
 }
 
 async function submitPlan() {
     const plan = {
-        name: document.getElementById("planName").value.trim(),
-        description: document.getElementById("planDescription").value.trim(),
+        name: document.getElementById("planName").value,
+        description: document.getElementById("planDescription").value,
         make_current: document.getElementById("makeCurrent").checked,
-        days: []
+        days: []  // renamed
     };
 
-    const days = document.querySelectorAll(".day");
-    for (const day of days) {
-        const name = day.querySelector(".day-title").value.trim();
+    const columns = document.querySelectorAll(".column");
+    for (const col of columns) {
+        const name = col.querySelector(".col-title").value.trim();
         const exercises = [];
 
-        const exerciseElems = day.querySelectorAll(".exercise");
+        const exerciseElems = col.querySelectorAll(".exercise");
         for (const ex of exerciseElems) {
             const exerciseName = ex.querySelector(".ex-name").value.trim();
             if (!allowedExercises.includes(exerciseName)) {
                 alert(`Invalid exercise name: "${exerciseName}". Please pick from the list.`);
-                return;  // abort
+                return;  // abort submission
             }
 
-            const data = {
-                exercise: { name: exerciseName },
+            const exerciseData = {
+                exercise: { name: exerciseName },  // nested correctly
                 weight: parseFloat(ex.querySelector(".ex-weight").value) || 0,
                 unit: ex.querySelector(".ex-unit").value,
                 sets: parseInt(ex.querySelector(".ex-sets").value),
@@ -130,8 +131,8 @@ async function submitPlan() {
                 max_reps: ex.querySelector(".ex-max").value ? parseInt(ex.querySelector(".ex-max").value) : null
             };
 
-            if (data.exercise.name && !isNaN(data.sets) && !isNaN(data.min_reps)) {
-                exercises.push(data);
+            if (exerciseData.exercise.name && !isNaN(exerciseData.sets) && !isNaN(exerciseData.min_reps)) {
+                exercises.push(exerciseData);
             }
         }
 

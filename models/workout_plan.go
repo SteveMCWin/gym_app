@@ -10,7 +10,7 @@ import (
 )
 
 type WorkoutPlan struct {
-	Id          int       `json:"id"`
+	Id          int       `json:"id"` // id of the workout plan
 	Name        string    `json:"name"`
 	Creator     int       `json:"creator"`
 	Description string    `json:"description"`
@@ -24,9 +24,9 @@ type PlanDay struct {
 }
 
 type ExerciseData struct {
-	Id       int      `json:"id"`
+	Id       int      `json:"id"` // id of the exercise_day row
 	Exercise Exercise `json:"exercise"`
-	Weight   float32  `json:"weigth"`
+	Weight   float32  `json:"weight"`
 	Unit     string   `json:"unit"`
 	Sets     int      `json:"sets"`
 	MinReps  int      `json:"min_reps"`
@@ -34,7 +34,7 @@ type ExerciseData struct {
 }
 
 type Exercise struct {
-	Id           int    `json:"id"`
+	Id           int    `json:"id"` // id of the exercise row
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	ExerciseType string `json:"exercise_type"`
@@ -100,7 +100,8 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 	err := Db.Data.QueryRow("select plan from users_plans where usr = ? AND plan = ?", usr_id, plan_id).Scan(&tmp)
 
 	if err == nil {
-		return errors.New("User was already linked with this workout plan")
+		log.Println("WARNING: USER WAS ALREADY LINKED WITH THIS PLAN")
+		return nil
 	}
 
 	tx, err := Db.Data.Begin()
@@ -268,23 +269,66 @@ func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, 
 	return plans, nil
 }
 
-func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
+func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNING: NOT TESTED AT ALL
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE workout_plan SET name = ?, description = ? WHERE id = ?")
+	stmt_wp, err := tx.Prepare("UPDATE workout_plan SET name = ?, description = ? WHERE id = ?")
 	if err != nil {
 		return false, err
 	}
 
-	defer stmt.Close()
+	defer stmt_wp.Close()
 
-	_, err = stmt.Exec(wp.Name, wp.Description)
+	stmt_day, err := tx.Prepare("insert into exercise_day (plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return false, err
 	}
+
+	defer stmt_day.Close()
+
+	old_ex_days, err := Db.ReadAllExerciseDaysFromPlan(wp.Id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = stmt_wp.Exec(wp.Name, wp.Description)
+	if err != nil {
+		return false, err
+	}
+
+	// The way to ensure previous tracks get valid data is to create a new exercise day instead of straight up updating it, and then replace the old ex_day with the new one
+	for i, day := range wp.Days { // WARNING: DOESN'T SUPPORT ADDING MORE EXERCISES/DAYS TO THE PLAN
+		for j, ex := range day.Exercises {
+			// NOTE: THIS IS SUPPOSED TO HANDLE THE ADDITION OF MORE EXERCISES/DAYS
+			// if ex.Id == 0 {
+			// 	Db.CreateExerciseDay() // pass in all the stuff
+			// }
+
+			// TODO: CHECK IF THE EXERCISE IS NEW OR NOT, MAYBE WITH A MAP OR SOMETHING IDK
+
+			_ = old_ex_days
+			_ = i
+			_ = j
+
+			_, err = stmt_day.Exec(
+				day.Name,
+				ex.Exercise.Id,
+				ex.Weight,
+				ex.Unit,
+				ex.Sets,
+				ex.MinReps,
+				ex.MaxReps,
+				ex.Id,
+			)
+			if err != nil {
+				return false, err
+			}
+		}
+	}
+	_, err = stmt_day.Exec()
 
 	err = tx.Commit()
 	if err != nil {
@@ -294,21 +338,44 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) DeleteWorkoutPlan(id int) (bool, error) { // NOTE: prolly not gonna use this at all tbh but I still gotta figure out how this is all gona work out (pun intended)
+func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("DELETE from workout_plan where id = ?")
+	stmt_wp, err := tx.Prepare("DELETE from workout_plan where id = ?")
 	if err != nil {
 		return false, err
 	}
 
-	defer stmt.Close()
+	defer stmt_wp.Close()
 
-	_, err = stmt.Exec(id)
+	stmt_day, err := tx.Prepare("DELETE from exercise_day where plan = ?")
+	if err != nil {
+		return false, err
+	}
 
+	defer stmt_day.Close()
+
+	stmt_usr, err := tx.Prepare("DELETE from users_plans where plan = ?") // WARNING: I AM ASSUMING THAT USING OTHER PEOPLE'S PLANS WIL GENERATE A PLAN WITH A NEW ID
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt_usr.Close()
+
+	_, err = stmt_usr.Exec(wp_id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = stmt_day.Exec(wp_id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = stmt_wp.Exec(wp_id)
 	if err != nil {
 		return false, err
 	}
@@ -338,8 +405,6 @@ func (Db *DataBase) CreateExerciseDays(wp *WorkoutPlan) error {
 			if err != nil {
 				return err
 			}
-
-			log.Println("ex weight:", ex.Weight)
 
 			var ok bool
 			ex.Exercise, ok = FetchCachedExercise(exercisesByName[ex.Exercise.Name])

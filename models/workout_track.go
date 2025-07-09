@@ -1,6 +1,7 @@
 package models
 
 import (
+	"log"
 	"database/sql"
 	"errors"
 	"time"
@@ -14,12 +15,14 @@ type WorkoutTrack struct {
 	User int `json:"user"`
 	IsPrivate bool `json:"is_private"`
 	WorkoutDate time.Time `json:"workout_date"`
+	ExDays []PlanDay `json:"ex_days"`
 }
 
 type TrackData struct {
 	Id int `json:"id"`
 	Track int `json:"track"`
 	ExDay int `json:"ex_day"`
+	// BaseWeight float32 `json:"base_weight"`
 	Weight float32 `json:"weight"`
 	SetNum int `json:"set_num"`
 	RepNum int `json:"rep_num"`
@@ -40,18 +43,26 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 		return 0, errors.New("Invalid user used in track")
 	}
 
-	statement := "insert into workout_track (plan, usr, is_private, workout_date) values (?, ?, ?, ?) returning id"
-	var stmt *sql.Stmt
-	stmt, err := Db.Data.Prepare(statement)
+	statement_wt := "insert into workout_track (plan, usr, is_private, workout_date) values (?, ?, ?, ?) returning id"
+	var stmt_wt *sql.Stmt
+	stmt_wt, err := Db.Data.Prepare(statement_wt)
 	if err != nil {
 		return 0, err
 	}
 
-	defer stmt.Close()
+	defer stmt_wt.Close()
+
+	statement_te := "insert into track_exercise (track, ex_day) values (?, ?) returning 1"
+	stmt_te, err := Db.Data.Prepare(statement_te)
+	if err != nil {
+		return 0, err
+	}
+
+	defer stmt_te.Close()
 
 	var workout_track_id int
 
-	err = stmt.QueryRow(
+	err = stmt_wt.QueryRow(
 		wt.Plan,
 		wt.User,
 		wt.IsPrivate,
@@ -59,7 +70,25 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 	).Scan(&workout_track_id)
 
 	if err != nil {
+		log.Println("HERE 1")
 		return 0, err
+	}
+
+	ex_days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan)
+	if err != nil {
+		log.Println("HERE 2")
+		return 0, err
+	}
+
+	var tmp int
+	for _, day := range ex_days {
+		for _, ex := range day.Exercises {
+			err = stmt_te.QueryRow(workout_track_id, ex.Id).Scan(&tmp)
+			if err != nil {
+				log.Println("HERE 3")
+				return 0, err
+			}
+		}
 	}
 
 	return workout_track_id, nil
@@ -79,7 +108,69 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 		return nil, err
 	}
 
+	wt.ExDays, err = Db.ReadAllExerciseDaysFromTrack(wt_id)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return wt, nil
+}
+
+func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]PlanDay, error) {
+	querry := `
+	select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order
+	from exercise_day inner join track_exercise on id = ex_day
+	where track = ?
+	`
+	rows, err := Db.Data.Query(querry, wt_id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	res := make([]PlanDay, 0)
+
+	prev_day := 0
+	day := PlanDay{}
+
+	for rows.Next() {
+		d := PlanDay{}
+		ex := ExerciseData{}
+		var curr_day int
+		err = rows.Scan(
+			&ex.Id,
+			&d.Name,
+			&ex.Exercise.Id,
+			&ex.Weight,
+			&ex.Unit,
+			&ex.Sets,
+			&ex.MinReps,
+			&ex.MaxReps,
+			&curr_day,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		var ok bool
+		ex.Exercise, ok = FetchCachedExercise(ex.Exercise.Id)
+		if !ok {
+			return nil, err
+		}
+
+		if curr_day != prev_day {
+			prev_day = curr_day
+			res = append(res, day)
+			day = PlanDay{}
+		}
+		day.Name = d.Name
+		day.Exercises = append(day.Exercises, ex)
+	}
+	res = append(res, day)
+
+	return res, nil
 }
 
 func (Db *DataBase) ReadUsersWorkoutTracks(user_id, requesting_user_id int) ([]*WorkoutTrack, error) {

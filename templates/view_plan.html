@@ -27,13 +27,13 @@
 </head>
 <body>
 
-<h1>{{ .Name }}</h1>
+<h1>{{ .wp.Name }}</h1>
 
 <div class="plan-meta">
-    <p><strong>Description:</strong> {{ .Description }}</p>
+    <p><strong>Description:</strong> {{ .wp.Description }}</p>
 </div>
 
-{{ range .Days }}
+{{ range .wp.Days }}
 <div class="day">
     <h3>{{ .Name }}</h3>
     <table>
@@ -65,7 +65,7 @@
 
 <a class="btn" href="/user/profile">Back to Profile</a>
 {{ if .MakeCurrent }}
-<a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .Id }}">Make Current</a>
+<a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .wp.Id }}">Make Current</a>
 {{ end }}
 
 </body>

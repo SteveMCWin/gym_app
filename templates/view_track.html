@@ -43,17 +43,13 @@
 
 <h1>Workout Track Details</h1>
 
-{{ if .ex_days }}
-    {{ $trackData := .track_data }}
-    {{ $prevDayOrder := -1 }}
+{{ $trackData := .track_data }}
 
-    {{ range .ex_days }}
-        {{ if ne .DayOrder $prevDayOrder }}
-            <h2>{{ .DayName }}</h2>
-            {{ $prevDayOrder = .DayOrder }}
-        {{ end }}
+{{ range $i, $day := .Days }}
+    <h2>{{ $day.Name }}</h2>
 
-        <h3>{{ .Exercise }}</h3>
+    {{ range $ex := $day.Exercises }}
+        <h3>{{ $ex.Exercise.Name }}</h3>
 
         <table>
             <thead>
@@ -62,46 +58,45 @@
                     <th>Rep Number</th>
                 </tr>
             </thead>
-                <tbody>
-                    {{ $exDayId := .Id }}
-                    {{ $minReps := .MinReps }}
-                    {{ $maxReps := .MaxReps }}
-                    {{ $expectedWeight := .Weight }}
-                    {{ $found := false }}
-                    {{ range $td := $trackData }}
-                        {{ if eq $td.ExDay $exDayId }}
-                            {{ $found = true }}
-                            <tr>
-                                <td
-                                    {{ if lt $td.Weight $expectedWeight }}
-                                        class="low-weight"
-                                    {{ else if gt $td.Weight $expectedWeight }}
-                                        class="high-weight"
-                                    {{ end }}
-                                >
-                                    {{ printf "%.2f" $td.Weight }}
-                                </td>
-                                <td
-                                    {{ if and (lt $td.RepNum $minReps) (ne $td.RepNum 0) }}
-                                        class="low-reps"
-                                    {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
-                                        class="high-reps"
-                                    {{ end }}
-                                >
-                                    {{ $td.RepNum }}
-                                </td>
-                            </tr>
-                        {{ end }}
+            <tbody>
+                {{ $expectedWeight := $ex.Weight }}
+                {{ $minReps := $ex.MinReps }}
+                {{ $maxReps := $ex.MaxReps }}
+                {{ $exDayId := $ex.Id }}
+                {{ $found := false }}
+
+                {{ range $td := $trackData }}
+                    {{ if eq $td.ExDay $exDayId }}
+                        {{ $found = true }}
+                        <tr>
+                            <td
+                                {{ if lt $td.Weight $expectedWeight }}
+                                    class="low-weight"
+                                {{ else if gt $td.Weight $expectedWeight }}
+                                    class="high-weight"
+                                {{ end }}
+                            >
+                                {{ printf "%.2f" $td.Weight }}
+                            </td>
+                            <td
+                                {{ if and (lt $td.RepNum $minReps) (ne $td.RepNum 0) }}
+                                    class="low-reps"
+                                {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
+                                    class="high-reps"
+                                {{ end }}
+                            >
+                                {{ $td.RepNum }}
+                            </td>
+                        </tr>
                     {{ end }}
-                    {{ if not $found }}
-                        <tr><td colspan="2">No data recorded</td></tr>
-                    {{ end }}
-                </tbody>
+                {{ end }}
+
+                {{ if not $found }}
+                    <tr><td colspan="2">No data recorded</td></tr>
+                {{ end }}
+            </tbody>
         </table>
     {{ end }}
-
-{{ else }}
-<p>No exercise days found for this track.</p>
 {{ end }}
 
 <a href="/user/profile">Back to Profile</a>

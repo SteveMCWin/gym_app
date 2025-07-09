@@ -466,7 +466,7 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		if plan.MakeCurrent {
-		_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
+			_, err = db.UpdateUserCurrentPlan(usr_id, wp_id)
 		}
 
 		if err != nil {
@@ -509,7 +509,7 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "view_plan.html", wp) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": false }) // WARNING: consider adding csrf protection especially if you enable editing the plan
 
 	}
 }
@@ -543,7 +543,7 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 
 		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		user, err := db.ReadUser(user_id) // needed for checking if the plan being viewed the users current plan
+		user, err := db.ReadUser(user_id) // needed for checking if the plan being viewed is the users current plan
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
@@ -571,7 +571,7 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 
 		makeCurrent := user.CurrentPlan != wp_id
 
-		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "make_current": makeCurrent }) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": makeCurrent }) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }
 
@@ -748,6 +748,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 
 		wt.Id, err = db.CreateWorkoutTrack(&wt)
 		if err != nil {
+			log.Println("Here 1")
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
@@ -755,6 +756,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 
 		err = db.CreateTrackDataForTrack(&wt)
 		if err != nil {
+			log.Println("Here 2")
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
@@ -810,14 +812,9 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		ex_days, err := db.ReadAllExerciseDaysFromPlan(track.Plan)
-		if err != nil {
-			log.Println("ERROR: error while getting exercise days for track")
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-		}
 
-		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "ex_days": ex_days })
+
+		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "Days": track.ExDays })
 	}
 }
 
@@ -875,15 +872,7 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		ex_days, err := db.ReadAllExerciseDaysFromPlan(wt.Plan)
-		if err != nil {
-			log.Println("ERROR: error while getting exercise days for track")
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-		}
-
-
-		c.HTML(http.StatusOK, "edit_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ex_days": ex_days, "track_data": td, "user_id": user_id})
+		c.HTML(http.StatusOK, "edit_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "Days": wt.ExDays, "track_data": td, "user_id": user_id})
 	}
 }
 
