@@ -603,6 +603,64 @@ func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 
 }
 
+func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+
+		wp_id, err := strconv.Atoi(c.Param("wp_id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		wp, err := db.ReadWorkoutPlan(wp_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+		if wp.Id == 1 {
+			log.Println("The user doesn't have a current plan (I mean he does but it's the placeholder one that serves as a 'no plan' plan)")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
+			return
+		}
+
+		c.HTML(http.StatusOK, "edit_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "wp": wp, "all_exercises": models.GetAllCachedExercises() })
+	}
+}
+
+func HandlePostEditPlan(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+
+		wp_id_param := c.Param("wp_id")
+
+		var edited_wp models.WorkoutPlan
+		if err := c.BindJSON(&edited_wp); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+			return
+		}
+
+		_, err := db.UpdateWorkoutPlan(&edited_wp)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.Redirect(http.StatusSeeOther, "/user/profile/plans/view/"+wp_id_param)
+	}
+}
+
 func HandleGetForgotPassword() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "forgot_password.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request)}) // may not need csrf protection here

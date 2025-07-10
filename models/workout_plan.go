@@ -298,7 +298,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 
 	defer stmt_wp.Close()
 
-	_, err = stmt_wp.Exec(wp.Name, wp.Description)
+	_, err = stmt_wp.Exec(wp.Name, wp.Description, wp.Id)
 	if err != nil {
 		return false, err
 	}
@@ -349,6 +349,7 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan) [][]bool { // 
 				diff[i][j] = true
 				err := Db.Data.QueryRow(insert_query, new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&d_order)
 				if err != nil {
+					log.Println(err)
 					panic(err) // WARNING: THIS IS SUPPOSED TO BE HERE TEMPORARILY
 				}
 			} else {

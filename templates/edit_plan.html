@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Edit Workout Plan</title>
+<style>
+    body { font-family: sans-serif; padding: 40px; background-color: #f4f4f4; text-align: center; }
+    input, textarea { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    .columns { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
+    .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; }
+    .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; }
+    button { padding: 8px 16px; margin: 10px 5px; }
+    form.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h2>Edit Workout Plan</h2>
+
+<div style="max-width: 600px; margin: auto; text-align: left;">
+    <label>Plan Name</label>
+    <input type="text" id="planName" value="{{ .wp.Name }}">
+
+    <label>Description</label>
+    <textarea id="planDescription" rows="4">{{ .wp.Description }}</textarea>
+
+    <label><input type="checkbox" id="makeCurrent" {{ if .wp.MakeCurrent }}checked{{ end }}> Make current</label>
+</div>
+
+<div class="columns" id="columnsContainer">
+{{ range $i, $day := .wp.Days }}
+    <div class="column" data-col-index="{{ $i }}">
+        <input placeholder="Day name" class="col-title" value="{{ $day.Name }}">
+        <div class="cell-container">
+            {{ range $ex := $day.Exercises }}
+            <div class="exercise">
+                <input placeholder="Exercise name" class="ex-name" list="exercise-list" value="{{ $ex.Exercise.Name }}"><br>
+                <input placeholder="Weight" class="ex-weight" value="{{ printf "%.2f" $ex.Weight }}"><br>
+                <select class="ex-unit" required>
+                    <option value="">Select unit</option>
+                    <option value="kg" {{ if eq $ex.Unit "kg" }}selected{{ end }}>kg</option>
+                    <option value="lbs" {{ if eq $ex.Unit "lbs" }}selected{{ end }}>lbs</option>
+                    <option value="s" {{ if eq $ex.Unit "s" }}selected{{ end }}>s</option>
+                    <option value="m" {{ if eq $ex.Unit "m" }}selected{{ end }}>m</option>
+                </select><br>
+                <input placeholder="Sets" type="number" class="ex-sets" value="{{ $ex.Sets }}"><br>
+                <input placeholder="Min reps" type="number" class="ex-min" value="{{ $ex.MinReps }}"><br>
+                <input placeholder="Max reps (optional)" type="number" class="ex-max" value="{{ $ex.MaxReps }}">
+            </div>
+            {{ end }}
+        </div>
+        <button type="button" onclick="addExercise(this)">Add Exercise</button>
+    </div>
+{{ end }}
+</div>
+
+<!-- CSRF -->
+<form class="hidden">
+    {{ .csrfField }}
+</form>
+
+<datalist id="exercise-list">
+    {{ range .all_exercises }}
+        <option value="{{ .Name }}"></option>
+    {{ end }}
+</datalist>
+
+<div>
+    <button onclick="addDay()">Add Day</button>
+    <button onclick="submitPlan()">Save</button>
+</div>
+
+<script>
+const wpID = {{ .wp.Id }};
+const allowedExercises = [
+    {{- range $i, $ex := .all_exercises -}}
+        {{ if $i }},{{ end }}"{{ js .Name }}"
+    {{- end -}}
+];
+
+let columnCount = document.querySelectorAll(".column").length;
+
+function addDay() {
+    const colIndex = columnCount++;
+    const col = document.createElement("div");
+    col.className = "column";
+    col.setAttribute("data-col-index", colIndex);
+
+    const titleInput = document.createElement("input");
+    titleInput.placeholder = "Day name";
+    titleInput.className = "col-title";
+    col.appendChild(titleInput);
+
+    const cellContainer = document.createElement("div");
+    cellContainer.className = "cell-container";
+    col.appendChild(cellContainer);
+
+    const addRowBtn = document.createElement("button");
+    addRowBtn.textContent = "Add Exercise";
+    addRowBtn.type = "button";
+    addRowBtn.onclick = () => addExercise(addRowBtn);
+    col.appendChild(addRowBtn);
+
+    document.getElementById("columnsContainer").appendChild(col);
+}
+
+function addExercise(btn) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "exercise";
+
+    wrapper.innerHTML = `
+        <input placeholder="Exercise name" class="ex-name" list="exercise-list"><br>
+        <input placeholder="Weight" class="ex-weight"><br>
+        <select class="ex-unit" required>
+            <option value="">Select unit</option>
+            <option value="kg">kg</option>
+            <option value="lbs">lbs</option>
+            <option value="s">s</option>
+            <option value="m">m</option>
+        </select><br>
+        <input placeholder="Sets" type="number" class="ex-sets"><br>
+        <input placeholder="Min reps" type="number" class="ex-min"><br>
+        <input placeholder="Max reps (optional)" type="number" class="ex-max">
+    `;
+
+    btn.parentElement.querySelector(".cell-container").appendChild(wrapper);
+}
+
+async function submitPlan() {
+    const plan = {
+        id: wpID,
+        name: document.getElementById("planName").value,
+        description: document.getElementById("planDescription").value,
+        make_current: document.getElementById("makeCurrent").checked,
+        days: []
+    };
+
+    const columns = document.querySelectorAll(".column");
+    for (const col of columns) {
+        const name = col.querySelector(".col-title").value.trim();
+        const exercises = [];
+
+        const exerciseElems = col.querySelectorAll(".exercise");
+        for (const ex of exerciseElems) {
+            const exerciseName = ex.querySelector(".ex-name").value.trim();
+            if (!allowedExercises.includes(exerciseName)) {
+                alert(`Invalid exercise name: "${exerciseName}". Please pick from the list.`);
+                return;
+            }
+
+            const exerciseData = {
+                exercise: { name: exerciseName },
+                weight: parseFloat(ex.querySelector(".ex-weight").value) || 0,
+                unit: ex.querySelector(".ex-unit").value,
+                sets: parseInt(ex.querySelector(".ex-sets").value),
+                min_reps: parseInt(ex.querySelector(".ex-min").value),
+                max_reps: ex.querySelector(".ex-max").value ? parseInt(ex.querySelector(".ex-max").value) : null
+            };
+
+            if (exerciseData.exercise.name && !isNaN(exerciseData.sets) && !isNaN(exerciseData.min_reps)) {
+                exercises.push(exerciseData);
+            }
+        }
+
+        if (name || exercises.length > 0) {
+            plan.days.push({ name, exercises });
+        }
+    }
+
+    const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value;
+
+    const res = await fetch(`/user/profile/plans/edit/${wpID}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken
+        },
+        body: JSON.stringify(plan)
+    });
+
+    if (res.ok) {
+        window.location.href = `/user/profile/plans/view/${wp.id}`;
+    } else {
+        alert("Failed to update plan.");
+    }
+}
+</script>
+
+</body>
+</html>

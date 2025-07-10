@@ -46,3 +46,12 @@ func GetAllCachedExercises() []*Exercise {
 
 	return res
 }
+
+func GetAllCachedTargets() []*Target {
+	res := make([]*Target, 0)
+	for _, tar := range cachedTargets {
+		res = append(res, tar)
+	}
+
+	return res
+}

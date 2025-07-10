@@ -106,6 +106,8 @@ func main() {
 	user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))
 	user_router.GET("/profile/plans/all_plans", HandleGetViewAllUserPlans(&db))
 	user_router.GET("/profile/plans/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
+	user_router.GET("/profile/plans/edit/:wp_id", HandleGetEditPlan(&db))
+	user_router.POST("/profile/plans/edit/:wp_id", HandlePostEditPlan(&db))
 	user_router.GET("/forgot_password", HandleGetForgotPassword())
 	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
 	user_router.GET("/forgot_password/from-mail/:token_id/:email", HandleGetChangePassFromMail())
