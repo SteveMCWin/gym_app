@@ -34,11 +34,19 @@ type ExerciseData struct {
 }
 
 type Exercise struct {
-	Id           int    `json:"id"` // id of the exercise row
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	ExerciseType string `json:"exercise_type"`
-	Difficulty   int    `json:"difficulty"`
+	Id           int      `json:"id"` // id of the exercise row
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	ExerciseType string   `json:"exercise_type"`
+	Difficulty   int      `json:"difficulty"`
+	Targets      []*Target `json:"targets"`
+}
+
+type Target struct {
+	Id           int        `json:"id"`
+	StandardName string     `json:"standard_name"`
+	LatinName    string     `json:"latin_name"`
+	Exercises    []*Exercise `json:"exercises"`
 }
 
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
@@ -283,7 +291,6 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 
 	defer stmt_wp.Close()
 
-
 	stmt_ex, err := tx.Prepare("UPDATE exercise_day SET plan = ? WHERE id = ?")
 	if err != nil {
 		return false, err
@@ -422,11 +429,12 @@ func (Db *DataBase) CreateExerciseDays(wp *WorkoutPlan) error {
 				return err
 			}
 
-			var ok bool
-			ex.Exercise, ok = FetchCachedExercise(exercisesByName[ex.Exercise.Name])
+			tmp, ok := FetchCachedExercise(exercisesByName[ex.Exercise.Name])
 			if !ok {
 				return errors.New("Couldn't fetch exercise from cached exercises")
 			}
+
+			ex.Exercise = *tmp
 
 			err = stmt.QueryRow(
 				wp.Id,
@@ -530,11 +538,12 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) 
 			return nil, err
 		}
 
-		var ok bool
-		ex.Exercise, ok = FetchCachedExercise(ex.Exercise.Id)
+
+		tmp, ok := FetchCachedExercise(ex.Exercise.Id)
 		if !ok {
 			return nil, err
 		}
+		ex.Exercise = *tmp
 
 		if curr_day != prev_day {
 			prev_day = curr_day
@@ -699,15 +708,78 @@ func (Db *DataBase) CacheAllExercises() error {
 			return err
 		}
 
-		ok := CacheExercise(current_exercise)
-		if !ok {
-			return errors.New("Couldn't cache exercise")
+		err := CacheExercise(&current_exercise)
+		if err != nil {
+			return err
 		}
 	}
 
-	log.Println("Cached exercises:", cachedExercises)
-	log.Println()
-	log.Println("Exercise by name:", exercisesByName)
+	return nil
+}
+
+func (Db *DataBase) CacheAllTargets() error {
+
+	rows, err := Db.Data.Query("select id, standard_name, latin_name from target")
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		current_target := Target{}
+
+		err = rows.Scan(
+			&current_target.Id,
+			&current_target.StandardName,
+			&current_target.LatinName,
+		)
+		if err != nil {
+			return err
+		}
+
+		err := CacheTarget(&current_target)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (Db *DataBase) LinkCachedExercisesAndTargets() error {
+
+	rows, err := Db.Data.Query("select exercise, target from exercise_targets")
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var ex int
+		var tar int
+
+		err = rows.Scan(
+			&ex,
+			&tar,
+		)
+		if err != nil {
+			return err
+		}
+
+		_, ok := cachedExercises[ex]
+		if !ok {
+			return errors.New("Couldn't link exercise and target: missing exercise")
+		}
+		_, ok = cachedTargets[tar]
+		if !ok {
+			return errors.New("Couldn't link exercise and target: missing target")
+		}
+
+		cachedExercises[ex].Targets = append(cachedExercises[ex].Targets, cachedTargets[tar])
+		cachedTargets[tar].Exercises = append(cachedTargets[tar].Exercises, cachedExercises[ex])
+	}
 
 	return nil
 }

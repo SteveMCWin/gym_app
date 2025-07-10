@@ -22,7 +22,6 @@ type TrackData struct {
 	Id int `json:"id"`
 	Track int `json:"track"`
 	ExDay int `json:"ex_day"`
-	// BaseWeight float32 `json:"base_weight"`
 	Weight float32 `json:"weight"`
 	SetNum int `json:"set_num"`
 	RepNum int `json:"rep_num"`
@@ -154,11 +153,12 @@ func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]PlanDay, error) {
 			return nil, err
 		}
 
-		var ok bool
-		ex.Exercise, ok = FetchCachedExercise(ex.Exercise.Id)
+		tmp, ok := FetchCachedExercise(ex.Exercise.Id)
 		if !ok {
 			return nil, err
 		}
+
+		ex.Exercise = *tmp
 
 		if curr_day != prev_day {
 			prev_day = curr_day
