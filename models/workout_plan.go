@@ -308,7 +308,10 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 		return false, err
 	}
 
-	diff := Db.getExerciseDayDifference(wp)
+	diff, err := Db.getExerciseDayDifference(wp, tx)
+	if err != nil {
+		return false, err
+	}
 
 	for i := range min(len(diff), len(old_ex_days)) {
 		for j := range min(len(diff[i]), len(old_ex_days[i].Exercises)) {
@@ -329,12 +332,23 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	return true, nil
 }
 
-func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan) [][]bool { // WARNING: NOTE TESTED AT ALL
+func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([][]bool, error) { // WARNING: NOTE TESTED AT ALL
 
-	search_query := "select day_order, exercise_order from exercise_day where plan = ?, exercise = ?, weight = ?, unit = ?, sets = ?, min_reps = ?, max_reps = ?"
+	search_query := "select day_order, exercise_order from exercise_day where plan = ? and exercise = ? and weight = ? and unit = ? and sets = ? and min_reps = ? and max_reps = ?"
+	search_stmt, err := tx.Prepare(search_query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer search_stmt.Close()
+
 	insert_query := "insert into exercise_day (plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id"
+	insert_stmt, err := tx.Prepare(insert_query)
+	if err != nil {
+		return nil, err
+	}
 
-	var err error
+	defer insert_stmt.Close()
 
 	diff := make([][]bool, len(new_wp.Days))
 
@@ -344,22 +358,20 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan) [][]bool { // 
 		var d_order int
 		var e_order int
 		for j, ex := range day.Exercises {
-			err = Db.Data.QueryRow(search_query, new_wp.Id, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps).Scan(&d_order, &e_order)
+			err = search_stmt.QueryRow(new_wp.Id, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps).Scan(&d_order, &e_order)
 			if err != nil || d_order != i || e_order != j {
+				log.Println("Error in search stmt:", err)
 				diff[i][j] = true
-				err := Db.Data.QueryRow(insert_query, new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&d_order)
+				err := insert_stmt.QueryRow(new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&d_order)
 				if err != nil {
-					log.Println(err)
-					panic(err) // WARNING: THIS IS SUPPOSED TO BE HERE TEMPORARILY
+					return nil, err
 				}
-			} else {
-				diff[i][j] = false
-			}
+			} 	
 		}
 
 	}
 
-	return diff // NOTE: THE TRUE ONES ARE THE ONES THAT CHANGED
+	return diff, nil // NOTE: THE TRUE ONES ARE THE ONES THAT CHANGED
 }
 
 func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {

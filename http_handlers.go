@@ -650,7 +650,15 @@ func HandlePostEditPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		_, err := db.UpdateWorkoutPlan(&edited_wp)
+		var err error
+		edited_wp.Id, err = strconv.Atoi(wp_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		_, err = db.UpdateWorkoutPlan(&edited_wp)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
