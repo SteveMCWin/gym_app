@@ -269,6 +269,7 @@ func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, 
 	return plans, nil
 }
 
+// NOTE: I am assuming this will be called after getting the updated version of the wp as a json
 func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNING: NOT TESTED AT ALL
 	tx, err := Db.Data.Begin()
 	if err != nil {
@@ -282,53 +283,36 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 
 	defer stmt_wp.Close()
 
-	stmt_day, err := tx.Prepare("insert into exercise_day (plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
+	stmt_ex, err := tx.Prepare("UPDATE exercise_day SET plan = ? WHERE id = ?")
 	if err != nil {
 		return false, err
 	}
 
-	defer stmt_day.Close()
-
-	old_ex_days, err := Db.ReadAllExerciseDaysFromPlan(wp.Id)
-	if err != nil {
-		return false, err
-	}
+	defer stmt_wp.Close()
 
 	_, err = stmt_wp.Exec(wp.Name, wp.Description)
 	if err != nil {
 		return false, err
 	}
 
-	// The way to ensure previous tracks get valid data is to create a new exercise day instead of straight up updating it, and then replace the old ex_day with the new one
-	for i, day := range wp.Days { // WARNING: DOESN'T SUPPORT ADDING MORE EXERCISES/DAYS TO THE PLAN
-		for j, ex := range day.Exercises {
-			// NOTE: THIS IS SUPPOSED TO HANDLE THE ADDITION OF MORE EXERCISES/DAYS
-			// if ex.Id == 0 {
-			// 	Db.CreateExerciseDay() // pass in all the stuff
-			// }
+	old_ex_days, err := Db.ReadAllExerciseDaysFromPlan(wp.Id)
+	if err != nil {
+		return false, err
+	}
 
-			// TODO: CHECK IF THE EXERCISE IS NEW OR NOT, MAYBE WITH A MAP OR SOMETHING IDK
+	diff := Db.getExerciseDayDifference(wp)
 
-			_ = old_ex_days
-			_ = i
-			_ = j
-
-			_, err = stmt_day.Exec(
-				day.Name,
-				ex.Exercise.Id,
-				ex.Weight,
-				ex.Unit,
-				ex.Sets,
-				ex.MinReps,
-				ex.MaxReps,
-				ex.Id,
-			)
-			if err != nil {
-				return false, err
+	for i := range min(len(diff), len(old_ex_days)) {
+		for j := range min(len(diff[i]), len(old_ex_days[i].Exercises)) {
+			if diff[i][j] {
+				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
+				if err != nil {
+					return false, err
+				}
 			}
 		}
 	}
-	_, err = stmt_day.Exec()
 
 	err = tx.Commit()
 	if err != nil {
@@ -336,6 +320,38 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	}
 
 	return true, nil
+}
+
+func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan) [][]bool { // WARNING: NOTE TESTED AT ALL
+
+	search_query := "select day_order, exercise_order from exercise_day where plan = ?, exercise = ?, weight = ?, unit = ?, sets = ?, min_reps = ?, max_reps = ?"
+	insert_query := "insert into exercise_day (plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id"
+
+	var err error
+
+	diff := make([][]bool, len(new_wp.Days))
+
+	for i, day := range new_wp.Days {
+		diff[i] = make([]bool, len(new_wp.Days[i].Exercises))
+
+		var d_order int
+		var e_order int
+		for j, ex := range day.Exercises {
+			err = Db.Data.QueryRow(search_query, new_wp.Id, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps).Scan(&d_order, &e_order)
+			if err != nil || d_order != i || e_order != j {
+				diff[i][j] = true
+				err := Db.Data.QueryRow(insert_query, new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&d_order)
+				if err != nil {
+					panic(err) // WARNING: THIS IS SUPPOSED TO BE HERE TEMPORARILY
+				}
+			} else {
+				diff[i][j] = false
+			}
+		}
+
+	}
+
+	return diff // NOTE: THE TRUE ONES ARE THE ONES THAT CHANGED
 }
 
 func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
