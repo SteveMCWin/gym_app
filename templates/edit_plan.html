@@ -7,8 +7,9 @@
     body { font-family: sans-serif; padding: 40px; background-color: #f4f4f4; text-align: center; }
     input, textarea { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
     .columns { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
-    .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; }
-    .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; }
+    .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; position: relative; }
+    .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; position: relative; }
+    .delete-btn { position: absolute; top: 5px; right: 5px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 2px 6px; }
     button { padding: 8px 16px; margin: 10px 5px; }
     form.hidden { display: none; }
 </style>
@@ -30,10 +31,12 @@
 <div class="columns" id="columnsContainer">
 {{ range $i, $day := .wp.Days }}
     <div class="column" data-col-index="{{ $i }}">
+        <button type="button" class="delete-btn" onclick="this.parentElement.remove()">🗑️</button>
         <input placeholder="Day name" class="col-title" value="{{ $day.Name }}">
         <div class="cell-container">
             {{ range $ex := $day.Exercises }}
             <div class="exercise">
+                <button type="button" class="delete-btn" onclick="this.parentElement.remove()">🗑️</button>
                 <input placeholder="Exercise name" class="ex-name" list="exercise-list" value="{{ $ex.Exercise.Name }}"><br>
                 <input placeholder="Weight" class="ex-weight" value="{{ printf "%.2f" $ex.Weight }}"><br>
                 <select class="ex-unit" required>
@@ -86,6 +89,13 @@ function addDay() {
     col.className = "column";
     col.setAttribute("data-col-index", colIndex);
 
+    const deleteDayBtn = document.createElement("button");
+    deleteDayBtn.type = "button";
+    deleteDayBtn.className = "delete-btn";
+    deleteDayBtn.textContent = "🗑️";
+    deleteDayBtn.onclick = () => col.remove();
+    col.appendChild(deleteDayBtn);
+
     const titleInput = document.createElement("input");
     titleInput.placeholder = "Day name";
     titleInput.className = "col-title";
@@ -108,20 +118,58 @@ function addExercise(btn) {
     const wrapper = document.createElement("div");
     wrapper.className = "exercise";
 
-    wrapper.innerHTML = `
-        <input placeholder="Exercise name" class="ex-name" list="exercise-list"><br>
-        <input placeholder="Weight" class="ex-weight"><br>
-        <select class="ex-unit" required>
-            <option value="">Select unit</option>
-            <option value="kg">kg</option>
-            <option value="lbs">lbs</option>
-            <option value="s">s</option>
-            <option value="m">m</option>
-        </select><br>
-        <input placeholder="Sets" type="number" class="ex-sets"><br>
-        <input placeholder="Min reps" type="number" class="ex-min"><br>
-        <input placeholder="Max reps (optional)" type="number" class="ex-max">
+    const deleteExerciseBtn = document.createElement("button");
+    deleteExerciseBtn.type = "button";
+    deleteExerciseBtn.className = "delete-btn";
+    deleteExerciseBtn.textContent = "🗑️";
+    deleteExerciseBtn.onclick = () => wrapper.remove();
+    wrapper.appendChild(deleteExerciseBtn);
+
+    const nameInput = document.createElement("input");
+    nameInput.placeholder = "Exercise name";
+    nameInput.className = "ex-name";
+    nameInput.setAttribute("list", "exercise-list");
+    wrapper.appendChild(nameInput);
+    wrapper.appendChild(document.createElement("br"));
+
+    const weightInput = document.createElement("input");
+    weightInput.placeholder = "Weight";
+    weightInput.className = "ex-weight";
+    wrapper.appendChild(weightInput);
+    wrapper.appendChild(document.createElement("br"));
+
+    const unitSelect = document.createElement("select");
+    unitSelect.className = "ex-unit";
+    unitSelect.required = true;
+    unitSelect.innerHTML = `
+        <option value="">Select unit</option>
+        <option value="kg">kg</option>
+        <option value="lbs">lbs</option>
+        <option value="s">s</option>
+        <option value="m">m</option>
     `;
+    wrapper.appendChild(unitSelect);
+    wrapper.appendChild(document.createElement("br"));
+
+    const setsInput = document.createElement("input");
+    setsInput.placeholder = "Sets";
+    setsInput.type = "number";
+    setsInput.className = "ex-sets";
+    wrapper.appendChild(setsInput);
+    wrapper.appendChild(document.createElement("br"));
+
+    const minRepsInput = document.createElement("input");
+    minRepsInput.placeholder = "Min reps";
+    minRepsInput.type = "number";
+    minRepsInput.className = "ex-min";
+    wrapper.appendChild(minRepsInput);
+    wrapper.appendChild(document.createElement("br"));
+
+    const maxRepsInput = document.createElement("input");
+    maxRepsInput.placeholder = "Max reps (optional)";
+    maxRepsInput.type = "number";
+    maxRepsInput.className = "ex-max";
+    wrapper.appendChild(maxRepsInput);
 
     btn.parentElement.querySelector(".cell-container").appendChild(wrapper);
 }

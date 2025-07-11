@@ -121,6 +121,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]PlanDay, error) {
 	select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order
 	from exercise_day inner join track_exercise on id = ex_day
 	where track = ?
+	order by day_order asc, exercise_order asc
 	`
 	rows, err := Db.Data.Query(querry, wt_id)
 	if err != nil {

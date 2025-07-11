@@ -184,17 +184,10 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 		return nil, err
 	}
 
-	log.Println("ReadWorkoutPlan:")
-	log.Println("wp.Name", wp.Name)
-	log.Println("wp.Creator", wp.Creator)
-	log.Println("wp.Description", wp.Description)
-
 	wp.Days, err = Db.ReadAllExerciseDaysFromPlan(id)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Println("wp.Days", wp.Days)
 
 	return wp, nil
 }
@@ -326,8 +319,8 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	log.Println("dif:", diff)
 	log.Println()
 
-	for i := range min(len(diff), len(old_ex_days)) {
-		for j := range min(len(diff[i]), len(old_ex_days[i].Exercises)) {
+	for i := range max(len(diff), len(old_ex_days)) {
+		for j := range max(len(diff[i]), len(old_ex_days[i].Exercises)) {
 			if diff[i][j] {
 				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
@@ -345,7 +338,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	return true, nil
 }
 
-func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([][]bool, error) { // WARNING: NOTE TESTED AT ALL
+func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([][]bool, error) { // WARNING: NOT TESTED AT ALL
 
 	search_query := "select day_name, exercise, weight, unit, sets, min_reps, max_reps from exercise_day where plan = ? and day_order = ? and exercise_order = ?"
 	search_stmt, err := tx.Prepare(search_query)
