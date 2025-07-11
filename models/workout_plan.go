@@ -320,8 +320,13 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	log.Println()
 
 	for i := range max(len(diff), len(old_ex_days)) {
-		for j := range max(len(diff[i]), len(old_ex_days[i].Exercises)) {
-			if diff[i][j] {
+		for j := range max(len(diff[min(len(diff)-1, i)]), len(old_ex_days[i].Exercises)) {
+			if i >= len(diff) || j >= len(diff[i]) {
+				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
+				if err != nil {
+					return false, err
+				}
+			} else if diff[i][j] {
 				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
 					return false, err
