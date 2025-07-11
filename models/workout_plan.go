@@ -34,18 +34,18 @@ type ExerciseData struct {
 }
 
 type Exercise struct {
-	Id           int      `json:"id"` // id of the exercise row
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	ExerciseType string   `json:"exercise_type"`
-	Difficulty   int      `json:"difficulty"`
+	Id           int       `json:"id"` // id of the exercise row
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	ExerciseType string    `json:"exercise_type"`
+	Difficulty   int       `json:"difficulty"`
 	Targets      []*Target `json:"targets"`
 }
 
 type Target struct {
-	Id           int        `json:"id"`
-	StandardName string     `json:"standard_name"`
-	LatinName    string     `json:"latin_name"`
+	Id           int         `json:"id"`
+	StandardName string      `json:"standard_name"`
+	LatinName    string      `json:"latin_name"`
 	Exercises    []*Exercise `json:"exercises"`
 }
 
@@ -94,6 +94,8 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	Db.AddWorkoutPlanToUser(wp.Creator, wp.Id)
 
 	return workout_plan_id, nil
 }
@@ -182,10 +184,17 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 		return nil, err
 	}
 
+	log.Println("ReadWorkoutPlan:")
+	log.Println("wp.Name", wp.Name)
+	log.Println("wp.Creator", wp.Creator)
+	log.Println("wp.Description", wp.Description)
+
 	wp.Days, err = Db.ReadAllExerciseDaysFromPlan(id)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("wp.Days", wp.Days)
 
 	return wp, nil
 }
@@ -313,6 +322,10 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 		return false, err
 	}
 
+	log.Println()
+	log.Println("dif:", diff)
+	log.Println()
+
 	for i := range min(len(diff), len(old_ex_days)) {
 		for j := range min(len(diff[i]), len(old_ex_days[i].Exercises)) {
 			if diff[i][j] {
@@ -334,7 +347,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 
 func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([][]bool, error) { // WARNING: NOTE TESTED AT ALL
 
-	search_query := "select day_order, exercise_order from exercise_day where plan = ? and exercise = ? and weight = ? and unit = ? and sets = ? and min_reps = ? and max_reps = ?"
+	search_query := "select day_name, exercise, weight, unit, sets, min_reps, max_reps from exercise_day where plan = ? and day_order = ? and exercise_order = ?"
 	search_stmt, err := tx.Prepare(search_query)
 	if err != nil {
 		return nil, err
@@ -350,23 +363,44 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([
 
 	defer insert_stmt.Close()
 
+	day_name_update := "update exercise_day set day_name = ? where plan = ? and day_order = ?"
+	day_name_stmt, err := tx.Prepare(day_name_update)
+	if err != nil {
+		return nil, err
+	}
+
+	defer day_name_stmt.Close()
+
 	diff := make([][]bool, len(new_wp.Days))
 
 	for i, day := range new_wp.Days {
 		diff[i] = make([]bool, len(new_wp.Days[i].Exercises))
 
-		var d_order int
-		var e_order int
 		for j, ex := range day.Exercises {
-			err = search_stmt.QueryRow(new_wp.Id, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps).Scan(&d_order, &e_order)
-			if err != nil || d_order != i || e_order != j {
+			ex.Exercise.Id = exercisesByName[ex.Exercise.Name] // Needed because the new wp is just read from json so they only have their names
+
+			var old_day_name string
+			var tmp_ex ExerciseData
+			err = search_stmt.QueryRow(new_wp.Id, i, j).Scan(&old_day_name, &tmp_ex.Exercise.Id, &tmp_ex.Weight, &tmp_ex.Unit, &tmp_ex.Sets, &tmp_ex.MinReps, &tmp_ex.MaxReps) // NOTE: Should update day_name too
+			if  err != nil ||
+			ex.Exercise.Id != tmp_ex.Exercise.Id ||
+			ex.Weight != tmp_ex.Weight ||
+			ex.Unit != tmp_ex.Unit ||
+			ex.Sets != tmp_ex.Sets ||
+			ex.MinReps != tmp_ex.MinReps ||
+			ex.MaxReps != tmp_ex.MaxReps {
 				log.Println("Error in search stmt:", err)
 				diff[i][j] = true
-				err := insert_stmt.QueryRow(new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&d_order)
+				err := insert_stmt.QueryRow(new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&tmp_ex.Id)
 				if err != nil {
 					return nil, err
 				}
-			} 	
+			} else if old_day_name != day.Name{
+				_, err = day_name_stmt.Exec(day.Name, new_wp.Id, i)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 
 	}
@@ -550,7 +584,6 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) 
 		if err != nil {
 			return nil, err
 		}
-
 
 		tmp, ok := FetchCachedExercise(ex.Exercise.Id)
 		if !ok {

@@ -179,7 +179,7 @@ async function submitPlan() {
     });
 
     if (res.ok) {
-        window.location.href = `/user/profile/plans/view/${wp.id}`;
+        window.location.href = `/user/profile/plans/view/${wpID}`;
     } else {
         alert("Failed to update plan.");
     }
