@@ -4,7 +4,6 @@ CREATE TABLE workout_track_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT, -- NOTE: NOT NECCESARY, CAN USE TRACK AND EX_DAY AND SET_NUM AS PRIMARY KEY
     track INTEGER NOT NULL,
     ex_day INTEGER NOT NULL,
-    -- base_weight FLOAT, -- NOTE: This is here for when the 
     weight FLOAT, -- NOTE: This doesn't neccessarily have to be the weight that is specified in the ex_day, unless it's null
     set_num INTEGER,
     rep_num INTEGER DEFAULT 0,

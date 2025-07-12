@@ -15,10 +15,10 @@ type WorkoutPlan struct {
 	Creator     int       `json:"creator"`
 	Description string    `json:"description"`
 	MakeCurrent bool      `json:"make_current"`
-	Days        []PlanDay `json:"days"`
+	Days        []ExDay `json:"days"`
 }
 
-type PlanDay struct {
+type ExDay struct {
 	Name      string         `json:"name"`
 	Exercises []ExerciseData `json:"exercises"`
 }
@@ -89,6 +89,11 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 	}
 
 	wp.Id = workout_plan_id
+
+	err = Db.CachePlanBasic(wp.Id)
+	if err != nil {
+		return 0, err
+	}
 
 	err = Db.CreateExerciseDays(wp)
 	if err != nil {
@@ -305,6 +310,8 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 		return false, err
 	}
 
+
+
 	old_ex_days, err := Db.ReadAllExerciseDaysFromPlan(wp.Id)
 	if err != nil {
 		return false, err
@@ -339,6 +346,13 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	if err != nil {
 		return false, err
 	}
+
+
+	err = Db.CachePlanBasic(wp.Id)
+	if err != nil {
+		return false, err
+	}
+
 
 	return true, nil
 }
@@ -551,7 +565,7 @@ func ValidateExerciseDayInput(ex ExerciseData) error {
 // 	return ex_day, nil
 // }
 
-func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) {
+func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 	rows, err := Db.Data.Query("select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
 	if err != nil {
 		return nil, err
@@ -559,13 +573,13 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) 
 
 	defer rows.Close()
 
-	res := make([]PlanDay, 0)
+	res := make([]ExDay, 0)
 
 	prev_day := 0
-	day := PlanDay{}
+	day := ExDay{}
 
 	for rows.Next() {
-		d := PlanDay{}
+		d := ExDay{}
 		ex := ExerciseData{}
 		var curr_day int
 		err = rows.Scan(
@@ -592,7 +606,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]PlanDay, error) 
 		if curr_day != prev_day {
 			prev_day = curr_day
 			res = append(res, day)
-			day = PlanDay{}
+			day = ExDay{}
 		}
 		day.Name = d.Name
 		day.Exercises = append(day.Exercises, ex)
@@ -821,9 +835,47 @@ func (Db *DataBase) LinkCachedExercisesAndTargets() error {
 			return errors.New("Couldn't link exercise and target: missing target")
 		}
 
-		cachedExercises[ex].Targets = append(cachedExercises[ex].Targets, cachedTargets[tar])
-		cachedTargets[tar].Exercises = append(cachedTargets[tar].Exercises, cachedExercises[ex])
+		AddTargetToExercise(tar, ex)
+		AddExerciseToTarget(ex, tar)
 	}
 
 	return nil
+}
+
+func (Db *DataBase) CacheAllPlansBasic() error {
+
+	rows, err := Db.Data.Query("select id, name, creator, description from workout_plan")
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var wp WorkoutPlan
+
+		err = rows.Scan(&wp.Id, &wp.Name, &wp.Creator, &wp.Description)
+		if err != nil {
+			return err
+		}
+
+		err = CachePlanBasic(&wp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (Db *DataBase) CachePlanBasic(wp_id int) error {
+	row := Db.Data.QueryRow("select name, creator, description from workout_plan where id = ?", wp_id)
+	wp := WorkoutPlan{ Id: wp_id }
+	err := row.Scan(&wp.Name, &wp.Creator, &wp.Description)
+	if err != nil {
+		return err
+	}
+
+	err = CachePlanBasic(&wp)
+	return err
 }

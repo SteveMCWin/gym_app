@@ -805,8 +805,14 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 
 		make_private := c.PostForm("make_private_"+p_id) != ""
 
+		p, ok := models.FetchCachedPlanBasic(plan_id)
+		if !ok {
+			log.Println("Couldn't fetch cached plan of id:", plan_id)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
 		wt := models.WorkoutTrack{
-			Plan:        plan_id,
+			Plan:        *p,
 			User:        user_id,
 			IsPrivate:   make_private,
 			WorkoutDate: time.Now(),
@@ -814,7 +820,6 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 
 		wt.Id, err = db.CreateWorkoutTrack(&wt)
 		if err != nil {
-			log.Println("Here 1")
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
@@ -822,7 +827,6 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 
 		err = db.CreateTrackDataForTrack(&wt)
 		if err != nil {
-			log.Println("Here 2")
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
@@ -880,7 +884,7 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 
 
 
-		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "Days": track.ExDays })
+		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "Days": track.ExDays, "user_id": user_id, "requesting_user_id": requesting_user_id })
 	}
 }
 

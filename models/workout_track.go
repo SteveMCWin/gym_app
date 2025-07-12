@@ -11,11 +11,11 @@ import (
 
 type WorkoutTrack struct {
 	Id int `json:"id"`
-	Plan int `json:"plan"`
+	Plan WorkoutPlan `json:"plan"`
 	User int `json:"user"`
 	IsPrivate bool `json:"is_private"`
 	WorkoutDate time.Time `json:"workout_date"`
-	ExDays []PlanDay `json:"ex_days"`
+	ExDays []ExDay `json:"ex_days"`
 }
 
 type TrackData struct {
@@ -34,7 +34,7 @@ type TrackJSON struct {
 
 func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 
-	if wt.Plan <= 1 {
+	if wt.Plan.Id <= 1 {
 		return 0, errors.New("Invalid workout plan used in track")
 	}
 
@@ -62,7 +62,7 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 	var workout_track_id int
 
 	err = stmt_wt.QueryRow(
-		wt.Plan,
+		wt.Plan.Id,
 		wt.User,
 		wt.IsPrivate,
 		time.Now(),
@@ -73,7 +73,7 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 		return 0, err
 	}
 
-	ex_days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan)
+	ex_days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan.Id)
 	if err != nil {
 		log.Println("HERE 2")
 		return 0, err
@@ -97,11 +97,13 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 	wt := &WorkoutTrack{Id: wt_id}
 
 	err := Db.Data.QueryRow("select plan, usr, is_private, workout_date from workout_track where id = ?", wt_id).Scan(
-		&wt.Plan,
+		&wt.Plan.Id,
 		&wt.User,
 		&wt.IsPrivate,
 		&wt.WorkoutDate,
 	)
+
+	wt.Plan = *cacehdPlansBasic[wt.Plan.Id]
 
 	if err != nil {
 		return nil, err
@@ -116,7 +118,7 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 	return wt, nil
 }
 
-func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]PlanDay, error) {
+func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]ExDay, error) {
 	querry := `
 	select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order
 	from exercise_day inner join track_exercise on id = ex_day
@@ -130,13 +132,13 @@ func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]PlanDay, error) {
 
 	defer rows.Close()
 
-	res := make([]PlanDay, 0)
+	res := make([]ExDay, 0)
 
 	prev_day := 0
-	day := PlanDay{}
+	day := ExDay{}
 
 	for rows.Next() {
-		d := PlanDay{}
+		d := ExDay{}
 		ex := ExerciseData{}
 		var curr_day int
 		err = rows.Scan(
@@ -164,7 +166,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]PlanDay, error) {
 		if curr_day != prev_day {
 			prev_day = curr_day
 			res = append(res, day)
-			day = PlanDay{}
+			day = ExDay{}
 		}
 		day.Name = d.Name
 		day.Exercises = append(day.Exercises, ex)
@@ -189,7 +191,7 @@ func (Db *DataBase) ReadUsersWorkoutTracks(user_id, requesting_user_id int) ([]*
 
 		err = rows.Scan(
 			&track.Id,
-			&track.Plan,
+			&track.Plan.Id,
 			&track.WorkoutDate,
 			&track.IsPrivate,
 		)
@@ -200,6 +202,12 @@ func (Db *DataBase) ReadUsersWorkoutTracks(user_id, requesting_user_id int) ([]*
 		if track.IsPrivate && user_id != requesting_user_id {
 			continue
 		}
+
+		plan_basic, ok := FetchCachedPlanBasic(track.Plan.Id)
+		if !ok {
+			return nil, errors.New("Couldn't read cached plan data")
+		}
+		track.Plan = *plan_basic
 
 		tracks = append(tracks, &track)
 	}
@@ -270,11 +278,11 @@ func (Db *DataBase) CreateTrackData(td *TrackData) (int, error) {
 
 func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 
-	if wt.Plan <= 1 {
+	if wt.Plan.Id <= 1 {
 		return errors.New("Cannot create track data for non-existing plan")
 	}
 
-	days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan)
+	days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan.Id)
 	if err != nil {
 		return err
 	}

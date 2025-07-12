@@ -52,7 +52,7 @@
     <thead>
         <tr>
             <th>ID</th>
-            <th>Plan ID</th>
+            <th>Plan</th>
             <th>Is Private</th>
             <th>Workout Date</th>
             <th>Actions</th>
@@ -62,7 +62,7 @@
         {{ range . }}
         <tr>
             <td>{{ .Id }}</td>
-            <td>{{ .Plan }}</td>
+            <td>{{ .Plan.Name }}</td>
             <td>{{ if .IsPrivate }}Yes{{ else }}No{{ end }}</td>
             <td>{{ .WorkoutDate.Format "2006-01-02" }}</td>
             <td>

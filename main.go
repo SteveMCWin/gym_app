@@ -67,6 +67,16 @@ func main() {
 		panic(err)
 	}
 
+	err = db.LinkCachedExercisesAndTargets()
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.CacheAllPlansBasic()
+	if err != nil {
+		panic(err)
+	}
+
 	sessionManager = scs.New()
 	sessionManager.Lifetime = time.Hour * 24 * 30
 	sessionManager.Store = sqlite3store.New(db.Data)

@@ -37,6 +37,30 @@
         background-color: #e2ecfd;
         color: #0d47a1;
     }
+    .button {
+        display: inline-block;
+        padding: 8px 16px;
+        margin: 10px 5px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        color: #fff;
+        background-color: #007BFF;
+        border-radius: 4px;
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .button:hover {
+        background-color: #0056b3;
+    }
+
+    .button-secondary {
+        background-color: #6c757d;
+    }
+
+    .button-secondary:hover {
+        background-color: #5a6268;
+    }
 </style>
 </head>
 <body>
@@ -99,7 +123,16 @@
     {{ end }}
 {{ end }}
 
-<a href="/user/profile">Back to Profile</a>
+
+<div>
+    <a href="/user/profile" class="button button-secondary">Back to Profile</a>
+
+    {{ if eq .requesting_user_id .user_id }}
+        <a href="/user/tracks/edit/{{ .user_id }}/{{ (index .track_data 0).Track }}" class="button">
+            Edit
+        </a>
+    {{ end }}
+</div>
 
 </body>
 </html>
