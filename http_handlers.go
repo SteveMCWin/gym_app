@@ -481,39 +481,6 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
-	return func(c *gin.Context) {
-
-		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
-		}
-
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
-
-		user, err := db.ReadUser(user_id)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		wp, err := db.ReadWorkoutPlan(user.CurrentPlan)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		if wp.Id == 1 {
-			log.Println("The user doesn't have a current plan (I mean he does but it's the placeholder one that serves as a 'no plan' plan)")
-			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
-			return
-		}
-
-		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": false }) // WARNING: consider adding csrf protection especially if you enable editing the plan
-
-	}
-}
-
 func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
@@ -532,6 +499,29 @@ func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 		c.HTML(http.StatusOK, "view_all_user_plans.html", wps)
 	}
 }
+
+func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			log.Println("Must be logged in to view current plan")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user, err := db.ReadUser(user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		c.Redirect(http.StatusTemporaryRedirect, "/user/profile/plans/view/"+strconv.Itoa(user.CurrentPlan))
+	}
+}
+// TODO: Perhaps merge these two together or make the view current redirect to the view plan 
 
 func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -571,7 +561,9 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 
 		makeCurrent := user.CurrentPlan != wp_id
 
-		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": makeCurrent }) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		plan_analysis := wp.GetAnalysis()
+
+		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": makeCurrent, "PlanAnalysis": plan_analysis }) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }
 

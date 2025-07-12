@@ -49,6 +49,10 @@ type Target struct {
 	Exercises    []*Exercise `json:"exercises"`
 }
 
+type PlanAnalysis struct {
+	SetsPerTarget map[*Target]int
+}
+
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 
 	if wp.Creator == 0 {
@@ -878,4 +882,22 @@ func (Db *DataBase) CachePlanBasic(wp_id int) error {
 
 	err = CachePlanBasic(&wp)
 	return err
+}
+
+func (wp *WorkoutPlan) GetAnalysis() *PlanAnalysis {
+	if wp.Id == 1 {
+		return nil
+	}
+
+	analysis := &PlanAnalysis{ SetsPerTarget: make(map[*Target]int)}
+
+	for _, day := range wp.Days {
+		for _, ex := range day.Exercises {
+			for _, tar := range ex.Exercise.Targets {
+				analysis.SetsPerTarget[tar] += 1 * ex.Sets // NOTE: this will probably change if i add a multiplier of how much a target is being worked by each exercise
+			}
+		}
+	}
+
+	return analysis
 }

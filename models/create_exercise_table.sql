@@ -19,7 +19,7 @@ CREATE TABLE target (
 
 DROP TABLE IF EXISTS exercise_targets;
 
-CREATE TABLE exercise_targets (
+CREATE TABLE exercise_targets ( -- NOTE: add intensity
     exercise INTEGER NOT NULL,
     target INTEGER NOT NULL,
     PRIMARY KEY (exercise, target),

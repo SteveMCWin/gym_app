@@ -2,15 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>{{ .Name }} - Workout Plan</title>
+<title>{{ .wp.Name }} - Workout Plan</title>
 <style>
     body { font-family: sans-serif; padding: 40px; background-color: #f9f9f9; }
     h1, h2 { text-align: center; }
     .plan-meta { text-align: center; margin-bottom: 20px; }
+    .analysis { text-align: center; margin-bottom: 30px; }
+    .analysis ul { list-style: none; padding: 0; }
+    .analysis li { margin: 4px 0; }
     .day { margin-bottom: 40px; }
     .day h3 { background-color: #eee; padding: 10px; border-radius: 6px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+
+    .footer-buttons {
+        display: flex;
+        gap: 10px;
+    }
     .btn {
         margin-top: 20px;
         display: block;
@@ -20,10 +28,21 @@
         color: white;
         text-decoration: none;
         border-radius: 5px;
-        margin-left: auto;
-        margin-right: auto;
+        margin-left: 0;
+        margin-right: 10px;
+    }
+
+    .chart-container {
+        width: 400px;        /* desired width */
+        height: 400px;       /* desired height */
+        margin: 0 auto;      /* center horizontally */
+    }
+    canvas {
+        max-width: 100%;
+        max-height: 100%;
     }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -63,11 +82,62 @@
 </div>
 {{ end }}
 
-<a class="btn" href="/user/profile">Back to Profile</a>
-<a class="btn" href="/user/profile/plans/edit/{{ .wp.Id }}">Edit Plan</a>
-{{ if .MakeCurrent }}
-<a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .wp.Id }}">Make Current</a>
+{{ if .PlanAnalysis }}
+<div class="chart-container">
+    <h2>Sets per Target</h2>
+    <canvas id="setsChart"></canvas>
+</div>
 {{ end }}
+
+<script>
+{{ if .PlanAnalysis }}
+    const setsData = {
+        labels: [
+            {{- range $target, $num := .PlanAnalysis.SetsPerTarget -}}
+                "{{ $target.StandardName }}",
+            {{- end }}
+        ],
+        datasets: [{
+            label: 'Sets per Target',
+            data: [
+                {{- range $target, $num := .PlanAnalysis.SetsPerTarget -}}
+                    {{ $num }},
+                {{- end }}
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 206, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)',
+                'rgba(255, 159, 64, 0.5)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const config = {
+        type: 'pie',  // change to 'bar' for bar chart
+        data: setsData,
+        options: {
+            responsive: true
+        }
+    };
+
+    new Chart(
+        document.getElementById('setsChart'),
+        config
+    );
+{{ end }}
+</script>
+
+<div class="footer-buttons">
+    <a class="btn" href="/user/profile">Back to Profile</a>
+    <a class="btn" href="/user/profile/plans/edit/{{ .wp.Id }}">Edit Plan</a>
+    {{ if .MakeCurrent }}
+    <a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .wp.Id }}">Make Current</a>
+    {{ end }}
+</div>
 
 </body>
 </html>
