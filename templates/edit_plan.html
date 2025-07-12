@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Edit Workout Plan</title>
@@ -13,11 +11,13 @@
     button { padding: 8px 16px; margin: 10px 5px; }
     form.hidden { display: none; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 <body>
 
 <h2>Edit Workout Plan</h2>
 
+<!-- form content stays unchanged -->
 <div style="max-width: 600px; margin: auto; text-align: left;">
     <label>Plan Name</label>
     <input type="text" id="planName" value="{{ .wp.Name }}">
@@ -57,7 +57,7 @@
 {{ end }}
 </div>
 
-<!-- CSRF -->
+<!-- datalist + csrf stay unchanged -->
 <form class="hidden">
     {{ .csrfField }}
 </form>
@@ -112,6 +112,8 @@ function addDay() {
     col.appendChild(addRowBtn);
 
     document.getElementById("columnsContainer").appendChild(col);
+
+    enableExerciseSorting(cellContainer);
 }
 
 function addExercise(btn) {
@@ -174,6 +176,20 @@ function addExercise(btn) {
     btn.parentElement.querySelector(".cell-container").appendChild(wrapper);
 }
 
+function enableExerciseSorting(container) {
+    Sortable.create(container, {
+        group: "exercises",
+        animation: 150
+    });
+}
+
+document.querySelectorAll(".cell-container").forEach(enableExerciseSorting);
+
+Sortable.create(document.getElementById("columnsContainer"), {
+    animation: 150,
+    handle: ".col-title"
+});
+
 async function submitPlan() {
     const plan = {
         id: wpID,
@@ -233,6 +249,5 @@ async function submitPlan() {
     }
 }
 </script>
-
 </body>
 </html>

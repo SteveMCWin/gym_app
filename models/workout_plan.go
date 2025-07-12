@@ -330,8 +330,8 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	log.Println("dif:", diff)
 	log.Println()
 
-	for i := range max(len(diff), len(old_ex_days)) {
-		for j := range max(len(diff[min(len(diff)-1, i)]), len(old_ex_days[i].Exercises)) {
+	for i := range len(old_ex_days) {
+		for j := range len(old_ex_days[i].Exercises) {
 			if i >= len(diff) || j >= len(diff[i]) {
 				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
@@ -397,7 +397,7 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([
 
 			var old_day_name string
 			var tmp_ex ExerciseData
-			err = search_stmt.QueryRow(new_wp.Id, i, j).Scan(&old_day_name, &tmp_ex.Exercise.Id, &tmp_ex.Weight, &tmp_ex.Unit, &tmp_ex.Sets, &tmp_ex.MinReps, &tmp_ex.MaxReps) // NOTE: Should update day_name too
+			err = search_stmt.QueryRow(new_wp.Id, i, j).Scan(&old_day_name, &tmp_ex.Exercise.Id, &tmp_ex.Weight, &tmp_ex.Unit, &tmp_ex.Sets, &tmp_ex.MinReps, &tmp_ex.MaxReps)
 			if  err != nil ||
 			ex.Exercise.Id != tmp_ex.Exercise.Id ||
 			ex.Weight != tmp_ex.Weight ||

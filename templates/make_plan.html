@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Create Workout Plan</title>
@@ -8,7 +6,7 @@
     input, textarea { padding: 6px; margin: 5px 0; width: 100%; box-sizing: border-box; }
     .columns { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
     .column { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); min-width: 250px; position: relative; }
-    .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; position: relative; }
+    .exercise { border-top: 1px solid #ccc; margin-top: 10px; padding-top: 10px; position: relative; cursor: grab; }
     .delete-btn { position: absolute; top: 5px; right: 5px; background: #f44336; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; }
     button { padding: 8px 16px; margin: 10px 5px; }
     form.hidden { display: none; }
@@ -53,8 +51,20 @@ const allowedExercises = [
     <button onclick="submitPlan()">Done</button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 let columnCount = 0;
+
+// enable drag & drop on the main columns container
+Sortable.create(document.getElementById("columnsContainer"), {
+    animation: 150,
+    handle: ".col-title"
+});
+
+Sortable.create(document.getElementById("columnsContainer"), {
+    animation: 150,
+    handle: ".col-title"  // optional: makes dragging happen only by grabbing the Day name input
+});
 
 function addColumn() {
     const colIndex = columnCount++;
@@ -73,6 +83,7 @@ function addColumn() {
     const titleInput = document.createElement("input");
     titleInput.placeholder = "Day name";
     titleInput.className = "col-title";
+    titleInput.style.cursor = "move"; // make it clear it's draggable
     col.appendChild(titleInput);
 
     const cellContainer = document.createElement("div");
@@ -86,6 +97,13 @@ function addColumn() {
     col.appendChild(addRowBtn);
 
     document.getElementById("columnsContainer").appendChild(col);
+
+    // enable drag & drop on this column’s exercises
+    Sortable.create(cellContainer, {
+        group: "exercises",         // 👈 all containers with group "exercises" can exchange items
+        animation: 150,
+        handle: ".exercise"
+    });
 }
 
 function addExercise(container) {
@@ -212,6 +230,5 @@ async function submitPlan() {
     }
 }
 </script>
-
 </body>
 </html>
