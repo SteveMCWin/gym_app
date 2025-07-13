@@ -97,6 +97,27 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	return usr, nil
 }
 
+func (Db *DataBase) ReadUserShallow(usr_id int) (*User, error) {
+	usr := &User{}
+
+	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym, current_plan, date_created from users where id = ?", usr_id).Scan(
+		&usr.Id,
+		&usr.Name,
+		&usr.TrainingSince,
+		&usr.IsTrainer,
+		// &usr.GymGoals,
+		// &usr.CurrentGym,
+		// &usr.CurrentPlan,
+		// &usr.DateCreated,
+	) // gets most of the public data of the user
+
+	if err != nil {
+		return nil, err
+	}
+
+	return usr, nil
+}
+
 func (Db *DataBase) ReadUserIdByEmail(email string) (int, error) {
 	var usr_id int
 
@@ -269,4 +290,25 @@ func (Db *DataBase) DeleteUser(id int) (bool, error) {
 	tx.Commit()
 
 	return true, nil
+}
+
+func (Db *DataBase) SearchForUsers(username string) ([]User, error) {
+	rows, err := Db.Data.Query("select id, name from spellfix_users inner join users on word = name where word match ?", username)
+	if err != nil {
+		return nil, err
+	}
+
+	matches := make([]User, 0)
+
+	for rows.Next() {
+		var usr User
+		err = rows.Scan(&usr.Id, &usr.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		matches = append(matches, usr)
+	}
+
+	return matches, nil
 }

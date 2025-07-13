@@ -77,6 +77,11 @@ func main() {
 		panic(err)
 	}
 
+	// err = db.CacheAllUserNamesAndIds()
+	// if err != nil {
+	// 	panic(err)
+	// }
+
 	sessionManager = scs.New()
 	sessionManager.Lifetime = time.Hour * 24 * 30
 	sessionManager.Store = sqlite3store.New(db.Data)
@@ -95,7 +100,7 @@ func main() {
 	user_router := router.Group("/user")
 	// profile_router := router.Group("/user/profile") // NOTE: consider reorganizig the routing with more groups, this is getting kinda messy now
 
-	user_router.GET("/profile", MiddlewareNoCache(), HandleGetProfile(&db))
+	user_router.GET("/:id", MiddlewareNoCache(), HandleGetProfile(&db))
 	user_router.GET("/login", HandleGetLogin())
 	user_router.POST("/login", HandlePostLogin(&db))
 	user_router.GET("/logout", HandleGetLogout(&db))

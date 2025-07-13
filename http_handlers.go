@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	// "slices"
 
 	"fitness_app/mail"
 	"fitness_app/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/csrf"
+	// "github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 func HandleGetHome() func(c *gin.Context) {
@@ -34,12 +36,24 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 		}
 		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		usr, err := db.ReadUser(user_id)
+		requesting_user_id, err := strconv.Atoi(c.PostForm("id"))
 
 		if err != nil {
-			log.Println("ERROR")
 			log.Println(err)
-			log.Println("ERROR")
+			c.Redirect(http.StatusInternalServerError, "/error-page")
+			return
+		}
+
+		var usr *models.User
+
+		if requesting_user_id == user_id {
+			usr, err = db.ReadUser(user_id)
+		} else {
+			usr, err = db.ReadUserShallow(user_id)
+		}
+
+		if err != nil {
+			log.Println(err)
 			c.Redirect(http.StatusInternalServerError, "/error-page")
 			return
 		}
@@ -63,7 +77,6 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.HTML(http.StatusOK, "profile.html", user_view)
-
 	}
 }
 
@@ -999,6 +1012,44 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
+func HandleGetSearchForUser() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// just render some html for the search page
+	}
+}
+
+func HandlePostSearchForUser(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		search_name := c.PostForm("search_name")
+
+		// allNames, allIds := models.FetchAllUserNamesAndIds()
+		// matches := fuzzy.RankFind(search_name, allNames)
+		//
+		// log.Println("Before sorting:", matches)
+		//
+		// slices.SortFunc(matches, func(a, b fuzzy.Rank) int {
+		// 	return a.Distance - b.Distance
+		// })
+		//
+		// log.Println("After sorting:", matches)
+		//
+		// matchIds := make([]int, 0)
+		// for _, m := range matches {
+		// 	matchIds = append(matchIds, allIds[m.OriginalIndex])
+		// }
+
+		matches, err := db.SearchForUsers(search_name)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "display_found_users.html", matches)
+
+	}
+}
+
 // MIDDLEWARE
 
 func MiddlewareNoCache() func(c *gin.Context) {
@@ -1009,3 +1060,4 @@ func MiddlewareNoCache() func(c *gin.Context) {
 		c.Next()
 	}
 }
+

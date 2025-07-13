@@ -9,25 +9,35 @@ import (
 
 type DataBase struct {
 	Data      *sql.DB
-	is_opened bool
+	is_open bool
 }
 
 func (dataBase *DataBase) Close() {
 	dataBase.Data.Close()
-	dataBase.is_opened = false
+	dataBase.is_open = false
 }
 
 func (dataBase *DataBase) InitDatabase() error {
-	if dataBase.is_opened {
-		return errors.New("ERROR: Database already opened")
+	if dataBase.is_open {
+		return errors.New("ERROR: Database already open")
 	}
 	var err error
 	dataBase.Data, err = sql.Open("sqlite3", "models/database.db")
 	if err != nil {
-		return errors.New("ERROR: Couldn't open database")
+		return err
 	}
 
-	dataBase.is_opened = true
+	_, err = dataBase.Data.Exec(`PRAGMA enable_load_extension = 1;`)
+	if err != nil {
+		return err
+	}
+
+	_, err = dataBase.Data.Exec(`SELECT load_extension('./spellfix.so')`)
+    if err != nil {
+        return err
+    }
+
+	dataBase.is_open = true
 
 	return nil
 }
