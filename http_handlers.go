@@ -53,14 +53,6 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 
 		var usr *models.User
 
-		// _, err = db.SearchForUsers("ste")
-		// if err != nil {
-		// 	log.Println(err)
-		// 	c.Redirect(http.StatusInternalServerError, "/error-page")
-		// 	return
-		// }
-
-
 		if requesting_user_id == user_id {
 			usr, err = db.ReadUser(user_id)
 		} else {

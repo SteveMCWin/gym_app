@@ -1,7 +1,7 @@
 package models
 
 import (
-	"log"
+	"os"
 	"database/sql"
 	"errors"
 
@@ -23,42 +23,23 @@ func (dataBase *DataBase) InitDatabase() error {
 		return errors.New("ERROR: Database already open")
 	}
 
-	sql.Register("sqlite3_with_spellfix",
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	sql.Register("sqlite3_with_extension",
 		&sqlite3.SQLiteDriver{
 			Extensions: []string{
-				"spellfix1",
+				dir+"/models/spellfix.so",
 			},
 		},
 	)
 
-	var err error
-	dataBase.Data, err = sql.Open("sqlite3", "models/database.db")
+	dataBase.Data, err = sql.Open("sqlite3_with_extension", "models/database.db")
 	if err != nil {
 		return err
 	}
-
-	// rows, err := dataBase.Data.Query(`PRAGMA compile_options;`)
-	// if err != nil {
-	// 	log.Println("Error:", err)
-	// 	return err
-	// }
-	// defer rows.Close()
-	// for rows.Next() {
-	// 	var opt string
-	// 	rows.Scan(&opt)
-	// 	log.Println(opt)
-	// }
-
-	_, err = dataBase.Data.Exec("PRAGMA enable_load_extension = 1;")
-	if err != nil {
-		return err
-	}
-
-	_, err = dataBase.Data.Exec("SELECT load_extension('./models/spellfix.so')")
-    if err != nil {
-		log.Println("HEREEEE???")
-        return err
-    }
 
 	dataBase.is_open = true
 

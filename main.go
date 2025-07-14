@@ -59,7 +59,6 @@ func main() {
 
 	err = db.CacheAllExercises()
 	if err != nil {
-		log.Println("HEREEEE???")
 		panic(err)
 	}
 
