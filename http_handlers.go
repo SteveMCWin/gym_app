@@ -17,7 +17,13 @@ import (
 
 func HandleGetHome() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
+		var user_id int
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			user_id = -1
+		} else {
+			user_id = sessionManager.GetInt(c.Request.Context(), "user_id")
+		}
+		c.HTML(http.StatusOK, "index.html", gin.H{ "user_id": user_id})
 	}
 }
 
@@ -36,15 +42,24 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 		}
 		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		requesting_user_id, err := strconv.Atoi(c.PostForm("id"))
+		requesting_user_id, err := strconv.Atoi(c.Param("id"))
 
 		if err != nil {
+			log.Println("HEREEE")
 			log.Println(err)
 			c.Redirect(http.StatusInternalServerError, "/error-page")
 			return
 		}
 
 		var usr *models.User
+
+		// _, err = db.SearchForUsers("ste")
+		// if err != nil {
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusInternalServerError, "/error-page")
+		// 	return
+		// }
+
 
 		if requesting_user_id == user_id {
 			usr, err = db.ReadUser(user_id)
@@ -83,7 +98,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 func HandleGetLogin() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") {
-			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/" + strconv.Itoa(sessionManager.GetInt(c.Request.Context(), "user_id")))
 			return
 		}
 
@@ -105,7 +120,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
-		c.Redirect(http.StatusSeeOther, "/user/profile")
+		c.Redirect(http.StatusSeeOther, "/user/" + strconv.Itoa(usr_id))
 	}
 }
 
