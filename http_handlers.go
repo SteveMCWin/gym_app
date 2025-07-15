@@ -541,7 +541,6 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/user/profile/plans/view/"+strconv.Itoa(user.CurrentPlan))
 	}
 }
-// TODO: Perhaps merge these two together or make the view current redirect to the view plan 
 
 func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -582,7 +581,7 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 		makeCurrent := user.CurrentPlan != wp_id
 
 		plan_analysis := wp.GetAnalysis()
-
+		
 		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": makeCurrent, "PlanAnalysis": plan_analysis }) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }
@@ -1019,41 +1018,55 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-func HandleGetSearchForUser() func(c *gin.Context) {
+func HandleGetSearchForUser(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// just render some html for the search page
+		query := c.Query("name")
+		if query == "" {
+			// render page
+			c.HTML(http.StatusOK, "search_users.html", gin.H{})
+		} else {
+			// return JSON results
+			results, err := db.SearchForUsers(query, sessionManager.GetInt(c.Request.Context(), "user_id"))
+			if err != nil {
+				log.Println(err)
+				c.Redirect(http.StatusSeeOther, "/error-page")
+				return
+			}
+			c.JSON(200, results)
+		}
 	}
 }
 
-func HandlePostSearchForUser(db *models.DataBase) func(c *gin.Context) {
+func HandleGetPlanJSON(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		search_name := c.PostForm("search_name")
-
-		// allNames, allIds := models.FetchAllUserNamesAndIds()
-		// matches := fuzzy.RankFind(search_name, allNames)
-		//
-		// log.Println("Before sorting:", matches)
-		//
-		// slices.SortFunc(matches, func(a, b fuzzy.Rank) int {
-		// 	return a.Distance - b.Distance
-		// })
-		//
-		// log.Println("After sorting:", matches)
-		//
-		// matchIds := make([]int, 0)
-		// for _, m := range matches {
-		// 	matchIds = append(matchIds, allIds[m.OriginalIndex])
-		// }
-
-		matches, err := db.SearchForUsers(search_name)
+		wp_id_param := c.Param("wp_id")
+		wp_id, err := strconv.Atoi(wp_id_param)
 		if err != nil {
+			log.Println("ERROR")
 			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
+			log.Println("ERROR")
+			c.JSON(http.StatusInternalServerError, gin.H{})
 		}
 
-		c.HTML(http.StatusOK, "display_found_users.html", matches)
+		wp, err := db.ReadWorkoutPlan(wp_id)
+		if err != nil {
+			log.Println("ERROR")
+			log.Println(err)
+			log.Println("ERROR")
+			c.JSON(http.StatusInternalServerError, gin.H{})
+		}
 
+		// WARNING: Really bad performance-vise. Try a solution with a custom MarshalJSON or something. But for now it works
+		for _, d := range wp.Days { 
+			for _, e := range d.Exercises {
+				for _, t := range e.Exercise.Targets {
+					t.Exercises = nil // Needed, otherwise the json gets into an infinite cycle because exercise has []Target and target has []Exercise
+				}
+			}
+		}
+
+		c.JSON(http.StatusOK, wp)
 	}
 }
 

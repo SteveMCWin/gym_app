@@ -605,6 +605,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 		if !ok {
 			return nil, err
 		}
+		// tmp.Targets = nil // NOTE: this is needed for converting the plan to json. If the targets are left as is, the json gets into an infinite loop
 		ex.Exercise = *tmp
 
 		if curr_day != prev_day {

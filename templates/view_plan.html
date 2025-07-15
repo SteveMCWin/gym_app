@@ -90,6 +90,7 @@
 {{ end }}
 
 <script>
+
 {{ if .PlanAnalysis }}
     const setsData = {
         labels: [
@@ -129,6 +130,18 @@
         config
     );
 {{ end }}
+
+const planId = {{ .wp.Id }};
+
+document.addEventListener("DOMContentLoaded", () => {
+    const copyBtn = document.getElementById("copyBtn");
+    if (copyBtn) {
+        copyBtn.addEventListener("click", () => {
+            document.cookie = `copiedPlanId=${planId}; path=/`;
+        });
+    }
+});
+
 </script>
 
 <div class="footer-buttons">
@@ -137,6 +150,7 @@
     {{ if .MakeCurrent }}
     <a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .wp.Id }}">Make Current</a>
     {{ end }}
+    <button id="copyBtn">Copy</button>
 </div>
 
 </body>

@@ -48,6 +48,7 @@ const allowedExercises = [
 
 <div>
     <button onclick="addColumn()">Add Day</button>
+    <button onclick="pasteCopiedPlan()">Paste Copied Plan</button>
     <button onclick="submitPlan()">Done</button>
 </div>
 
@@ -228,6 +229,145 @@ async function submitPlan() {
     } else {
         window.location.href = "/error-page";
     }
+}
+
+async function pasteCopiedPlan() {
+    const copiedPlanId = getCookie("copiedPlanId");
+    if (!copiedPlanId) {
+        alert("No copied plan found in your session.");
+        return;
+    }
+
+    const res = await fetch(`/user/get_plan_json/${copiedPlanId}`);
+    if (!res.ok) {
+        alert("Failed to fetch copied plan.");
+        return;
+    }
+
+    const plan = await res.json();
+
+    // Fill basic info
+    // document.getElementById("planName").value = plan.name;
+    // document.getElementById("planDescription").value = plan.description || "";
+
+    // Clear existing days
+    document.getElementById("columnsContainer").innerHTML = "";
+    columnCount = 0;
+
+    // Recreate columns & exercises
+    for (const day of plan.days) {
+        const colIndex = columnCount++;
+        const col = document.createElement("div");
+        col.className = "column";
+        col.setAttribute("data-col-index", colIndex);
+
+        const deleteDayBtn = document.createElement("button");
+        deleteDayBtn.textContent = "🗑️";
+        deleteDayBtn.className = "delete-btn";
+        deleteDayBtn.type = "button";
+        deleteDayBtn.title = "Delete Day";
+        deleteDayBtn.onclick = () => col.remove();
+        col.appendChild(deleteDayBtn);
+
+        const titleInput = document.createElement("input");
+        titleInput.placeholder = "Day name";
+        titleInput.className = "col-title";
+        titleInput.value = day.name || "";
+        titleInput.style.cursor = "move";
+        col.appendChild(titleInput);
+
+        const cellContainer = document.createElement("div");
+        cellContainer.className = "cell-container";
+        col.appendChild(cellContainer);
+
+        for (const ex of day.exercises) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "exercise";
+
+            const deleteExerciseBtn = document.createElement("button");
+            deleteExerciseBtn.textContent = "🗑️";
+            deleteExerciseBtn.className = "delete-btn";
+            deleteExerciseBtn.type = "button";
+            deleteExerciseBtn.title = "Delete Exercise";
+            deleteExerciseBtn.onclick = () => wrapper.remove();
+            wrapper.appendChild(deleteExerciseBtn);
+
+            wrapper.appendChild(document.createElement("br"));
+
+            const nameInput = document.createElement("input");
+            nameInput.placeholder = "Exercise name";
+            nameInput.className = "ex-name";
+            nameInput.setAttribute("list", "exercise-list");
+            nameInput.value = ex.exercise.name || "";
+            wrapper.appendChild(nameInput);
+            wrapper.appendChild(document.createElement("br"));
+
+            const weightInput = document.createElement("input");
+            weightInput.placeholder = "Weight";
+            weightInput.className = "ex-weight";
+            weightInput.value = ex.weight || "";
+            wrapper.appendChild(weightInput);
+            wrapper.appendChild(document.createElement("br"));
+
+            const unitSelect = document.createElement("select");
+            unitSelect.className = "ex-unit";
+            unitSelect.required = true;
+            unitSelect.innerHTML = `
+                <option value="">Select unit</option>
+                <option value="kg" ${ex.unit === "kg" ? "selected" : ""}>kg</option>
+                <option value="lbs" ${ex.unit === "lbs" ? "selected" : ""}>lbs</option>
+                <option value="s" ${ex.unit === "s" ? "selected" : ""}>s</option>
+                <option value="m" ${ex.unit === "m" ? "selected" : ""}>m</option>
+            `;
+            wrapper.appendChild(unitSelect);
+            wrapper.appendChild(document.createElement("br"));
+
+            const setsInput = document.createElement("input");
+            setsInput.placeholder = "Sets";
+            setsInput.type = "number";
+            setsInput.className = "ex-sets";
+            setsInput.value = ex.sets || "";
+            wrapper.appendChild(setsInput);
+            wrapper.appendChild(document.createElement("br"));
+
+            const minRepsInput = document.createElement("input");
+            minRepsInput.placeholder = "Min reps";
+            minRepsInput.type = "number";
+            minRepsInput.className = "ex-min";
+            minRepsInput.value = ex.min_reps || "";
+            wrapper.appendChild(minRepsInput);
+            wrapper.appendChild(document.createElement("br"));
+
+            const maxRepsInput = document.createElement("input");
+            maxRepsInput.placeholder = "Max reps (optional)";
+            maxRepsInput.type = "number";
+            maxRepsInput.className = "ex-max";
+            maxRepsInput.value = ex.max_reps || "";
+            wrapper.appendChild(maxRepsInput);
+
+            cellContainer.appendChild(wrapper);
+        }
+
+        const addRowBtn = document.createElement("button");
+        addRowBtn.textContent = "Add Exercise";
+        addRowBtn.type = "button";
+        addRowBtn.onclick = () => addExercise(cellContainer);
+        col.appendChild(addRowBtn);
+
+        document.getElementById("columnsContainer").appendChild(col);
+
+        Sortable.create(cellContainer, {
+            group: "exercises",
+            animation: 150,
+            handle: ".exercise"
+        });
+    }
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
 }
 </script>
 </body>

@@ -100,14 +100,14 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 func (Db *DataBase) ReadUserShallow(usr_id int) (*User, error) {
 	usr := &User{}
 
-	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym, current_plan, date_created from users where id = ?", usr_id).Scan(
+	err := Db.Data.QueryRow("select id, name, training_since, is_trainer, current_plan from users where id = ?", usr_id).Scan(
 		&usr.Id,
 		&usr.Name,
 		&usr.TrainingSince,
 		&usr.IsTrainer,
 		// &usr.GymGoals,
 		// &usr.CurrentGym,
-		// &usr.CurrentPlan,
+		&usr.CurrentPlan,
 		// &usr.DateCreated,
 	) // gets most of the public data of the user
 
@@ -292,8 +292,8 @@ func (Db *DataBase) DeleteUser(id int) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) SearchForUsers(username string) ([]User, error) {
-	rows, err := Db.Data.Query("select id, name from spellfix_users inner join users on word = name where word match ?", username)
+func (Db *DataBase) SearchForUsers(username string, requesting_user_id int) ([]User, error) {
+	rows, err := Db.Data.Query("select id, name from spellfix_users inner join users on word = name where word match ? and id != ?", username, requesting_user_id)
 	if err != nil {
 		return nil, err
 	}

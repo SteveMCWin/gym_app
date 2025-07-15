@@ -29,7 +29,6 @@ go.work.sum
 
 # databases
 models/*.db
-models/spellfix*
 
 fitness_app
 
