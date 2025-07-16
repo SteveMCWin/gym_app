@@ -51,14 +51,14 @@
 
 <h2>Your Workout Plans</h2>
 
-{{if .}}
+{{if .wps}}
 <div class="plans">
-    {{range .}}
+    {{range $wp := .wps}}
     <div class="plan">
-        <div class="plan-title">{{.Name}}</div>
-        <div class="plan-desc">{{.Description}}</div>
+        <div class="plan-title">{{$wp.Name}}</div>
+        <div class="plan-desc">{{$wp.Description}}</div>
         <div class="plan-actions">
-            <a href="/user/profile/plans/view/{{.Id}}">View</a>
+            <a href="/user/{{ .user_id }}/plan/view/{{$wp.Id}}">View</a>
             <!-- <a href="/user/edit_plan/{{.Id}}">Edit</a> -->
             <!-- <a href="/user/delete_plan/{{.Id}}">Delete</a> -->
         </div>

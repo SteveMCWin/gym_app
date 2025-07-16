@@ -239,7 +239,7 @@ async function pasteCopiedPlan() {
         return;
     }
 
-    const res = await fetch(`/user/get_plan_json/${copiedPlanId}`);
+    const res = await fetch(`/user/0/plan/get_plan_json/${copiedPlanId}`);
     if (!res.ok) {
         alert("Failed to fetch copied plan.");
         return;

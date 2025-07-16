@@ -233,7 +233,7 @@ async function submitPlan() {
 
     const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value;
 
-    const res = await fetch(`/user/profile/plans/edit/${wpID}`, {
+    const res = await fetch(`/user/{{ .user_id }}/profile/plans/edit/${wpID}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -243,7 +243,7 @@ async function submitPlan() {
     });
 
     if (res.ok) {
-        window.location.href = `/user/profile/plans/view/${wpID}`;
+        window.location.href = `/user/{{ .user_id }}/plan/view/${wpID}`;
     } else {
         alert("Failed to update plan.");
     }

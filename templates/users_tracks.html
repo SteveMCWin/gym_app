@@ -59,16 +59,20 @@
         </tr>
     </thead>
     <tbody>
-        {{ range . }}
+        {{ range .tracks }}
         <tr>
             <td>{{ .Id }}</td>
-            <td>{{ .Plan.Name }}</td>
+            {{ if eq .User .requesting_user_id }}
+                <td>{{ .Plan.Name }}</td>
+            {{ end}}
             <td>{{ if .IsPrivate }}Yes{{ else }}No{{ end }}</td>
             <td>{{ .WorkoutDate.Format "2006-01-02" }}</td>
             <td>
-                <a class="btn view" href="/user/tracks/view/{{.User}}/{{.Id}}">View</a>
-                <a class="btn edit" href="/user/tracks/edit/{{.User}}/{{.Id}}">Edit</a>
-                <a class="btn delete" href="/user/tracks/delete/{{.User}}/{{.Id}}">Delete</a>
+                <a class="btn view" href="/user/{{ .User }}/track/view/{{.Id}}">View</a>
+                {{ if eq .User .requesting_user_id }}
+                    <a class="btn edit" href="/user/{{ .User }}/track/edit/{{.Id}}">Edit</a>
+                    <a class="btn delete" href="/user/{{ .User }}/track/delete/{{.Id}}">Delete</a>
+                {{ end}}
             </td>
         </tr>
         {{ end }}

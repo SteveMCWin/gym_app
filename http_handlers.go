@@ -573,7 +573,7 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 		}
 		if wp.Id == 1 {
 			log.Println("Cannot view placeholder plan")
-			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/0/plan/create")
 			return
 		}
 
@@ -581,7 +581,13 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 
 		plan_analysis := wp.GetAnalysis()
 
-		c.HTML(http.StatusOK, "view_plan.html", gin.H{"wp": wp, "MakeCurrent": makeCurrent, "PlanAnalysis": plan_analysis}) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		c.HTML(http.StatusOK, "view_plan.html", gin.H{
+			"wp": wp,
+			"MakeCurrent": makeCurrent,
+			"PlanAnalysis": plan_analysis,
+			"user_id": user_id,
+			"requesting_user_id": requesting_user_id,
+		}) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }
 
@@ -610,7 +616,7 @@ func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "view_all_user_plans.html", wps)
+		c.HTML(http.StatusOK, "view_all_user_plans.html", gin.H{ "wps": wps, "user_id": user_id })
 	}
 }
 
@@ -677,11 +683,16 @@ func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 		}
 		if wp.Id == 1 {
 			log.Println("Cannot view placeholder plan")
-			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/0/create")
 			return
 		}
 
-		c.HTML(http.StatusOK, "edit_plan.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "wp": wp, "all_exercises": models.GetAllCachedExercises()})
+		c.HTML(http.StatusOK, "edit_plan.html", gin.H{
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
+			"wp": wp,
+			"all_exercises": models.GetAllCachedExercises(),
+			"user_id": user_id,
+		})
 	}
 }
 
@@ -818,7 +829,10 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "users_tracks.html", workout_tracks)
+		c.HTML(http.StatusOK, "users_tracks.html", gin.H{
+			"tracks": workout_tracks,
+			"requesting_user_id": requesting_user_id,
+		})
 	}
 }
 
@@ -839,7 +853,11 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "create_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "plans": plans})
+		c.HTML(http.StatusOK, "create_track.html", gin.H{
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
+			"plans": plans,
+			"user_id": user_id,
+		})
 	}
 }
 
@@ -895,7 +913,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/user/tracks/view/"+strconv.Itoa(user_id)+"/"+strconv.Itoa(wt.Id))
+		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(user_id)+"/track/create/"+strconv.Itoa(wt.Id))
 	}
 }
 
@@ -1025,6 +1043,12 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		if requesting_user_id != user_id {
+			log.Println("NU UUUUH")
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
 		wt_id, err := strconv.Atoi(wt_id_param)
 		if err != nil {
 			log.Println(err)
@@ -1045,12 +1069,6 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		if requesting_user_id != user_id {
-			log.Println("NU UUUUH")
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
 		var track_json models.TrackJSON
 		if err := c.BindJSON(&track_json); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
@@ -1064,7 +1082,7 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/user/tracks/view/"+user_id_param+"/"+wt_id_param)
+		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(user_id)+"/track/view/"+wt_id_param)
 	}
 }
 

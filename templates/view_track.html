@@ -125,10 +125,10 @@
 
 
 <div>
-    <a href="/user/profile" class="button button-secondary">Back to Profile</a>
+    <a href="/user/{{ .user_id }}" class="button button-secondary">Back to Profile</a>
 
     {{ if eq .requesting_user_id .user_id }}
-        <a href="/user/tracks/edit/{{ .user_id }}/{{ (index .track_data 0).Track }}" class="button">
+            <a href="/user/{{ .user_id }}/track/edit/{{ (index .track_data 0).Track }}" class="button">
             Edit
         </a>
     {{ end }}

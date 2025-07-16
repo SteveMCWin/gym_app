@@ -75,7 +75,7 @@
     <button type="button" onclick="submitEdit()">Update</button>
 </form>
 
-<a href="/user/profile">Back to Profile</a>
+<a href="/user/{{ .user_id }}">Back to Profile</a>
 
 <script>
 async function submitEdit() {
@@ -115,7 +115,7 @@ async function submitEdit() {
         td: td
     };
 
-    const res = await fetch(`/user/tracks/edit/${userID}/${trackID}`, {
+        const res = await fetch(`/user/{{ .user_id }}/track/edit/${trackID}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -125,7 +125,7 @@ async function submitEdit() {
     });
 
     if (res.ok) {
-        window.location.href = "/user/profile";
+        window.location.href = "/user/{{ .user_id }}";
     } else {
         alert("Failed to update track.");
     }
