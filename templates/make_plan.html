@@ -226,7 +226,7 @@ async function submitPlan() {
 
     if (res.ok) {
         const wp_id = await res.json();
-    window.location.href = "/user/0/plan/${wp_id.wp_id}";
+    window.location.href = `/user/0/plan/view/${wp_id}`;
     } else {
         window.location.href = "/error-page";
     }

@@ -51,7 +51,7 @@
 <table>
     <thead>
         <tr>
-            <th>ID</th>
+            <!-- <th>ID</th> -->
             <th>Plan</th>
             <th>Is Private</th>
             <th>Workout Date</th>
@@ -59,17 +59,18 @@
         </tr>
     </thead>
     <tbody>
+        {{ $requesting_user_id := .requesting_user_id}}
         {{ range .tracks }}
         <tr>
-            <td>{{ .Id }}</td>
-            {{ if eq .User .requesting_user_id }}
-                <td>{{ .Plan.Name }}</td>
-            {{ end}}
+            <!-- <td>{{ .Id }}</td> -->
+            <td>{{ .Plan.Name }}</td>
+            {{ if eq .User $requesting_user_id }}
             <td>{{ if .IsPrivate }}Yes{{ else }}No{{ end }}</td>
+            {{ end}}
             <td>{{ .WorkoutDate.Format "2006-01-02" }}</td>
             <td>
                 <a class="btn view" href="/user/{{ .User }}/track/view/{{.Id}}">View</a>
-                {{ if eq .User .requesting_user_id }}
+                {{ if eq .User $requesting_user_id }}
                     <a class="btn edit" href="/user/{{ .User }}/track/edit/{{.Id}}">Edit</a>
                     <a class="btn delete" href="/user/{{ .User }}/track/delete/{{.Id}}">Delete</a>
                 {{ end}}

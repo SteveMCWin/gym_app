@@ -66,6 +66,10 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		if user_id == 0 {
+			user_id = requesting_user_id
+		}
+
 		usr, err := db.ReadUser(user_id)
 		if err != nil {
 			log.Println(err)
@@ -263,8 +267,6 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 		password := c.PostForm("password")
 		usr_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		log.Println("Got here")
-
 		err := db.AuthUserByID(usr_id, password)
 		if err != nil {
 			log.Println("Couldn't delete accoutn")
@@ -275,7 +277,7 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 
 		db.DeleteUser(usr_id)
 		sessionManager.Clear(c.Request.Context())
-		log.Println("Deleted user with id", usr_id)
+		// log.Println("Deleted user with id", usr_id)
 		c.Redirect(http.StatusSeeOther, "/")
 
 	}
@@ -296,31 +298,39 @@ func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 			log.Println("COULDN'T GET USERS OLD DATA")
 			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 		}
-		old_user_view := gin.H{
-			csrf.TemplateTag: csrf.TemplateField(c.Request),
-			"Name":           old_user.Name,
-			"TrainingSince":  old_user.TrainingSince.Format("2006-01-02"),
-			"IsTrainer":      old_user.IsTrainer,
-			"GymGoals":       old_user.GymGoals,
-			"CurrentGym":     old_user.CurrentGym,
-		}
-		c.HTML(http.StatusOK, "edit_profile.html", old_user_view)
+
+		c.HTML(http.StatusOK, "edit_profile.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "old_user": old_user })
 	}
 }
 
 func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
+
+
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		// user_id_param := c.Param("id")
+		// user_id, err := strconv.Atoi(user_id_param)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusInternalServerError, "/error-page")
+		// 	return
+		// }
+		//
+		// if requesting_user_id != user_id {
+		// 	log.Println("You cannot edit other peoples profiles")
+		// 	c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(requesting_user_id))
+		// }
+
 		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
 		if err != nil {
 			panic(err)
 		}
 
-		log.Println("HandlePostSignupSendMail: got parsed training_since")
-
 		is_trainer := c.PostForm("is_trainer") != ""
 
 		edited_user := models.User{
-			Id:            sessionManager.GetInt(c.Request.Context(), "user_id"),
+			Id:            requesting_user_id,
 			Name:          c.PostForm("name"),
 			TrainingSince: training_since,
 			IsTrainer:     is_trainer,
@@ -334,7 +344,7 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 			log.Println("Couldn't edit user data?!")
 		}
 
-		c.Redirect(http.StatusSeeOther, "/user/profile")
+		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(requesting_user_id))
 	}
 }
 
@@ -811,7 +821,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 		user_id_param := c.Param("user_id")
 		var user_id int
 		var err error
-		if user_id_param == "" {
+		if user_id_param == "" || user_id_param == "0"{
 			user_id = requesting_user_id
 		} else {
 			user_id, err = strconv.Atoi(c.Param("user_id"))
@@ -926,7 +936,7 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 		}
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		user_id_param := c.Param("user_id")
+		user_id_param := c.Param("id")
 		wt_id_param := c.Param("track_id")
 
 		user_id, err := strconv.Atoi(user_id_param)
@@ -976,7 +986,7 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		}
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		user_id_param := c.Param("user_id")
+		user_id_param := c.Param("id")
 		wt_id_param := c.Param("track_id")
 
 		user_id, err := strconv.Atoi(user_id_param)

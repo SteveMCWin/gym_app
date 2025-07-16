@@ -233,7 +233,7 @@ async function submitPlan() {
 
     const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value;
 
-    const res = await fetch(`/user/{{ .user_id }}/profile/plans/edit/${wpID}`, {
+    const res = await fetch(`/user/{{ .user_id }}/plan/edit/${wpID}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

@@ -38,28 +38,28 @@
     <form method="POST" action="/user/edit_profile">
         {{ .csrfField }}
         <label for="name">Full Name</label>
-        <input type="text" id="name" name="name" value="{{.Name}}">
+        <input type="text" id="name" name="name" value="{{.old_user.Name}}">
 
         <label for="training_since">Training Since</label>
-        <input type="date" id="training_since" name="training_since" value="{{.TrainingSince}}">
+        <input type="date" id="training_since" name="training_since" value="{{.old_user.TrainingSince.Format "2006-01-02"}}">
 
         <label for="is_trainer">
-            <input type="checkbox" id="is_trainer" name="is_trainer" {{if .IsTrainer}}checked{{end}}>
+            <input type="checkbox" id="is_trainer" name="is_trainer" {{if .old_user.IsTrainer}}checked{{end}}>
             Are you a trainer?
         </label>
 
         <label for="gym_goals">Gym Goals</label>
         <select id="gym_goals" name="gym_goals">
             <option value="">-- Select --</option>
-            <option value="health" {{if eq .GymGoals "health"}}selected{{end}}>Health</option>
-            <option value="strength" {{if eq .GymGoals "strength"}}selected{{end}}>Strength</option>
-            <option value="mobility" {{if eq .GymGoals "mobility"}}selected{{end}}>Mobility</option>
-            <option value="athleticism" {{if eq .GymGoals "athleticism"}}selected{{end}}>Athleticism</option>
-            <option value="bodybuilding" {{if eq .GymGoals "bodybuilding"}}selected{{end}}>Bodybuilding</option>
+            <option value="health" {{if eq .old_user.GymGoals "health"}}selected{{end}}>Health</option>
+            <option value="strength" {{if eq .old_user.GymGoals "strength"}}selected{{end}}>Strength</option>
+            <option value="mobility" {{if eq .old_user.GymGoals "mobility"}}selected{{end}}>Mobility</option>
+            <option value="athleticism" {{if eq .old_user.GymGoals "athleticism"}}selected{{end}}>Athleticism</option>
+            <option value="bodybuilding" {{if eq .old_user.GymGoals "bodybuilding"}}selected{{end}}>Bodybuilding</option>
         </select>
 
         <label for="current_gym">Current Gym</label>
-        <input type="text" id="current_gym" name="current_gym" value="{{.CurrentGym}}">
+        <input type="text" id="current_gym" name="current_gym" value="{{.old_user.CurrentGym}}">
 
         <button type="submit">Save Changes</button>
     </form>

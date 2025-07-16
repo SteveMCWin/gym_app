@@ -52,14 +52,14 @@
 <body>
     <div class="profile">
         <h2>Your Profile</h2>
-        <p><span class="label">Name:</span> {{usr.Name}}</p>
-        <p><span class="label">Email:</span> {{usr.Email}}</p>
-        <p><span class="label">Training Since:</span> {{usr.TrainingSince.Format "2006-01-02" }}</p>
-        <p><span class="label">Is Trainer:</span> {{if usr.IsTrainer}}Yes{{else}}No{{end}}</p>
-        <p><span class="label">Gym Goals:</span> {{usr.GymGoals}}</p>
-        <p><span class="label">Current Gym:</span> {{usr.CurrentGym}}</p>
-        <p><span class="label">Current Workout Plan:</span> {{usr.CurrentPlan}}</p>
-        <p><span class="label">Account created:</span> {{usr.DateCreated.Format "2006-01-02" }}</p>
+        <p><span class="label">Name:</span> {{.usr.Name}}</p>
+        <p><span class="label">Email:</span> {{.usr.Email}}</p>
+        <p><span class="label">Training Since:</span> {{.usr.TrainingSince.Format "2006-01-02" }}</p>
+        <p><span class="label">Is Trainer:</span> {{if .usr.IsTrainer}}Yes{{else}}No{{end}}</p>
+        <p><span class="label">Gym Goals:</span> {{.usr.GymGoals}}</p>
+        <p><span class="label">Current Gym:</span> {{.usr.CurrentGym}}</p>
+        <p><span class="label">Current Workout Plan:</span> {{.current_plan.Name}}</p>
+        <p><span class="label">Account created:</span> {{.usr.DateCreated.Format "2006-01-02" }}</p>
     </div>
 
     <div class="buttons">
@@ -73,9 +73,9 @@
 
         <a href="/user/{{ .usr.Id }}/plan/view/{{ .current_plan.Id }}">View Current Plan</a>
         <a href="/user/{{ .usr.Id }}/plan/view_all">View All Plans</a>
-        <a href="/user/{{ .usr.Id }}/tracks/view_all" class="btn">View Tracks</a>
+        <a href="/user/{{ .usr.Id }}/track/view_all" class="btn">View Tracks</a>
         {{ if eq .requesting_user_id .usr.Id }}
-        <a href="/user/{{ .usr.Id }}/tracks/create" class="btn">Create New Track</a>
+        <a href="/user/{{ .usr.Id }}/track/create" class="btn">Create New Track</a>
         {{ end }}
     </div>
 </body>

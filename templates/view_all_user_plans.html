@@ -53,12 +53,13 @@
 
 {{if .wps}}
 <div class="plans">
+    {{ $user_id := .user_id }}
     {{range $wp := .wps}}
     <div class="plan">
         <div class="plan-title">{{$wp.Name}}</div>
         <div class="plan-desc">{{$wp.Description}}</div>
         <div class="plan-actions">
-            <a href="/user/{{ .user_id }}/plan/view/{{$wp.Id}}">View</a>
+            <a href="/user/{{ $user_id }}/plan/view/{{$wp.Id}}">View</a>
             <!-- <a href="/user/edit_plan/{{.Id}}">Edit</a> -->
             <!-- <a href="/user/delete_plan/{{.Id}}">Delete</a> -->
         </div>

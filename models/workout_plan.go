@@ -211,7 +211,7 @@ func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) 
 	}
 
 	// NOTE: figure out how to get the date added.
-	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ?", usr_id)
+	rows, err := Db.Data.Query("select id, name, creator, description from users_plans inner join workout_plan on plan = id where usr = ? order by id desc", usr_id)
 	if err != nil {
 		return nil, err
 	}
