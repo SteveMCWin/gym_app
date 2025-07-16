@@ -637,7 +637,21 @@ func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user_id_param := c.Param("id")
+		user_id, err := strconv.Atoi(user_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		if requesting_user_id != user_id {
+			log.Println("Cannot set someone else's plan as your current plan!")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
+			return
+		}
 
 		wp_id, err := strconv.Atoi(c.Param("wp_id"))
 		if err != nil {
@@ -646,14 +660,14 @@ func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		_, err = db.UpdateUserCurrentPlan(user_id, wp_id)
+		_, err = db.UpdateUserCurrentPlan(requesting_user_id, wp_id)
 		if err != nil {
 			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id))
+			c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(requesting_user_id))
 			return
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id))
+		c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(requesting_user_id))
 	}
 
 }
@@ -841,7 +855,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "users_tracks.html", gin.H{
 			"tracks": workout_tracks,
-			"requesting_user_id": requesting_user_id,
+			"requesting_user_id": user_id,
 		})
 	}
 }
@@ -854,9 +868,9 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		plans, err := db.ReadUsersRecentlyTrackedPlans(user_id)
+		plans, err := db.ReadUsersRecentlyTrackedPlans(requesting_user_id)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
@@ -866,7 +880,7 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 		c.HTML(http.StatusOK, "create_track.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
 			"plans": plans,
-			"user_id": user_id,
+			"user_id": requesting_user_id,
 		})
 	}
 }
@@ -923,7 +937,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(user_id)+"/track/create/"+strconv.Itoa(wt.Id))
+		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(user_id)+"/track/view/"+strconv.Itoa(wt.Id))
 	}
 }
 
@@ -1043,7 +1057,7 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		}
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		user_id_param := c.Param("user_id")
+		user_id_param := c.Param("id")
 		wt_id_param := c.Param("track_id")
 
 		user_id, err := strconv.Atoi(user_id_param)

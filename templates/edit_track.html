@@ -125,7 +125,7 @@ async function submitEdit() {
     });
 
     if (res.ok) {
-        window.location.href = "/user/{{ .user_id }}";
+        window.location.href = `/user/{{ .user_id }}/track/view/${trackID}`;
     } else {
         alert("Failed to update track.");
     }

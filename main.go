@@ -109,7 +109,7 @@ func main() {
 	user_router.GET("/logout", HandleGetLogout(&db))
 	user_router.GET("/signup", HandleGetSignup())
 	user_router.POST("/signup/send-mail", HandlePostSignup(&db))
-	user_router.GET("/signup/from-mail/:token_id/:email", HandleGetSignupFromMail())
+	user_router.GET("/signup/from-mail/:token_id/:email", MiddlewareNoCache(), HandleGetSignupFromMail()) // Gotta check if the middleware no chache is actually doing it's job here
 	user_router.POST("/signup/from-mail/:token_id/:email", HandlePostSignupFromMail(&db))
 	user_router.GET("/delete_account", HandleGetDeleteAccount())
 	user_router.POST("/delete_account", HandlePostDeleteAccount(&db))

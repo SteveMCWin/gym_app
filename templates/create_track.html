@@ -65,15 +65,15 @@
         </tr>
     </thead>
     <tbody>
+        {{ $user_id := .user_id }}
         {{ range .plans }}
         <tr>
             <td>{{ .Id }}</td>
             <td>{{ .Name }}</td>
             <td>{{ .Description }}</td>
             <td>
-                <a class="btn view" href="/user/0/plan/view/{{ .Id }}">View</a>
-
-                    <form method="POST" action="/user/{{ .user_id }}/track/create/{{ .Id }}" style="display:inline;">
+                    <a class="btn view" href="/user/{{ $user_id }}/plan/view/{{ .Id }}">View</a>
+                    <form method="POST" action="/user/{{ $user_id }}/track/create/{{ .Id }}" style="display:inline;">
                     {{ $.csrfField }}
                     <label>
                         <input type="checkbox" name="make_private_{{ .Id }}"> Make Private

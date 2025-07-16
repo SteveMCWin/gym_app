@@ -423,3 +423,10 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 
 	return true, nil
 }
+
+// func (Db *DataBase) DeleteWorkoutTrack(track_id int) (bool, error) {
+// 	tx, err := Db.Data.Begin()
+// 	if err != nil {
+// 		return false, err
+// 	}
+// }
