@@ -209,9 +209,12 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 
 func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 
-	err := Db.AddWorkoutPlanToUser(usr_id, plan_id) // ensure the user and plan are linked
-	if err != nil {
-		return false, err
+	// err := Db.AddWorkoutPlanToUser(usr_id, plan_id) // ensure the user and plan are linked
+	// if err != nil {
+	// 	return false, err
+	// }
+	if !Db.CheckIfUserUsesPlan(usr_id, plan_id) {
+		return false, errors.New("Cannot make plan current if user doesn't even use it")
 	}
 
 	tx, err := Db.Data.Begin()

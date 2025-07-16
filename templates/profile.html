@@ -52,26 +52,31 @@
 <body>
     <div class="profile">
         <h2>Your Profile</h2>
-        <p><span class="label">Name:</span> {{.Name}}</p>
-        <p><span class="label">Email:</span> {{.Email}}</p>
-        <p><span class="label">Training Since:</span> {{.TrainingSince}}</p>
-        <p><span class="label">Is Trainer:</span> {{if .IsTrainer}}Yes{{else}}No{{end}}</p>
-        <p><span class="label">Gym Goals:</span> {{.GymGoals}}</p>
-        <p><span class="label">Current Gym:</span> {{.CurrentGym}}</p>
-        <p><span class="label">Current Workout Plan:</span> {{.CurrentPlan}}</p>
-        <p><span class="label">Account created:</span> {{.DateCreated}}</p>
+        <p><span class="label">Name:</span> {{usr.Name}}</p>
+        <p><span class="label">Email:</span> {{usr.Email}}</p>
+        <p><span class="label">Training Since:</span> {{usr.TrainingSince}}</p>
+        <p><span class="label">Is Trainer:</span> {{if usr.IsTrainer}}Yes{{else}}No{{end}}</p>
+        <p><span class="label">Gym Goals:</span> {{usr.GymGoals}}</p>
+        <p><span class="label">Current Gym:</span> {{usr.CurrentGym}}</p>
+        <p><span class="label">Current Workout Plan:</span> {{usr.CurrentPlan}}</p>
+        <p><span class="label">Account created:</span> {{usr.DateCreated}}</p>
     </div>
 
     <div class="buttons">
-        <a href="/">Home</a>
-        <a href="/user/edit_profile">Edit Profile</a>
-        <a href="/user/logout">Log Out</a>
-        <a href="/user/change_password">Change Password</a>
-        <a href="/user/delete_account" class="btn">Delete Account</a>
-		<a href="/user/profile/plans/view/current">View Current Plan</a>
-		<a href="/user/profile/plans/all_plans">View All Plans</a>
-        <a href="/user/tracks/view" class="btn">View Tracks</a>
-        <a href="/user/tracks/create" class="btn">Create New Track</a>
+        {{ if eq .requesting_user_id .usr.Id }}
+            <a href="/user/edit_profile">Edit Profile</a>
+            <a href="/user/logout">Log Out</a>
+            <a href="/user/change_password">Change Password</a>
+            <a href="/user/delete_account" class="btn">Delete Account</a>
+            <a href="/user/create_plan" class="btn">Create Plan</a>
+        {{ end }}
+
+        <a href="/user/{{ .usr.Id }}/plan/view/{{ .current_plan.Id }}">View Current Plan</a>
+        <a href="/user/{{ .usr.Id }}/plan/view_all">View All Plans</a>
+        <a href="/user/{{ .usr.Id }}/tracks/view_all" class="btn">View Tracks</a>
+        {{ if eq .requesting_user_id .usr.Id }}
+        <a href="/user/{{ .usr.Id }}/tracks/create" class="btn">Create New Track</a>
+        {{ end }}
     </div>
 </body>
 </html>

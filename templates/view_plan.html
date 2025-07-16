@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <a class="btn" href="/user/profile">Back to Profile</a>
     <a class="btn" href="/user/profile/plans/edit/{{ .wp.Id }}">Edit Plan</a>
     {{ if .MakeCurrent }}
-    <a class="btn btn-alt" href="/user/profile/plans/make_current/{{ .wp.Id }}">Make Current</a>
+            <a class="btn btn-alt" href="/user/0/plan/make_current/{{ .wp.Id }}">Make Current</a>
     {{ end }}
     <button id="copyBtn">Copy</button>
 </div>

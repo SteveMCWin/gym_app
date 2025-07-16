@@ -23,13 +23,30 @@ func HandleGetHome() func(c *gin.Context) {
 		} else {
 			user_id = sessionManager.GetInt(c.Request.Context(), "user_id")
 		}
-		c.HTML(http.StatusOK, "index.html", gin.H{ "user_id": user_id})
+		c.HTML(http.StatusOK, "index.html", gin.H{"user_id": user_id})
 	}
 }
 
 func HandleGetError() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		c.HTML(http.StatusOK, "error.html", gin.H{})
+	}
+}
+
+func HandleGetCurrentProfile() func(c *gin.Context) { // this is used for redirecting to the users own profile
+	return func(c *gin.Context) {
+
+		log.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		log.Println("CAME TO USER PROFILE FIRST")
+		log.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id))
 	}
 }
 
@@ -40,25 +57,16 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
 
-		requesting_user_id, err := strconv.Atoi(c.Param("id"))
-
+		user_id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			log.Println("HEREEE")
 			log.Println(err)
 			c.Redirect(http.StatusInternalServerError, "/error-page")
 			return
 		}
 
-		var usr *models.User
-
-		if requesting_user_id == user_id {
-			usr, err = db.ReadUser(user_id)
-		} else {
-			usr, err = db.ReadUserShallow(user_id)
-		}
-
+		usr, err := db.ReadUser(user_id)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusInternalServerError, "/error-page")
@@ -72,25 +80,14 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_view := gin.H{
-			"Name":          usr.Name,
-			"Email":         usr.Email,
-			"TrainingSince": usr.TrainingSince.Format("2006-01-02"), // consider doing a .split on the string and rearrange
-			"IsTrainer":     usr.IsTrainer,
-			"GymGoals":      usr.GymGoals,
-			"CurrentGym":    usr.CurrentGym,
-			"CurrentPlan":   current_plan.Name,
-			"DateCreated":   usr.DateCreated.Format("2006-01-02"), // consider doing a .split on the string and rearrange
-		}
-
-		c.HTML(http.StatusOK, "profile.html", user_view)
+		c.HTML(http.StatusOK, "profile.html", gin.H{ "usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan })
 	}
 }
 
 func HandleGetLogin() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") {
-			c.Redirect(http.StatusTemporaryRedirect, "/user/" + strconv.Itoa(sessionManager.GetInt(c.Request.Context(), "user_id")))
+			c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(sessionManager.GetInt(c.Request.Context(), "user_id")))
 			return
 		}
 
@@ -112,7 +109,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
-		c.Redirect(http.StatusSeeOther, "/user/" + strconv.Itoa(usr_id))
+		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
 	}
 }
 
@@ -454,7 +451,7 @@ func HandleGetCreatePlan() func(c *gin.Context) {
 
 		all_exercises := models.GetAllCachedExercises()
 
-		c.HTML(http.StatusOK, "make_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "all_exercises": all_exercises })
+		c.HTML(http.StatusOK, "make_plan.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "all_exercises": all_exercises})
 	}
 }
 
@@ -497,26 +494,9 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/user/profile")
-	}
-}
 
-func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
-			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
-			return
-		}
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
-
-		wps, err := Db.ReadAllWorkoutsUserUses(user_id)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		c.HTML(http.StatusOK, "view_all_user_plans.html", wps)
+		c.JSON(http.StatusOK, wp_id)
+		// c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
 	}
 }
 
@@ -529,7 +509,16 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		user_id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		if user_id <= 0 {
+			user_id = sessionManager.GetInt(c.Request.Context(), "user_id")
+		}
 
 		user, err := db.ReadUser(user_id)
 		if err != nil {
@@ -538,7 +527,7 @@ func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, "/user/profile/plans/view/"+strconv.Itoa(user.CurrentPlan))
+		c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id)+"/plan/view/"+strconv.Itoa(user.CurrentPlan))
 	}
 }
 
@@ -550,7 +539,17 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user_id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+		if user_id <= 0 {
+			user_id = requesting_user_id
+		}
 
 		user, err := db.ReadUser(user_id) // needed for checking if the plan being viewed is the users current plan
 		if err != nil {
@@ -573,16 +572,45 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 		if wp.Id == 1 {
-			log.Println("The user doesn't have a current plan (I mean he does but it's the placeholder one that serves as a 'no plan' plan)")
+			log.Println("Cannot view placeholder plan")
 			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
 			return
 		}
 
-		makeCurrent := user.CurrentPlan != wp_id
+		makeCurrent := user.CurrentPlan != wp_id && requesting_user_id == user_id
 
 		plan_analysis := wp.GetAnalysis()
-		
-		c.HTML(http.StatusOK, "view_plan.html", gin.H{ "wp": wp, "MakeCurrent": makeCurrent, "PlanAnalysis": plan_analysis }) // WARNING: consider adding csrf protection especially if you enable editing the plan
+
+		c.HTML(http.StatusOK, "view_plan.html", gin.H{"wp": wp, "MakeCurrent": makeCurrent, "PlanAnalysis": plan_analysis}) // WARNING: consider adding csrf protection especially if you enable editing the plan
+	}
+}
+
+func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+
+		user_id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		if user_id <= 0 {
+			user_id = sessionManager.GetInt(c.Request.Context(), "user_id")
+		}
+
+		wps, err := Db.ReadAllWorkoutsUserUses(user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		c.HTML(http.StatusOK, "view_all_user_plans.html", wps)
 	}
 }
 
@@ -605,11 +633,11 @@ func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 		_, err = db.UpdateUserCurrentPlan(user_id, wp_id)
 		if err != nil {
 			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id))
 			return
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
+		c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id))
 	}
 
 }
@@ -620,6 +648,18 @@ func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
+		}
+
+		user_id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		if user_id != sessionManager.GetInt(c.Request.Context(), "user_id") {
+			log.Println("Cannot edit a plan that isn't yours!!")
+			c.Redirect(http.StatusTemporaryRedirect, "/")
 		}
 
 		wp_id, err := strconv.Atoi(c.Param("wp_id"))
@@ -636,12 +676,12 @@ func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 		if wp.Id == 1 {
-			log.Println("The user doesn't have a current plan (I mean he does but it's the placeholder one that serves as a 'no plan' plan)")
+			log.Println("Cannot view placeholder plan")
 			c.Redirect(http.StatusTemporaryRedirect, "/user/create_plan")
 			return
 		}
 
-		c.HTML(http.StatusOK, "edit_plan.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "wp": wp, "all_exercises": models.GetAllCachedExercises() })
+		c.HTML(http.StatusOK, "edit_plan.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "wp": wp, "all_exercises": models.GetAllCachedExercises()})
 	}
 }
 
@@ -653,6 +693,19 @@ func HandlePostEditPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
+		user_id_param := c.Param("id")
+		user_id, err := strconv.Atoi(user_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
+		if user_id != sessionManager.GetInt(c.Request.Context(), "user_id") {
+			log.Println("Cannot edit a plan that isn't yours!!")
+			c.Redirect(http.StatusSeeOther, "/")
+		}
+
 		wp_id_param := c.Param("wp_id")
 
 		var edited_wp models.WorkoutPlan
@@ -661,7 +714,6 @@ func HandlePostEditPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		var err error
 		edited_wp.Id, err = strconv.Atoi(wp_id_param)
 		if err != nil {
 			log.Println(err)
@@ -676,7 +728,7 @@ func HandlePostEditPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.Redirect(http.StatusSeeOther, "/user/profile/plans/view/"+wp_id_param)
+		c.Redirect(http.StatusSeeOther, "/user/"+user_id_param+"/plan/view/"+wp_id_param)
 	}
 }
 
@@ -893,9 +945,7 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-
-
-		c.HTML(http.StatusOK, "view_track.html", gin.H{ "track_data": track_data, "Days": track.ExDays, "user_id": user_id, "requesting_user_id": requesting_user_id })
+		c.HTML(http.StatusOK, "view_track.html", gin.H{"track_data": track_data, "Days": track.ExDays, "user_id": user_id, "requesting_user_id": requesting_user_id})
 	}
 }
 
@@ -1058,7 +1108,7 @@ func HandleGetPlanJSON(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		// WARNING: Really bad performance-vise. Try a solution with a custom MarshalJSON or something. But for now it works
-		for _, d := range wp.Days { 
+		for _, d := range wp.Days {
 			for _, e := range d.Exercises {
 				for _, t := range e.Exercise.Targets {
 					t.Exercises = nil // Needed, otherwise the json gets into an infinite cycle because exercise has []Target and target has []Exercise
@@ -1080,4 +1130,3 @@ func MiddlewareNoCache() func(c *gin.Context) {
 		c.Next()
 	}
 }
-

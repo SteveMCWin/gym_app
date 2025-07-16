@@ -109,16 +109,18 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 	return workout_plan_id, nil
 }
 
+func (Db *DataBase) CheckIfUserUsesPlan(usr_id, plan_id int) bool {
+	var tmp int
+	err := Db.Data.QueryRow("select 1 from users_plans where usr = ? AND plan = ?", usr_id, plan_id).Scan(&tmp)
+	return err == nil
+}
+
 func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds the workout to the list of workouts the user has/uses/whatever
 	if plan_id == 0 || usr_id == 0 {
 		return errors.New("Cannot add workout without plan_id and usr_id")
 	}
 
-	var tmp int
-
-	err := Db.Data.QueryRow("select plan from users_plans where usr = ? AND plan = ?", usr_id, plan_id).Scan(&tmp)
-
-	if err == nil {
+	if Db.CheckIfUserUsesPlan(usr_id, plan_id) {
 		log.Println("WARNING: USER WAS ALREADY LINKED WITH THIS PLAN")
 		return nil
 	}

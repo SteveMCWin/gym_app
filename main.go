@@ -98,9 +98,10 @@ func main() {
 	router.GET("/mail-sent", HandleGetSignupMailSent())
 
 	user_router := router.Group("/user")
-	// plan_router := router.Group("/user/:id/plan")
-	// track_router := router.Group("/user/track")
+	plan_router := router.Group("/user/:id/plan")
+	track_router := router.Group("/user/:id/track")
 
+	user_router.GET("/profile", HandleGetCurrentProfile())
 	user_router.GET("/:id", MiddlewareNoCache(), HandleGetProfile(&db))
 	user_router.GET("/search", HandleGetSearchForUser(&db))
 	user_router.GET("/login", HandleGetLogin())
@@ -121,39 +122,39 @@ func main() {
 	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
 	user_router.GET("/forgot_password/from-mail/:token_id/:email", HandleGetChangePassFromMail())
 
-	user_router.GET("/create_plan", HandleGetCreatePlan())
-	user_router.POST("/create_plan", HandlePostCreatePlan(&db))
-	user_router.GET("/profile/plans/view/current", HandleGetViewCurrentPlan(&db))
-	user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))
-	user_router.GET("/profile/plans/all_plans", HandleGetViewAllUserPlans(&db))
-	user_router.GET("/profile/plans/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
-	user_router.GET("/profile/plans/edit/:wp_id", HandleGetEditPlan(&db))
-	user_router.POST("/profile/plans/edit/:wp_id", HandlePostEditPlan(&db))
-	user_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db))
+	// user_router.GET("/create_plan", HandleGetCreatePlan())
+	// user_router.POST("/create_plan", HandlePostCreatePlan(&db))
+	// user_router.GET("/profile/plans/view/current", HandleGetViewCurrentPlan(&db))
+	// user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))
+	// user_router.GET("/profile/plans/all_plans", HandleGetViewAllUserPlans(&db))
+	// user_router.GET("/profile/plans/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
+	// user_router.GET("/profile/plans/edit/:wp_id", HandleGetEditPlan(&db))
+	// user_router.POST("/profile/plans/edit/:wp_id", HandlePostEditPlan(&db))
+	// user_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db))
+	//
+	// user_router.GET("/tracks/view", HandleGetTracks(&db))
+	// user_router.GET("/tracks/view/:user_id", HandleGetTracks(&db)) // NOTE: this is for when someone is looking at another persons tracks
+	// user_router.GET("/tracks/create", HandleGetTracksCreate(&db))
+	// user_router.POST("/tracks/create/:plan_id", HandlePostTracksCreate(&db))
+	// user_router.GET("/tracks/edit/:user_id/:track_id", HandleGetTracksEdit(&db))
+	// user_router.POST("/tracks/edit/:user_id/:track_id", HandlePostTracksEdit(&db))
 
-	// plan_router.GET("/create", HandleGetCreatePlan())
-	// plan_router.POST("/create", HandlePostCreatePlan(&db))
-	// plan_router.GET("/view/current", HandleGetViewCurrentPlan(&db))
-	// plan_router.GET("/view/:wp_id", HandleGetViewPlan(&db))
-	// plan_router.GET("/view_all", HandleGetViewAllUserPlans(&db))
-	// plan_router.GET("/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
-	// plan_router.GET("/edit/:wp_id", HandleGetEditPlan(&db))
-	// plan_router.POST("/edit/:wp_id", HandlePostEditPlan(&db))
-	// plan_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db))
+	plan_router.GET("/create", HandleGetCreatePlan()) // doesn't need id
+	plan_router.POST("/create", HandlePostCreatePlan(&db))
+	plan_router.GET("/view/current", HandleGetViewCurrentPlan(&db)) // needs id
+	plan_router.GET("/view/:wp_id", HandleGetViewPlan(&db)) // needs id
+	plan_router.GET("/view_all", HandleGetViewAllUserPlans(&db)) // needs id
+	plan_router.GET("/make_current/:wp_id", HandleGetMakePlanCurrent(&db)) // needs id
+	plan_router.GET("/edit/:wp_id", HandleGetEditPlan(&db)) // needs id
+	plan_router.POST("/edit/:wp_id", HandlePostEditPlan(&db))
+	plan_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db)) // doesn't need id
 
-	user_router.GET("/tracks/view", HandleGetTracks(&db))
-	user_router.GET("/tracks/view/:user_id", HandleGetTracks(&db)) // NOTE: this is for when someone is looking at another persons tracks
-	user_router.GET("/tracks/create", HandleGetTracksCreate(&db))
-	user_router.POST("/tracks/create/:plan_id", HandlePostTracksCreate(&db))
-	user_router.GET("/tracks/edit/:user_id/:track_id", HandleGetTracksEdit(&db))
-	user_router.POST("/tracks/edit/:user_id/:track_id", HandlePostTracksEdit(&db))
-
-	// track_router.GET("/view_all", HandleGetTracks(&db))
-	// track_router.GET("/view/:track_id", HandleGetViewTrack(&db))
-	// track_router.GET("/create", HandleGetTracksCreate(&db))
-	// track_router.POST("/create/:plan_id", HandlePostTracksCreate(&db))
-	// track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db))
-	// track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
+	track_router.GET("/view_all", HandleGetTracks(&db)) // needs id
+	track_router.GET("/view/:track_id", HandleGetViewTrack(&db)) // needs id
+	track_router.GET("/create", HandleGetTracksCreate(&db)) // doesn't need id
+	track_router.POST("/create/:plan_id", HandlePostTracksCreate(&db))
+	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db)) // needs id
+	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

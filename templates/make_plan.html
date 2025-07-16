@@ -215,7 +215,7 @@ async function submitPlan() {
 
     const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value;
 
-    const res = await fetch("/user/create_plan", {
+    const res = await fetch("/user/0/plan/create", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -225,7 +225,8 @@ async function submitPlan() {
     });
 
     if (res.ok) {
-        window.location.href = "/user/profile";
+        const wp_id = await res.json();
+    window.location.href = "/user/0/plan/${wp_id.wp_id}";
     } else {
         window.location.href = "/error-page";
     }
