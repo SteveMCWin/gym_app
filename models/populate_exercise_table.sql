@@ -266,6 +266,7 @@ DELETE FROM sqlite_sequence WHERE name='gym';
 
 INSERT into gym (name, location) values ('Prime', 'Svetozara Miletica 43');
 INSERT into gym (name, location) values ('Muscle Gym', 'Kisacka 5');
+INSERT into gym (name, location) values ('Stevina Garaza', 'Nema ulice 130');
 
 
 

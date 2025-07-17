@@ -6,16 +6,14 @@ var cachedExercises map[int]*Exercise
 var exercisesByName map[string]int
 var cachedTargets map[int]*Target
 var cacehdPlansBasic map[int]*WorkoutPlan // NOTE: Only the basic data for a plan is stored: id, name, creator and description
-// var allUserNames []string
-// var allUserIds []int
+var cachedGyms map[int]*Gym
 
 func init() {
 	cachedExercises = make(map[int]*Exercise)
 	exercisesByName = make(map[string]int)
 	cachedTargets = make(map[int]*Target)
 	cacehdPlansBasic = make(map[int]*WorkoutPlan)
-	// allUserNames = make([]string, 0)
-	// allUserIds = make([]int, 0)
+	cachedGyms = make(map[int]*Gym)
 }
 
 func FetchCachedExercise(ex_id int) (*Exercise, bool) {
@@ -28,7 +26,7 @@ func FetchCachedExercise(ex_id int) (*Exercise, bool) {
 }
 
 func CacheExercise(ex *Exercise) error {
-	if ex.Id == 0 {
+	if ex.Id <= 0 {
 		return errors.New("Cannot cache exercise without an id")
 	}
 	cachedExercises[ex.Id] = ex
@@ -59,7 +57,7 @@ func AddTargetToExercise(tar, ex int) error {
 }
 
 func CacheTarget(t *Target) error {
-	if t.Id == 0 {
+	if t.Id <= 0 {
 		return errors.New("Cannot cache target without an id")
 	}
 	cachedTargets[t.Id] = t
@@ -98,7 +96,7 @@ func FetchCachedPlanBasic(wp_id int) (*WorkoutPlan, bool) {
 }
 
 func CachePlanBasic(wp *WorkoutPlan) error {
-	if wp.Id == 0 {
+	if wp.Id <= 0 {
 		return errors.New("Cannot cache workout plan without an id")
 	}
 	cacehdPlansBasic[wp.Id] = wp
@@ -230,27 +228,33 @@ func (Db *DataBase) CacheAllPlansBasic() error {
 	return nil
 }
 
-// func (Db *DataBase) CacheAllUserNamesAndIds() error {
-// 	rows, err := Db.Data.Query("select id, name from users")
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	for rows.Next() {
-// 		var id int
-// 		var name string
-// 		err := rows.Scan(&id, &name)
-// 		if err != nil {
-// 			return err
-// 		}
-//
-// 		allUserIds = append(allUserIds, id)
-// 		allUserNames = append(allUserNames, name)
-// 	}
-//
-// 	return nil
-// }
-//
-// func FetchAllUserNamesAndIds() ([]string, []int) {
-// 	return allUserNames, allUserIds
-// }
+func CacheGym(g *Gym) error {
+	if g.Id <= 0 {
+		return errors.New("Cannot cache gym without an id")
+	}
+
+	cachedGyms[g.Id] = g
+	return nil
+}
+
+func (Db *DataBase) CacheAllGyms() error {
+	rows, err := Db.Data.Query("select id, name, location from gym")
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var g Gym
+		err = rows.Scan(&g.Id, &g.Name, &g.Location)
+		if err != nil {
+			return err
+		}
+
+		err = CacheGym(&g)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

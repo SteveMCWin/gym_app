@@ -77,10 +77,10 @@ func main() {
 		panic(err)
 	}
 
-	// err = db.CacheAllUserNamesAndIds()
-	// if err != nil {
-	// 	panic(err)
-	// }
+	err = db.CacheAllGyms()
+	if err != nil {
+		panic(err)
+	}
 
 	sessionManager = scs.New()
 	sessionManager.Lifetime = time.Hour * 24 * 30
