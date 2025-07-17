@@ -157,7 +157,7 @@ func main() {
 	track_router.POST("/create/:plan_id", HandlePostTracksCreate(&db))
 	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db)) // needs id
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
-	track_router.POST("/delete/:track_id", HandlePostTracksDelete(&db))
+	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

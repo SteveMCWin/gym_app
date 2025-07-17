@@ -1,3 +1,137 @@
+-----------------
+--- EQUIPMENT ---
+-----------------
+
+DELETE from equipment;
+DELETE FROM sqlite_sequence WHERE name='equipment';
+
+INSERT into equipment (name) VALUES ('cable');
+INSERT into equipment (name) VALUES ('lat pulldown machine');
+INSERT into equipment (name) VALUES ('flat bench');
+INSERT into equipment (name) VALUES ('incline bench');
+INSERT into equipment (name) VALUES ('pullup bar');
+INSERT into equipment (name) VALUES ('squat rack');
+INSERT into equipment (name) VALUES ('hack squat');
+INSERT into equipment (name) VALUES ('leg extension');
+INSERT into equipment (name) VALUES ('leg curl');
+INSERT into equipment (name) VALUES ('hip trust');
+INSERT into equipment (name) VALUES ('barbell');
+INSERT into equipment (name) VALUES ('dumbbell');
+INSERT into equipment (name) VALUES ('cable row');
+INSERT into equipment (name) VALUES ('bike');
+INSERT into equipment (name) VALUES ('treadmill');
+INSERT into equipment (name) VALUES ('dip bar');
+INSERT into equipment (name) VALUES ('floor');
+INSERT into equipment (name) VALUES ('parallettes');
+INSERT into equipment (name) VALUES ('t-bar');
+INSERT into equipment (name) VALUES ('z-bar');
+INSERT into equipment (name) VALUES ('smith machine');
+INSERT into equipment (name) VALUES ('leg press');
+
+-------------
+--- EX-EQ ---
+-------------
+
+DELETE from exercise_equipment;
+DELETE FROM sqlite_sequence WHERE name='exercise_equipment';
+
+-- Chest
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (4, 3); -- incline bench press
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (16, 1); -- dips
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (17, 5); -- pushups
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 6); -- machine flies
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 2); -- barbell bench press
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 6); -- dumbbell flies
+
+-- Back
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 7); -- barbell bent-over row
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 8); -- dumbbell row
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (5, 10); -- pullups
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (19, 11); -- t-bar row
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (1, 9);  -- cable row (already added)
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (2, 12); -- lat pulldowns (already added)
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 13); -- lat pullovers
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 13); -- lat pullovers
+
+-- Triceps
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 14); -- skull crushers
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (1, 15);  -- triceps extensions
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 16); -- dumbbell kickback
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (1, 17);  -- cable pushdowns (already added)
+
+-- Biceps
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 18); -- dumbbell curls
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 19); -- barbell curls
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (1, 20);  -- cable curls (already added)
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 21); -- spider curls
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 22); -- incline curls
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 23); -- preacher curls (often on preacher bench / machine)
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 24); -- focus curls
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 25); -- hammer curls
+
+-- Shoulders
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 26); -- lateral raises
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 27); -- military press
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 28); -- dumbbell shoulder press
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (17, 29); -- pike pushups
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 30); -- front raises
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 31); -- upright row
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 32); -- rear delt flies
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 33); -- rear delt row
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 34); -- LU raises
+
+-- Legs
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 35); -- lunges
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (3, 36);  -- bulgarian split squat
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 37); -- barbell squat
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 38); -- goblet squat
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (8, 39);  -- leg extensions
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (17, 40); -- sissy squats
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (17, 41); -- pistol squats
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (7, 42);  -- hack squat
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (22, 43); -- leg press
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (9, 44);  -- hamstring curls
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 45); -- romanian deadlift
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 46); -- good mornings
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (17, 47); -- hamstring raise
+
+-- Alts
+
+-- Chest
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (18, 1);  -- dips on parallettes
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (17, 5);  -- pushups on floor
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (18, 5);  -- pushups on parallettes
+
+-- Back
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 7);  -- bent-over row on smith machine
+
+-- Triceps
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 15); -- triceps extensions with barbell
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (12, 15); -- triceps extensions with dumbbell
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 14); -- skull crushers on smith machine
+
+-- Biceps
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (20, 19); -- barbell curls with z-bar
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (20, 23); -- preacher curls with z-bar
+
+-- Shoulders
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 27); -- military press on smith machine
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 28); -- shoulder press on smith machine
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (11, 28); -- shoulder press with barbell
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 31); -- upright row on smith machine
+
+-- Legs
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (6, 37);  -- squat rack for barbell squat
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 45); -- romanian deadlift on smith machine
+INSERT INTO exercise_equipment (equipment, exercise) VALUES (3, 36);  -- bulgarian split squat with flat bench
+
+-----------------
+--- EXERCISES ---
+-----------------
+
+DELETE from exercises;
+DELETE FROM sqlite_sequence WHERE name='exercises';
+
 -- CHEST
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('dips', '', '', 2);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('barbellbench press', '', '', 2);
@@ -57,6 +191,9 @@ INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('ha
 --- TARGETS ---
 ---------------
 
+DELETE from target;
+DELETE FROM sqlite_sequence WHERE name='target';
+
 INSERT into target (standard_name, latin_name) VALUES ('chest', '');
 INSERT into target (standard_name, latin_name) VALUES ('back', '');
 INSERT into target (standard_name, latin_name) VALUES ('biceps', '');
@@ -69,6 +206,8 @@ INSERT into target (standard_name, latin_name) VALUES ('hamstrings', '');
 --- EXERCISE TARGETS ---
 ------------------------
 
+DELETE from exercise_targets;
+DELETE FROM sqlite_sequence WHERE name='exercise_targets';
 
 INSERT into exercise_targets (exercise, target) VALUES (1, 1);
 INSERT into exercise_targets (exercise, target) VALUES (2, 1);
@@ -117,3 +256,70 @@ INSERT into exercise_targets (exercise, target) VALUES (44, 7);
 INSERT into exercise_targets (exercise, target) VALUES (45, 7);
 INSERT into exercise_targets (exercise, target) VALUES (46, 7);
 INSERT into exercise_targets (exercise, target) VALUES (47, 7);
+
+-----------
+--- GYM ---
+-----------
+
+DELETE from gym;
+DELETE FROM sqlite_sequence WHERE name='gym';
+
+INSERT into gym (name, location) values ('Prime', 'Svetozara Miletica 43');
+INSERT into gym (name, location) values ('Muscle Gym', 'Kisacka 5');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

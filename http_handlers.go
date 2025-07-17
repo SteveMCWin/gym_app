@@ -1123,7 +1123,7 @@ func HandleGetTracksViewLatest(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-func HandlePostTracksDelete(db *models.DataBase) func(c *gin.Context) {
+func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
