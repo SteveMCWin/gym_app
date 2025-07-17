@@ -290,8 +290,7 @@ func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, 
 	return plans, nil
 }
 
-// NOTE: I am assuming this will be called after getting the updated version of the wp as a json
-func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNING: NOT TESTED AT ALL
+func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNING: NOT TESTED PROPERLY
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err

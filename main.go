@@ -96,6 +96,7 @@ func main() {
 	router.GET("/", HandleGetHome())
 	router.GET("/error-page", HandleGetError())
 	router.GET("/mail-sent", HandleGetSignupMailSent())
+	router.GET("/ping", HandleGetPing())
 
 	user_router := router.Group("/user")
 	plan_router := router.Group("/user/:id/plan")
@@ -150,11 +151,13 @@ func main() {
 	plan_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db)) // doesn't need id
 
 	track_router.GET("/view_all", HandleGetTracks(&db)) // needs id
+	track_router.GET("/view/latest", HandleGetTracksViewLatest(&db))
 	track_router.GET("/view/:track_id", HandleGetViewTrack(&db)) // needs id
 	track_router.GET("/create", HandleGetTracksCreate(&db)) // doesn't need id
 	track_router.POST("/create/:plan_id", HandlePostTracksCreate(&db))
 	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db)) // needs id
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
+	track_router.POST("/delete/:track_id", HandlePostTracksDelete(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

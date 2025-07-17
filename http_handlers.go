@@ -33,6 +33,12 @@ func HandleGetError() func(c *gin.Context) {
 	}
 }
 
+func HandleGetPing() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
+	}
+}
+
 func HandleGetCurrentProfile() func(c *gin.Context) { // this is used for redirecting to the users own profile
 	return func(c *gin.Context) {
 
@@ -1107,6 +1113,59 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(user_id)+"/track/view/"+wt_id_param)
+	}
+}
+
+func HandleGetTracksViewLatest(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+
+	}
+}
+
+func HandlePostTracksDelete(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
+		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+
+		user_id_param := c.Param("id")
+		// user_id, err := strconv.Atoi(user_id_param)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusSeeOther, "/error-page")
+		// 	return
+		// }
+
+		track_id_param := c.Param("track_id")
+		track_id, err := strconv.Atoi(track_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		track, err := db.ReadWorkoutTrack(track_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		if requesting_user_id != track.User /* || user_id != track.User */{
+			log.Println("You cannot delete another persons track")
+		}
+
+		_, err = db.DeleteWorkoutTrack(track)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		c.Redirect(http.StatusPermanentRedirect, "/user/"+user_id_param+"/track/view_all")
 	}
 }
 

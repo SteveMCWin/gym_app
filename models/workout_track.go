@@ -82,7 +82,7 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 	var tmp int
 	for _, day := range ex_days {
 		for _, ex := range day.Exercises {
-			err = stmt_te.QueryRow(workout_track_id, ex.Id).Scan(&tmp)
+			err = stmt_te.QueryRow(workout_track_id, ex.Id).Scan(&tmp) // Perhaps this should be an Exec and not QueryRow
 			if err != nil {
 				log.Println("HERE 3")
 				return 0, err
@@ -424,9 +424,66 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 	return true, nil
 }
 
-// func (Db *DataBase) DeleteWorkoutTrack(track_id int) (bool, error) {
-// 	tx, err := Db.Data.Begin()
-// 	if err != nil {
-// 		return false, err
-// 	}
-// }
+func (Db *DataBase) DeleteWorkoutTrack(track *WorkoutTrack) (bool, error) { // WARNING: NOT USING tx.Rollback
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	// track, err := Db.ReadWorkoutTrack(track_id)
+	// if err != nil {
+	// 	return false, err
+	// }
+
+	stmt_track, err := tx.Prepare("DELETE from workout_track where id = ?")
+	if err != nil {
+		return false, err
+	}
+	defer stmt_track.Close()
+
+	stmt_track_ex, err := tx.Prepare("DELETE from track_exercise where track = ?")
+	if err != nil {
+		return false, err
+	}
+	defer stmt_track_ex.Close()
+
+	stmt_track_data, err := tx.Prepare("DELETE from workout_track_data where track = ?")
+	if err != nil {
+		return false, err
+	}
+	defer stmt_track_data.Close()
+
+	stmt_ex_days, err := tx.Prepare("DELETE from exercise_day where id = ? and plan = 1 and id not in (select ex_day from track_exercise where ex_day = ?)") // TODO: delete ex days that have plan = 1 (meaning not used anymore) if they don't appear in any track after this one is deleted
+	if err != nil {
+		return false, err
+	}
+	defer stmt_ex_days.Close()
+
+	_, err = stmt_track.Exec(track.Id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = stmt_track_ex.Exec(track.Id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = stmt_track_data.Exec(track.Id)
+	if err != nil {
+		return false, err
+	}
+
+	for _, d := range track.ExDays {
+		for _, e := range d.Exercises {
+			_, err = stmt_ex_days.Exec(e.Id, e.Id)
+		}
+	}
+	
+	tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
