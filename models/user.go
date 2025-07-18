@@ -20,7 +20,7 @@ type User struct {
 	TrainingSince time.Time `json:"training_since"`
 	IsTrainer     bool      `json:"is_trainer"`
 	GymGoals      string    `json:"gym_goals"`
-	CurrentGym    string    `json:"current_gym"` // perhaps change this to be an id of a gym in the database
+	CurrentGym    string    `json:"current_gym"`
 	CurrentPlan   int       `json:"current_plan"`
 	DateCreated   time.Time `json:"time_created"`
 }
@@ -189,6 +189,8 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 		return false, err
 	}
 
+	defer tx.Rollback()
+
 	stmt, err := tx.Prepare("UPDATE users SET name = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE id = ?")
 	if err != nil {
 		return false, err
@@ -209,10 +211,6 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 
 func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 
-	// err := Db.AddWorkoutPlanToUser(usr_id, plan_id) // ensure the user and plan are linked
-	// if err != nil {
-	// 	return false, err
-	// }
 	if !Db.CheckIfUserUsesPlan(usr_id, plan_id) {
 		return false, errors.New("Cannot make plan current if user doesn't even use it")
 	}
@@ -221,6 +219,8 @@ func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	defer tx.Rollback()
 
 	stmt, err := tx.Prepare("UPDATE users SET current_plan = ? WHERE Id = ?")
 	if err != nil {
@@ -246,6 +246,8 @@ func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { 
 	if err != nil {
 		return false, err
 	}
+
+	defer tx.Rollback()
 
 	stmt, err := tx.Prepare("UPDATE users SET password = ? WHERE Id = ?")
 	if err != nil {

@@ -18,11 +18,7 @@ func init() {
 
 func FetchCachedExercise(ex_id int) (*Exercise, bool) {
 	ex, ok := cachedExercises[ex_id]
-
-	if ok {
-		return ex, true
-	}
-	return &Exercise{}, false
+	return ex, ok
 }
 
 func CacheExercise(ex *Exercise) error {
@@ -34,7 +30,7 @@ func CacheExercise(ex *Exercise) error {
 	return nil
 }
 
-func GetAllCachedExercises() []*Exercise {
+func FetchAllCachedExercises() []*Exercise {
 	res := make([]*Exercise, 0)
 	for _, ex := range cachedExercises {
 		res = append(res, ex)
@@ -64,7 +60,7 @@ func CacheTarget(t *Target) error {
 	return nil
 }
 
-func GetAllCachedTargets() []*Target {
+func FetchAllCachedTargets() []*Target {
 	res := make([]*Target, 0)
 	for _, tar := range cachedTargets {
 		res = append(res, tar)
@@ -88,11 +84,7 @@ func AddExerciseToTarget(tar, ex int) error {
 
 func FetchCachedPlanBasic(wp_id int) (*WorkoutPlan, bool) {
 	wp, ok := cacehdPlansBasic[wp_id]
-
-	if ok {
-		return wp, true
-	}
-	return &WorkoutPlan{}, false
+	return wp, ok
 }
 
 func CachePlanBasic(wp *WorkoutPlan) error {
@@ -257,4 +249,18 @@ func (Db *DataBase) CacheAllGyms() error {
 	}
 
 	return nil
+}
+
+func FetchAllCachedGyms() []*Gym {
+	res := make([]*Gym, 0)
+	for _, g := range cachedGyms {
+		res = append(res, g)
+	}
+
+	return res
+}
+
+func FetchCachedGym(gym_id int) (*Gym, bool) {
+	g, ok := cachedGyms[gym_id]
+	return g, ok
 }

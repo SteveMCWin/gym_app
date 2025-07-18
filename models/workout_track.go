@@ -221,6 +221,8 @@ func (Db *DataBase) UpdateWorkoutTrackPrivacy(wt *WorkoutTrack) (bool, error) {
 		return false, err
 	}
 
+	defer tx.Rollback()
+
 	stmt, err := tx.Prepare("UPDATE workout_track SET is_private = ? WHERE id = ?")
 	if err != nil {
 		return false, err
@@ -230,6 +232,9 @@ func (Db *DataBase) UpdateWorkoutTrackPrivacy(wt *WorkoutTrack) (bool, error) {
 
 	_, err = stmt.Exec(wt.IsPrivate, wt.Id)
 	if err != nil {
+		if errRb := tx.Rollback(); errRb != nil {
+			log.Println("Couldn't rollback?")
+		}
 		return false, err
 	}
 
@@ -367,6 +372,8 @@ func (Db *DataBase) UpdateTrackData(td *TrackData) (bool, error) {
 		return false, err
 	}
 
+	defer tx.Rollback()
+
 	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ?")
 	if err != nil {
 		return false, err
@@ -397,6 +404,8 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	defer tx.Rollback()
 
 	// stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ? and set_num = ?")
 	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?")
@@ -429,6 +438,8 @@ func (Db *DataBase) DeleteWorkoutTrack(track *WorkoutTrack) (bool, error) { // W
 	if err != nil {
 		return false, err
 	}
+
+	defer tx.Rollback()
 
 	// track, err := Db.ReadWorkoutTrack(track_id)
 	// if err != nil {

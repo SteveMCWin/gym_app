@@ -126,10 +126,11 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 	}
 
 	tx, err := Db.Data.Begin()
-
 	if err != nil {
 		return err
 	}
+
+	defer tx.Rollback()
 
 	stmt, err := tx.Prepare("insert into users_plans (usr, plan, date_added) values (?, ?, ?)")
 	if err != nil {
@@ -161,6 +162,8 @@ func (Db *DataBase) DeleteWorkoutPlanFromUser(usr_id, plan_id int) error {
 	if err != nil {
 		return err
 	}
+
+	defer tx.Rollback()
 
 	stmt, err := tx.Prepare("DELETE from workout_plan where user = ? AND plan = ?")
 	if err != nil {
@@ -296,6 +299,8 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 		return false, err
 	}
 
+	defer tx.Rollback()
+
 	stmt_wp, err := tx.Prepare("UPDATE workout_plan SET name = ?, description = ? WHERE id = ?")
 	if err != nil {
 		return false, err
@@ -430,6 +435,8 @@ func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	defer tx.Rollback()
 
 	stmt_wp, err := tx.Prepare("DELETE from workout_plan where id = ?")
 	if err != nil {
@@ -622,111 +629,13 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 	return res, nil
 }
 
-// func (Db *DataBase) UpdateExerciseDayExercise(ex_day *ExerciseDay) error {
-//
-// 	// err := ValidateExerciseDayInput(ex_day)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-//
-// 	tx, err := Db.Data.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	stmt, err := tx.Prepare("UPDATE exercise_day SET exercise = ?, weight = ?, unit = ?, sets = ?, min_rep = ?, max_reps = ? WHERE id = ?")
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	defer stmt.Close()
-//
-// 	_, err = stmt.Exec(ex_day.Exercise, ex_day.Weight, ex_day.Unit, ex_day.Sets, ex_day.MinReps, ex_day.MaxReps, ex_day.Id)
-//
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	err = tx.Commit()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
-
-// func (Db *DataBase) UpdateExerciseDayOrder(ex_day *ExerciseDay, old_day_order, old_ex_order int) error {
-//
-// 	changed_day_oder := old_day_order != ex_day.DayOrder
-//
-// 	var new_day_name string
-//
-// 	if changed_day_oder {
-// 		err := Db.Data.QueryRow("select day_name from exercise_day where plan = ? and day_order = ? and exercise_order = 0", ex_day.Plan, ex_day.DayOrder).Scan(&new_day_name)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	} else {
-// 		new_day_name = ex_day.DayName
-// 	}
-//
-// 	tx, err := Db.Data.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	var stmt_update_day *sql.Stmt
-// 	if changed_day_oder {
-// 		stmt_update_day, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ?")
-// 		if err != nil {
-// 			return err
-// 		}
-// 	} else {
-// 		stmt_update_day, err = tx.Prepare("UPDATE exercise_day SET exercise_order = exercise_order + 1 WHERE plan = ? AND day_order = ? AND exercise_order >= ? and exercise_order < ?")
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-//
-// 	stmt_update_ex, err := tx.Prepare("UPDATE exercise_day SET day_name = ?, day_order = ?, exercise_order = ? WHERE id = ?")
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	defer stmt_update_day.Close()
-// 	defer stmt_update_ex.Close()
-//
-// 	if changed_day_oder {
-// 		_, err = stmt_update_day.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	} else {
-// 		_, err = stmt_update_day.Exec(ex_day.Plan, ex_day.DayOrder, ex_day.ExerciseOrder, old_ex_order)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-//
-// 	_, err = stmt_update_ex.Exec(new_day_name, ex_day.DayOrder, ex_day.ExerciseOrder, ex_day.Id)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	err = tx.Commit()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-//
-// }
-
 func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
 	}
+
+	defer tx.Rollback()
 
 	stmt, err := tx.Prepare("DELETE from exercise_day where id = ?")
 	if err != nil {

@@ -123,23 +123,6 @@ func main() {
 	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
 	user_router.GET("/forgot_password/from-mail/:token_id/:email", HandleGetChangePassFromMail())
 
-	// user_router.GET("/create_plan", HandleGetCreatePlan())
-	// user_router.POST("/create_plan", HandlePostCreatePlan(&db))
-	// user_router.GET("/profile/plans/view/current", HandleGetViewCurrentPlan(&db))
-	// user_router.GET("/profile/plans/view/:wp_id", HandleGetViewPlan(&db))
-	// user_router.GET("/profile/plans/all_plans", HandleGetViewAllUserPlans(&db))
-	// user_router.GET("/profile/plans/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
-	// user_router.GET("/profile/plans/edit/:wp_id", HandleGetEditPlan(&db))
-	// user_router.POST("/profile/plans/edit/:wp_id", HandlePostEditPlan(&db))
-	// user_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db))
-	//
-	// user_router.GET("/tracks/view", HandleGetTracks(&db))
-	// user_router.GET("/tracks/view/:user_id", HandleGetTracks(&db)) // NOTE: this is for when someone is looking at another persons tracks
-	// user_router.GET("/tracks/create", HandleGetTracksCreate(&db))
-	// user_router.POST("/tracks/create/:plan_id", HandlePostTracksCreate(&db))
-	// user_router.GET("/tracks/edit/:user_id/:track_id", HandleGetTracksEdit(&db))
-	// user_router.POST("/tracks/edit/:user_id/:track_id", HandlePostTracksEdit(&db))
-
 	plan_router.GET("/create", HandleGetCreatePlan()) // doesn't need id
 	plan_router.POST("/create", HandlePostCreatePlan(&db))
 	plan_router.GET("/view/current", HandleGetViewCurrentPlan(&db)) // needs id

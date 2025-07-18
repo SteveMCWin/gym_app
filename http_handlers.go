@@ -186,7 +186,12 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "account_creation.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "ID": token_val, "Email": usr_email})
+		c.HTML(http.StatusOK, "account_creation.html", gin.H{
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
+			"ID": token_val,
+			"Email": usr_email,
+			"Gyms": models.FetchAllCachedGyms(), // TODO: update the html side
+		})
 	}
 }
 
@@ -305,7 +310,11 @@ func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/profile")
 		}
 
-		c.HTML(http.StatusOK, "edit_profile.html", gin.H{ csrf.TemplateTag: csrf.TemplateField(c.Request), "old_user": old_user })
+		c.HTML(http.StatusOK, "edit_profile.html", gin.H{
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
+			"old_user": old_user,
+			"Gyms": models.FetchAllCachedGyms(), // NOTE: update the html side too
+		})
 	}
 }
 
@@ -465,7 +474,7 @@ func HandleGetCreatePlan() func(c *gin.Context) {
 			return
 		}
 
-		all_exercises := models.GetAllCachedExercises()
+		all_exercises := models.FetchAllCachedExercises()
 
 		c.HTML(http.StatusOK, "make_plan.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "all_exercises": all_exercises})
 	}
@@ -720,7 +729,7 @@ func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 		c.HTML(http.StatusOK, "edit_plan.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
 			"wp": wp,
-			"all_exercises": models.GetAllCachedExercises(),
+			"all_exercises": models.FetchAllCachedExercises(),
 			"user_id": user_id,
 		})
 	}
