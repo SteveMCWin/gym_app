@@ -57,7 +57,7 @@
         <p><span class="label">Training Since:</span> {{.usr.TrainingSince.Format "2006-01-02" }}</p>
         <p><span class="label">Is Trainer:</span> {{if .usr.IsTrainer}}Yes{{else}}No{{end}}</p>
         <p><span class="label">Gym Goals:</span> {{.usr.GymGoals}}</p>
-        <p><span class="label">Current Gym:</span> {{.usr.CurrentGym}}</p>
+        <p><span class="label">Current Gym:</span> {{.usr.CurrentGym.Name}}</p>
         <p><span class="label">Current Workout Plan:</span> {{.current_plan.Name}}</p>
         <p><span class="label">Account created:</span> {{.usr.DateCreated.Format "2006-01-02" }}</p>
     </div>

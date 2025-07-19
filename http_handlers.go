@@ -190,7 +190,7 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
 			"ID": token_val,
 			"Email": usr_email,
-			"Gyms": models.FetchAllCachedGyms(), // TODO: update the html side
+			"Gyms": models.FetchAllCachedGyms(),
 		})
 	}
 }
@@ -227,6 +227,20 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 
 		is_trainer := c.PostForm("is_trainer") != ""
 
+		curr_gym_id, err := strconv.Atoi(c.PostForm("current_gym"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		curr_gym, ok := models.FetchCachedGym(curr_gym_id)
+		if !ok {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
 		new_user := models.User{
 			Id:            0,
 			Name:          c.PostForm("name"),
@@ -235,20 +249,19 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			TrainingSince: training_since,
 			IsTrainer:     is_trainer,
 			GymGoals:      c.PostForm("gym_goals"),
-			CurrentGym:    c.PostForm("current_gym"),
+			CurrentGym:    *curr_gym,
 		}
 
 		usr_id, err := db.CreateUser(c, new_user)
-
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
 
 		log.Println("HandlePostSignupSendMail: created user")
 
 		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
-
-		log.Println("HandlePostSignupSendMail: created session cookie for user")
 
 		delete(signupTokens, token_val)
 
@@ -344,13 +357,27 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		is_trainer := c.PostForm("is_trainer") != ""
 
+		curr_gym_id, err := strconv.Atoi(c.PostForm("current_gym"))
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
+		curr_gym, ok := models.FetchCachedGym(curr_gym_id)
+		if !ok {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
+		}
+
 		edited_user := models.User{
 			Id:            requesting_user_id,
 			Name:          c.PostForm("name"),
 			TrainingSince: training_since,
 			IsTrainer:     is_trainer,
 			GymGoals:      c.PostForm("gym_goals"),
-			CurrentGym:    c.PostForm("current_gym"),
+			CurrentGym:    *curr_gym,
 		}
 
 		_, err = db.UpdateUserPublicData(&edited_user)

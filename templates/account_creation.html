@@ -68,7 +68,12 @@
         </select>
 
         <label for="current_gym">Current Gym</label>
-        <input type="text" id="current_gym" name="current_gym">
+        <select id="current_gym" name="current_gym">
+            <option value="">-- Select a gym --</option>
+            {{ range .Gyms }}
+                <option value="{{ .Id }}">{{ .Name }} ({{ .Location }})</option>
+            {{ end }}
+        </select>
 
         <button type="submit">Create Account</button>
     </form>

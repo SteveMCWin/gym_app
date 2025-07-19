@@ -11,7 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
 type User struct {
 	Id            int       `json:"id"`
 	Name          string    `json:"name"`
@@ -20,9 +19,10 @@ type User struct {
 	TrainingSince time.Time `json:"training_since"`
 	IsTrainer     bool      `json:"is_trainer"`
 	GymGoals      string    `json:"gym_goals"`
-	CurrentGym    string    `json:"current_gym"`
-	CurrentPlan   int       `json:"current_plan"`
-	DateCreated   time.Time `json:"time_created"`
+	// CurrentGym    string    `json:"current_gym"`
+	CurrentGym  Gym       `json:"current_gym"`
+	CurrentPlan int       `json:"current_plan"`
+	DateCreated time.Time `json:"time_created"`
 }
 
 func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
@@ -78,6 +78,7 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	usr := &User{}
 
+	var curr_gym_id int
 	err := Db.Data.QueryRow("select id, name, email, training_since, is_trainer, gym_goals, current_gym, current_plan, date_created from users where id = ?", usr_id).Scan(
 		&usr.Id,
 		&usr.Name,
@@ -85,7 +86,7 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 		&usr.TrainingSince,
 		&usr.IsTrainer,
 		&usr.GymGoals,
-		&usr.CurrentGym,
+		&curr_gym_id,
 		&usr.CurrentPlan,
 		&usr.DateCreated,
 	) // gets the public data of the user
@@ -93,6 +94,14 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	curr_gym, ok := FetchCachedGym(curr_gym_id)
+	if !ok {
+		log.Println("No gym with id:", curr_gym_id)
+		return nil, errors.New("Invalid gym id")
+	}
+
+	usr.CurrentGym = *curr_gym
 
 	return usr, nil
 }
@@ -105,10 +114,7 @@ func (Db *DataBase) ReadUserShallow(usr_id int) (*User, error) {
 		&usr.Name,
 		&usr.TrainingSince,
 		&usr.IsTrainer,
-		// &usr.GymGoals,
-		// &usr.CurrentGym,
 		&usr.CurrentPlan,
-		// &usr.DateCreated,
 	) // gets most of the public data of the user
 
 	if err != nil {
@@ -198,7 +204,7 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(usr.Name, usr.TrainingSince, usr.IsTrainer, usr.GymGoals, usr.CurrentGym, usr.Id)
+	_, err = stmt.Exec(usr.Name, usr.TrainingSince, usr.IsTrainer, usr.GymGoals, usr.CurrentGym.Id, usr.Id)
 
 	if err != nil {
 		return false, err
@@ -239,7 +245,6 @@ func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 
 	return true, nil
 }
-
 
 func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { // before this, should send email from which you change your password
 	tx, err := Db.Data.Begin()
