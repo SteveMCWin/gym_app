@@ -205,8 +205,6 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		log.Println("HandlePostSignupSendMail: got token_val")
-
 		usr_email := c.Param("email")
 		if t_val, exists := signupTokens[token_val]; exists != true || t_val != usr_email {
 			log.Println("ERROR: invalid token or token value")
@@ -214,16 +212,12 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		log.Println("HandlePostSignupSendMail: got usr_email")
-
 		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
-
-		log.Println("HandlePostSignupSendMail: got parsed training_since")
 
 		is_trainer := c.PostForm("is_trainer") != ""
 
@@ -258,8 +252,6 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
-
-		log.Println("HandlePostSignupSendMail: created user")
 
 		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
 

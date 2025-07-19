@@ -65,3 +65,31 @@ func (Db *DataBase) ReadGymEquipment(gym_id int) ([]*Equipment, error) {
 
 	return res, nil
 }
+
+func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) ([]int, bool, error) {
+	query := `
+	select exercise_day.id
+	from exercise_day 
+	where plan = ? and exercise_day.exercise not in (
+	select exercise_equipment.exercise 
+	from exercise_equipment inner join gym_equipment on gym_equipment.equipment = exercise_equipment.equipment 
+	where gym_equipment.gym_id = ?);
+	`
+	rows, err := Db.Data.Query(query, plan_id, gym_id)
+	if err != nil {
+		return nil, false, err
+	}
+
+	res := make([]int, 0)
+
+	for rows.Next() {
+		var ex_day_id int
+		err = rows.Scan(&ex_day_id)
+		if err != nil {
+			return nil, false, err
+		}
+		res = append(res, ex_day_id)
+	}
+
+	return res, len(res) > 0, nil
+}

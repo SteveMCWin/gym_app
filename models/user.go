@@ -60,7 +60,7 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 			usr.TrainingSince.Format("2006-01-02"),
 			usr.IsTrainer,
 			usr.GymGoals,
-			usr.CurrentGym,
+			usr.CurrentGym.Id,
 			1, // WARNING: I am assuming there will be a default plan number 1 that is used only for indicating there is no plan
 			time.Now().Format("2006-01-02")).Scan(&usr_id)
 

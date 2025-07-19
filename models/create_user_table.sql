@@ -13,6 +13,6 @@ CREATE TABLE users (
     current_plan INTEGER DEFAULT 1,
     date_created DATE NOT NULL,
     FOREIGN KEY(current_plan) REFERENCES workout_plan(id),
-    FOREIGN KEY(current_gym) REFERENCES gym(id),
+    FOREIGN KEY(current_gym) REFERENCES gym(id)
 );
 

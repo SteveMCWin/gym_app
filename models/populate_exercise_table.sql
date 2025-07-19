@@ -276,39 +276,39 @@ DELETE FROM sqlite_sequence WHERE name='gym_equipment';
 
 -- First gym: Prime — has **all equipment**
 INSERT INTO gym_equipment (gym_id, equipment) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
-(1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20), (1, 21), (1, 22);
+(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10),
+(2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20), (2, 21), (2, 22);
 
 -- Second gym: Muscle Gym — ~75% of equipment (random ~16 of 22)
 INSERT INTO gym_equipment (gym_id, equipment) VALUES
-(2, 1),  -- cable
-(2, 2),  -- lat pulldown machine
-(2, 3),  -- flat bench
-(2, 4),  -- incline bench
-(2, 5),  -- pullup bar
-(2, 6),  -- squat rack
-(2, 7),  -- hack squat
-(2, 8),  -- leg extension
+(3, 1),  -- cable
+(3, 2),  -- lat pulldown machine
+(3, 3),  -- flat bench
+(3, 4),  -- incline bench
+(3, 5),  -- pullup bar
+(3, 6),  -- squat rack
+(3, 7),  -- hack squat
+(3, 8),  -- leg extension
 -- skipping 9 (leg curl)
-(2, 10), -- hip trust
-(2, 11), -- barbell
-(2, 12), -- dumbbell
-(2, 13), -- cable row
+(3, 10), -- hip trust
+(3, 11), -- barbell
+(3, 12), -- dumbbell
+(3, 13), -- cable row
 -- skipping 14 (bike)
-(2, 15), -- treadmill
-(2, 16), -- dip bar
-(2, 17), -- floor
+(3, 15), -- treadmill
+(3, 16), -- dip bar
+(3, 17), -- floor
 -- skipping 18 (parallettes)
-(2, 19), -- t-bar
+(3, 19), -- t-bar
 -- skipping 20 (z-bar)
-(2, 21); -- smith machine
+(3, 21); -- smith machine
 -- skipping 22 (leg press)
 
 -- Third gym: Stevina Garaza — minimal
 INSERT INTO gym_equipment (gym_id, equipment) VALUES
-(3, 5),  -- pullup bar
-(3, 12), -- dumbbell
-(3, 17); -- floor
+(4, 5),  -- pullup bar
+(4, 12), -- dumbbell
+(4, 17); -- floor
 
 
 
