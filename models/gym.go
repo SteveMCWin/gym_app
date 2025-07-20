@@ -66,9 +66,9 @@ func (Db *DataBase) ReadGymEquipment(gym_id int) ([]*Equipment, error) {
 	return res, nil
 }
 
-func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) ([]int, bool, error) {
+func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) (map[int]int, bool, error) {
 	query := `
-	select exercise_day.id
+	select exercise_day.exercise
 	from exercise_day 
 	where plan = ? and exercise_day.exercise not in (
 	select exercise_equipment.exercise 
@@ -80,15 +80,15 @@ func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) ([]int, bool
 		return nil, false, err
 	}
 
-	res := make([]int, 0)
+	res := make(map[int]int)
 
 	for rows.Next() {
-		var ex_day_id int
-		err = rows.Scan(&ex_day_id)
+		var ex_id int
+		err = rows.Scan(&ex_id)
 		if err != nil {
 			return nil, false, err
 		}
-		res = append(res, ex_day_id)
+		res[ex_id] = ex_id
 	}
 
 	return res, len(res) > 0, nil

@@ -1262,36 +1262,70 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 
 		gym_id_param := c.Param("gym_id")
 		gym_id, err := strconv.Atoi(gym_id_param)
-
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusPermanentRedirect, "/error-page")
 			return
 		}
 
+		gym, ok := models.FetchCachedGym(gym_id)
+		if !ok {
+			log.Println("Couldn't load gym from cache with id of", gym_id)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
+
 		var user_has_plan bool
-		var ex_no_eq []int
+		ex_no_eq := make([]models.Exercise, 0)
 
-		if sessionManager.Exists(c.Request.Context(), "user_id") {
-			user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
-			user, err := db.ReadUser(user_id)
-			if err != nil {
-				log.Println(err)
-				c.Redirect(http.StatusPermanentRedirect, "/error-page")
-				return
-			}
+		if !sessionManager.Exists(c.Request.Context(), "user_id") {
+			c.HTML(http.StatusOK, "view_gym.html", gin.H {
+				"gym": gym,
+				"user_has_plan": user_has_plan,
+				"ex_no_eq": ex_no_eq,
+			})
+			return
+		}
 
-			user_has_plan = true
+		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		user, err := db.ReadUser(user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
 
-			ex_no_eq, _, err = db.CheckIfGymHasPlanEquipment(gym_id, user.CurrentPlan)
-			if err != nil {
-				log.Println(err)
-				c.Redirect(http.StatusPermanentRedirect, "/error-page")
-				return
+		if user.CurrentPlan == 1 {
+			c.HTML(http.StatusOK, "view_gym.html", gin.H {
+				"gym": gym,
+				"user_has_plan": user_has_plan,
+				"ex_no_eq": ex_no_eq,
+			})
+			return
+		}
+
+		user_has_plan = true
+
+		undoable_ex, can_do_all, err := db.CheckIfGymHasPlanEquipment(gym_id, user.CurrentPlan)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
+
+		if !can_do_all {
+			for ex := range undoable_ex {
+				cached_ex, ok := models.FetchCachedExercise(ex)
+				if ok {
+					ex_no_eq = append(ex_no_eq, *cached_ex)
+				} else {
+					log.Println("No cached exercise with id", ex)
+				}
 			}
 		}
 
 		c.HTML(http.StatusOK, "view_gym.html", gin.H {
+			"gym": gym,
 			"user_has_plan": user_has_plan,
 			"ex_no_eq": ex_no_eq,
 		})

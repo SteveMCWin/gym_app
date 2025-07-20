@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ .gym.Name }} - Gym Details</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        padding: 40px;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    h1 {
+        margin-bottom: 10px;
+    }
+    .section {
+        margin-top: 20px;
+    }
+    ul {
+        list-style-type: disc;
+        padding-left: 20px;
+    }
+    .warning {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 15px;
+        border: 1px solid #ffeeba;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ .gym.Name }}</h1>
+    <p><strong>Location:</strong> {{ .gym.Location }}</p>
+
+    <div class="section">
+        <h3>Available Equipment</h3>
+        {{ if .gym.Equipment }}
+            <ul>
+                {{ range .gym.Equipment }}
+                    <li>{{ .Name }}</li>
+                {{ end }}
+            </ul>
+        {{ else }}
+            <p>No equipment listed for this gym.</p>
+        {{ end }}
+    </div>
+
+    {{ if .user_has_plan }}
+        {{ if .ex_no_eq }}
+            {{ if gt (len .ex_no_eq) 0 }}
+                <div class="warning">
+                    <strong>Warning:</strong> the gym may not have the right equipment for the following exercises from your current plan:
+                    <ul>
+                        {{ range .ex_no_eq }}
+                            <li>{{ .Name }}</li>
+                        {{ end }}
+                    </ul>
+                </div>
+            {{ end }}
+        {{ end }}
+    {{ end }}
+
+</div>
+
+</body>
+</html>

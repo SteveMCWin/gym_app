@@ -19,9 +19,9 @@ type User struct {
 	TrainingSince time.Time `json:"training_since"`
 	IsTrainer     bool      `json:"is_trainer"`
 	GymGoals      string    `json:"gym_goals"`
-	CurrentGym  Gym       `json:"current_gym"`
-	CurrentPlan int       `json:"current_plan"`
-	DateCreated time.Time `json:"time_created"`
+	CurrentGym    Gym       `json:"current_gym"`
+	CurrentPlan   int       `json:"current_plan"`
+	DateCreated   time.Time `json:"time_created"`
 }
 
 func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
