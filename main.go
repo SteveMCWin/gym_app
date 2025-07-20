@@ -101,6 +101,7 @@ func main() {
 	user_router := router.Group("/user")
 	plan_router := router.Group("/user/:id/plan")
 	track_router := router.Group("/user/:id/track")
+	gym_router := router.Group("/gym")
 
 	user_router.GET("/profile", HandleGetCurrentProfile())
 	user_router.GET("/:id", MiddlewareNoCache(), HandleGetProfile(&db))
@@ -141,6 +142,9 @@ func main() {
 	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db)) // needs id
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
+
+	gym_router.GET("/view_all", HandleGetViewAllGyms())
+	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
 
 	handler := sessionManager.LoadAndSave(router)
 	handler = csrf.Protect(

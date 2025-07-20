@@ -93,3 +93,44 @@ func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) ([]int, bool
 
 	return res, len(res) > 0, nil
 }
+
+func (Db *DataBase) CreateGym(g *Gym) error {
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	statement := "insert into gym (name, location) values (?, ?) returning id"
+	stmt_gym, err := tx.Prepare(statement)
+	if err != nil {
+		return err
+	}
+
+	err = stmt_gym.QueryRow(g.Name, g.Location).Scan(&g.Id)
+	if err != nil {
+		return err
+	}
+
+	statement = "insert into gym_equipment (gym_id, equipment) values (?, ?)"
+	stmt_eq, err := tx.Prepare(statement)
+	if err != nil {
+		return err
+	}
+
+	for _, eq := range g.Equipment {
+		_, err = stmt_eq.Exec(g.Id, eq.Id)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = CacheGym(g)
+	if err != nil {
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
