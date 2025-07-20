@@ -254,6 +254,9 @@ func (Db *DataBase) CacheAllGyms() error {
 func FetchAllCachedGyms() []*Gym {
 	res := make([]*Gym, 0)
 	for _, g := range cachedGyms {
+		if g.Id == 1 {
+			continue
+		}
 		res = append(res, g)
 	}
 

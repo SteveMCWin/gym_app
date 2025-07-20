@@ -124,22 +124,22 @@ func main() {
 	user_router.POST("/forgot_password", HandlePostForgotPassword(&db))
 	user_router.GET("/forgot_password/from-mail/:token_id/:email", HandleGetChangePassFromMail())
 
-	plan_router.GET("/create", HandleGetCreatePlan()) // doesn't need id
+	plan_router.GET("/create", HandleGetCreatePlan())
 	plan_router.POST("/create", HandlePostCreatePlan(&db))
-	plan_router.GET("/view/current", HandleGetViewCurrentPlan(&db)) // needs id
-	plan_router.GET("/view/:wp_id", HandleGetViewPlan(&db)) // needs id
-	plan_router.GET("/view_all", HandleGetViewAllUserPlans(&db)) // needs id
-	plan_router.GET("/make_current/:wp_id", HandleGetMakePlanCurrent(&db)) // needs id
-	plan_router.GET("/edit/:wp_id", HandleGetEditPlan(&db)) // needs id
+	plan_router.GET("/view/current", HandleGetViewCurrentPlan(&db))
+	plan_router.GET("/view/:wp_id", HandleGetViewPlan(&db))
+	plan_router.GET("/view_all", HandleGetViewAllUserPlans(&db))
+	plan_router.GET("/make_current/:wp_id", HandleGetMakePlanCurrent(&db))
+	plan_router.GET("/edit/:wp_id", HandleGetEditPlan(&db))
 	plan_router.POST("/edit/:wp_id", HandlePostEditPlan(&db))
-	plan_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db)) // doesn't need id
+	plan_router.GET("/get_plan_json/:wp_id", HandleGetPlanJSON(&db))
 
-	track_router.GET("/view_all", HandleGetTracks(&db)) // needs id
+	track_router.GET("/view_all", HandleGetTracks(&db))
 	track_router.GET("/view/latest", HandleGetTracksViewLatest(&db))
-	track_router.GET("/view/:track_id", HandleGetViewTrack(&db)) // needs id
-	track_router.GET("/create", HandleGetTracksCreate(&db)) // doesn't need id
+	track_router.GET("/view/:track_id", HandleGetViewTrack(&db))
+	track_router.GET("/create", HandleGetTracksCreate(&db))
 	track_router.POST("/create/:plan_id", HandlePostTracksCreate(&db))
-	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db)) // needs id
+	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db))
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
 

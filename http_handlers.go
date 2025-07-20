@@ -1171,14 +1171,14 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 		track_id, err := strconv.Atoi(track_id_param)
 		if err != nil {
 			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
 			return
 		}
 
 		track, err := db.ReadWorkoutTrack(track_id)
 		if err != nil {
 			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
 			return
 		}
 
@@ -1189,7 +1189,7 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 		_, err = db.DeleteWorkoutTrack(track)
 		if err != nil {
 			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
 			return
 		}
 
@@ -1209,7 +1209,7 @@ func HandleGetSearchForUser(db *models.DataBase) func(c *gin.Context) {
 			results, err := db.SearchForUsers(query, sessionManager.GetInt(c.Request.Context(), "user_id"))
 			if err != nil {
 				log.Println(err)
-				c.Redirect(http.StatusSeeOther, "/error-page")
+				c.Redirect(http.StatusPermanentRedirect, "/error-page")
 				return
 			}
 			c.JSON(200, results)
@@ -1246,6 +1246,55 @@ func HandleGetPlanJSON(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, wp)
+	}
+}
+
+func HandleGetViewAllGyms() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		gyms := models.FetchAllCachedGyms()
+
+		c.HTML(http.StatusOK, "view_all_gyms.html", gin.H{ "gyms": gyms })
+	}
+}
+
+func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		gym_id_param := c.Param("gym_id")
+		gym_id, err := strconv.Atoi(gym_id_param)
+
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
+
+		var user_has_plan bool
+		var ex_no_eq []int
+
+		if sessionManager.Exists(c.Request.Context(), "user_id") {
+			user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+			user, err := db.ReadUser(user_id)
+			if err != nil {
+				log.Println(err)
+				c.Redirect(http.StatusPermanentRedirect, "/error-page")
+				return
+			}
+
+			user_has_plan = true
+
+			ex_no_eq, _, err = db.CheckIfGymHasPlanEquipment(gym_id, user.CurrentPlan)
+			if err != nil {
+				log.Println(err)
+				c.Redirect(http.StatusPermanentRedirect, "/error-page")
+				return
+			}
+		}
+
+		c.HTML(http.StatusOK, "view_gym.html", gin.H {
+			"user_has_plan": user_has_plan,
+			"ex_no_eq": ex_no_eq,
+		})
 	}
 }
 

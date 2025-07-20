@@ -19,7 +19,6 @@ type User struct {
 	TrainingSince time.Time `json:"training_since"`
 	IsTrainer     bool      `json:"is_trainer"`
 	GymGoals      string    `json:"gym_goals"`
-	// CurrentGym    string    `json:"current_gym"`
 	CurrentGym  Gym       `json:"current_gym"`
 	CurrentPlan int       `json:"current_plan"`
 	DateCreated time.Time `json:"time_created"`
