@@ -296,15 +296,22 @@ func (Db *DataBase) DeleteUser(id int) (bool, error) {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("DELETE from users where id = ?")
+	defer tx.Rollback()
+
+	stmt_usr, err := tx.Prepare("DELETE from users where id = ?")
 	if err != nil {
 		return false, err
 	}
 
-	defer stmt.Close()
+	defer stmt_usr.Close()
 
-	_, err = stmt.Exec(id)
+	_, err = stmt_usr.Exec(id)
 
+	if err != nil {
+		return false, err
+	}
+
+	_, err = Db.DeleteAllWorkoutsForUser(id)
 	if err != nil {
 		return false, err
 	}

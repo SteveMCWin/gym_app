@@ -157,34 +157,34 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 	return nil
 }
 
-func (Db *DataBase) DeleteWorkoutPlanFromUser(usr_id, plan_id int) error {
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("DELETE from workout_plan where user = ? AND plan = ?")
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(usr_id, plan_id)
-
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+// func (Db *DataBase) DeleteWorkoutPlanFromUser(usr_id, plan_id int) error {
+// 	tx, err := Db.Data.Begin()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	defer tx.Rollback()
+//
+// 	stmt, err := tx.Prepare("DELETE from workout_plan where user = ? AND plan = ?")
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	defer stmt.Close()
+//
+// 	_, err = stmt.Exec(usr_id, plan_id)
+//
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	err = tx.Commit()
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return nil
+// }
 
 func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 	wp := &WorkoutPlan{Id: id}
@@ -430,13 +430,87 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([
 	return diff, nil // NOTE: THE TRUE ONES ARE THE ONES THAT CHANGED
 }
 
-func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
+func (Db *DataBase) DeleteAllWorkoutsForUser(user_id int) (bool, error) {
+
+	plans, err := Db.GetPlansUserUses(user_id)
+	if err != nil {
+		return false, err
+	}
+
+	deletion_chan := make(chan bool, len(plans))
+	finished_chan := make(chan bool)
+	counter := 0
+
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
 	}
 
 	defer tx.Rollback()
+
+	for _, p := range plans {
+		go func() {
+			res, err := Db.DeleteWorkoutPlan(p, tx)
+			if err != nil {
+				log.Println("Couldn't delete plan with id:", p)
+				log.Println(err)
+			}
+			deletion_chan <- res
+		}()
+	}
+
+	for {
+		select {
+		case ok := <-deletion_chan:
+			if ok != true {
+				return false, errors.New("Couldn't delete all plans")
+			}
+			counter += 1
+			if counter >= len(plans) {
+				finished_chan <- true
+			}
+		case <-finished_chan:
+			tx.Commit()
+			return true, nil
+		}
+	}
+}
+
+func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
+	rows, err := Db.Data.Query("select plan from users_plans where usr = ?", user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]int, 0)
+
+	for rows.Next() {
+		var tmp int
+		err = rows.Scan(&tmp)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, tmp)
+	}
+
+	return res, nil
+}
+
+func (Db *DataBase) DeleteWorkoutPlan(wp_id int, transaction ...*sql.Tx) (bool, error) {
+	var tx *sql.Tx
+	var err error
+
+	if len(transaction) == 0 {
+		tx, err = Db.Data.Begin()
+		if err != nil {
+			return false, err
+		}
+
+		defer tx.Rollback()
+	} else {
+		tx = transaction[0]
+	}
 
 	stmt_wp, err := tx.Prepare("DELETE from workout_plan where id = ?")
 	if err != nil {
@@ -474,9 +548,11 @@ func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
 		return false, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return false, err
+	if len(transaction) == 0 {
+		err = tx.Commit()
+		if err != nil {
+			return false, err
+		}
 	}
 
 	return true, nil
