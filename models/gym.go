@@ -1,8 +1,7 @@
 package models
 
 import (
-	// "database/sql"
-	// "errors"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -66,7 +65,7 @@ func (Db *DataBase) ReadGymEquipment(gym_id int) ([]*Equipment, error) {
 	return res, nil
 }
 
-func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) (map[int]int, bool, error) {
+func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) (map[int]int, error) {
 	query := `
 	select exercise_day.exercise
 	from exercise_day 
@@ -77,7 +76,7 @@ func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) (map[int]int
 	`
 	rows, err := Db.Data.Query(query, plan_id, gym_id)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	res := make(map[int]int)
@@ -86,12 +85,34 @@ func (Db *DataBase) CheckIfGymHasPlanEquipment(gym_id, plan_id int) (map[int]int
 		var ex_id int
 		err = rows.Scan(&ex_id)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		res[ex_id] = ex_id
 	}
 
-	return res, len(res) > 0, nil
+	return res, nil
+}
+
+// this one is just for conviniece
+func (Db *DataBase) GetPlanGymExDiff(gym_id, wp_id int) ([]Exercise, error) {
+
+	ex_no_eq := make([]Exercise, 0)
+
+	undoable_ex, err := Db.CheckIfGymHasPlanEquipment(gym_id, wp_id)
+	if err != nil {
+		return nil, err
+	}
+
+	for ex := range undoable_ex {
+		cached_ex, ok := FetchCachedExercise(ex)
+		if ok {
+			ex_no_eq = append(ex_no_eq, *cached_ex)
+		} else {
+			log.Println("No cached exercise with id", ex)
+		}
+	}
+
+	return ex_no_eq, nil
 }
 
 func (Db *DataBase) CreateGym(g *Gym) error {

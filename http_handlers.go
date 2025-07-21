@@ -186,7 +186,7 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "account_creation.html", gin.H{
+		c.HTML(http.StatusOK, "make_account.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
 			"ID": token_val,
 			"Email": usr_email,
@@ -544,37 +544,6 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-func HandleGetViewCurrentPlan(db *models.DataBase) func(c *gin.Context) {
-	return func(c *gin.Context) {
-
-		if sessionManager.Exists(c.Request.Context(), "user_id") == false {
-			log.Println("Must be logged in to view current plan")
-			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
-			return
-		}
-
-		user_id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		if user_id <= 0 {
-			user_id = sessionManager.GetInt(c.Request.Context(), "user_id")
-		}
-
-		user, err := db.ReadUser(user_id)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
-			return
-		}
-
-		c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(user_id)+"/plan/view/"+strconv.Itoa(user.CurrentPlan))
-	}
-}
-
 func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
@@ -584,6 +553,12 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		requesting_user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		req_usr_gym_id, err := db.ReadUserCurrentGymId(requesting_user_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
 
 		user_id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
@@ -625,12 +600,20 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 
 		plan_analysis := wp.GetAnalysis()
 
+		ex_no_eq, err := db.GetPlanGymExDiff(req_usr_gym_id, wp_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusTemporaryRedirect, "/error-page")
+			return
+		}
+
 		c.HTML(http.StatusOK, "view_plan.html", gin.H{
 			"wp": wp,
 			"MakeCurrent": makeCurrent,
 			"PlanAnalysis": plan_analysis,
 			"user_id": user_id,
 			"requesting_user_id": requesting_user_id,
+			"ex_no_eq": ex_no_eq,
 		}) // WARNING: consider adding csrf protection especially if you enable editing the plan
 	}
 }
@@ -1279,6 +1262,7 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 		ex_no_eq := make([]models.Exercise, 0)
 
 		if !sessionManager.Exists(c.Request.Context(), "user_id") {
+			log.Println("render 1")
 			c.HTML(http.StatusOK, "view_gym.html", gin.H {
 				"gym": gym,
 				"user_has_plan": user_has_plan,
@@ -1295,7 +1279,8 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		if user.CurrentPlan == 1 {
+		if user.CurrentPlan <= 1 {
+			log.Println("render 2")
 			c.HTML(http.StatusOK, "view_gym.html", gin.H {
 				"gym": gym,
 				"user_has_plan": user_has_plan,
@@ -1306,22 +1291,11 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 
 		user_has_plan = true
 
-		undoable_ex, can_do_all, err := db.CheckIfGymHasPlanEquipment(gym_id, user.CurrentPlan)
+		ex_no_eq, err = db.GetPlanGymExDiff(gym_id, user.CurrentPlan)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusPermanentRedirect, "/error-page")
 			return
-		}
-
-		if !can_do_all {
-			for ex := range undoable_ex {
-				cached_ex, ok := models.FetchCachedExercise(ex)
-				if ok {
-					ex_no_eq = append(ex_no_eq, *cached_ex)
-				} else {
-					log.Println("No cached exercise with id", ex)
-				}
-			}
 		}
 
 		c.HTML(http.StatusOK, "view_gym.html", gin.H {
@@ -1331,6 +1305,7 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 		})
 	}
 }
+
 
 // MIDDLEWARE
 

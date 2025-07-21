@@ -230,19 +230,13 @@ func CacheGym(g *Gym) error {
 }
 
 func (Db *DataBase) CacheAllGyms() error {
-	rows, err := Db.Data.Query("select id, name, location from gym")
+	gyms, err := Db.ReadAllGyms()
 	if err != nil {
 		return err
 	}
 
-	for rows.Next() {
-		var g Gym
-		err = rows.Scan(&g.Id, &g.Name, &g.Location)
-		if err != nil {
-			return err
-		}
-
-		err = CacheGym(&g)
+	for _, g := range gyms {
+		err = CacheGym(g)
 		if err != nil {
 			return err
 		}

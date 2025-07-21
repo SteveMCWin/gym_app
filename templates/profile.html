@@ -69,6 +69,7 @@
             <a href="/user/change_password">Change Password</a>
             <a href="/user/delete_account" class="btn">Delete Account</a>
             <a href="/user/{{ .usr.Id}}/plan/create" class="btn">Create Plan</a>
+            <a href="/gym/view/{{ .usr.CurrentGym.Id }}" class="btn">View Current Gym</a>
         {{ end }}
 
         <a href="/user/{{ .usr.Id }}/plan/view/{{ .current_plan.Id }}">View Current Plan</a>

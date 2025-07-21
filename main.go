@@ -126,7 +126,6 @@ func main() {
 
 	plan_router.GET("/create", HandleGetCreatePlan())
 	plan_router.POST("/create", HandlePostCreatePlan(&db))
-	plan_router.GET("/view/current", HandleGetViewCurrentPlan(&db))
 	plan_router.GET("/view/:wp_id", HandleGetViewPlan(&db))
 	plan_router.GET("/view_all", HandleGetViewAllUserPlans(&db))
 	plan_router.GET("/make_current/:wp_id", HandleGetMakePlanCurrent(&db))

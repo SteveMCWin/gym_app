@@ -59,7 +59,14 @@
         </select>
 
         <label for="current_gym">Current Gym</label>
-        <input type="text" id="current_gym" name="current_gym" value="{{.old_user.CurrentGym}}">
+        <select id="current_gym" name="current_gym">
+            <option value="">-- Select a gym --</option>
+            {{ range .Gyms }}
+                <option value="{{ .Id }}" {{ if eq .Id $.old_user.CurrentGym.Id }}selected{{ end }}>
+                    {{ .Name }} ({{ .Location }})
+                </option>
+            {{ end }}
+        </select>
 
         <button type="submit">Save Changes</button>
     </form>

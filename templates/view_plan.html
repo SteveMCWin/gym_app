@@ -32,6 +32,15 @@
         margin-right: 10px;
     }
 
+    .warning {
+        background-color: #fff3cd;
+        color: #856404;
+        padding: 15px;
+        border: 1px solid #ffeeba;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+
     .chart-container {
         width: 400px;        /* desired width */
         height: 400px;       /* desired height */
@@ -150,10 +159,23 @@ document.addEventListener("DOMContentLoaded", () => {
         <a class="btn" href="/user/{{ .user_id }}/plan/edit/{{ .wp.Id }}">Edit Plan</a>
     {{ end }}
     {{ if .MakeCurrent }}
-            <a class="btn btn-alt" href="/user/0/plan/make_current/{{ .wp.Id }}">Make Current</a>
+            <a class="btn btn-alt" href="/user/{{ .user_id }}/plan/make_current/{{ .wp.Id }}">Make Current</a>
     {{ end }}
     <button id="copyBtn">Copy</button>
 </div>
+
+{{ if .ex_no_eq }}
+    {{ if gt (len .ex_no_eq) 0 }}
+        <div class="warning">
+            <strong>Warning:</strong> your gym may not have the right equipment for the following exercises from this plan:
+            <ul>
+                {{ range .ex_no_eq }}
+                    <li>{{ .Name }}</li>
+                {{ end }}
+            </ul>
+        </div>
+    {{ end }}
+{{ end }}
 
 </body>
 </html>

@@ -105,6 +105,19 @@ func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
 	return usr, nil
 }
 
+func (Db *DataBase) ReadUserCurrentGymId(usr_id int) (int, error) {
+	var curr_gym_id int
+	err := Db.Data.QueryRow("select current_gym from users where id = ?", usr_id).Scan(
+		&curr_gym_id,
+	) // gets the public data of the user
+
+	if err != nil {
+		return 0, err
+	}
+
+	return curr_gym_id, nil
+}
+
 func (Db *DataBase) ReadUserShallow(usr_id int) (*User, error) {
 	usr := &User{}
 
