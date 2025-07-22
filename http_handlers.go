@@ -8,18 +8,15 @@ import (
 
 	"fitness_app/mail"
 	"fitness_app/models"
+	"fitness_app/defs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/csrf"
 )
 
-const (
-	NO_USER_ID = 0
-)
-
 func GetUserId(c *gin.Context) int {
 	if sessionManager.Exists(c.Request.Context(), "user_id") == false {
-		return NO_USER_ID
+		return defs.NO_USER_ID
 	}
 	return sessionManager.GetInt(c.Request.Context(), "user_id")
 }
@@ -57,7 +54,7 @@ func HandleGetCurrentProfile() func(c *gin.Context) { // this is used for redire
 		log.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusPermanentRedirect, "/user/login")
 			return
 		}
@@ -70,7 +67,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusPermanentRedirect, "/user/login")
 			return
 		}
@@ -82,7 +79,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		if user_id == NO_USER_ID {
+		if user_id == defs.NO_USER_ID {
 			user_id = requesting_user_id
 		}
 
@@ -106,7 +103,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 
 func HandleGetLogin() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if requesting_user_id := GetUserId(c); requesting_user_id != NO_USER_ID {
+		if requesting_user_id := GetUserId(c); requesting_user_id != defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(requesting_user_id))
 			return
 		}
@@ -135,7 +132,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 
 func HandleGetSignup() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if requesting_user_id := GetUserId(c); requesting_user_id != NO_USER_ID {
+		if requesting_user_id := GetUserId(c); requesting_user_id != defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/"+strconv.Itoa(requesting_user_id))
 			return
 		}
@@ -300,7 +297,6 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 		sessionManager.Clear(c.Request.Context())
-		// log.Println("Deleted user with id", usr_id)
 		c.Redirect(http.StatusSeeOther, "/")
 
 	}
@@ -317,7 +313,7 @@ func HandleGetLogout(db *models.DataBase) func(c *gin.Context) {
 func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			log.Println("Log in to edit your profile!")
 			c.Redirect(http.StatusPermanentRedirect, "/user/login")
 		}
@@ -398,7 +394,7 @@ func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID{
+		if requesting_user_id == defs.NO_USER_ID{
 			log.Println("You aren't logged in")
 			c.Redirect(http.StatusSeeOther, "/")
 			return
@@ -496,7 +492,7 @@ func HandlePostChangePasswordFromMail(db *models.DataBase) func(c *gin.Context) 
 func HandleGetCreatePlan() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -511,7 +507,7 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
 
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -557,7 +553,7 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
 
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -623,14 +619,14 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 			"user_id": user_id,
 			"requesting_user_id": requesting_user_id,
 			"ex_no_eq": ex_no_eq,
-		}) // WARNING: consider adding csrf protection especially if you enable editing the plan
+		})
 	}
 }
 
 func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -660,7 +656,7 @@ func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -701,7 +697,7 @@ func HandleGetMakePlanCurrent(db *models.DataBase) func(c *gin.Context) {
 func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -750,7 +746,7 @@ func HandlePostEditPlan(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -854,7 +850,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
 
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -891,7 +887,7 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -915,7 +911,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -972,7 +968,7 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -1022,7 +1018,7 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -1079,7 +1075,7 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
@@ -1147,18 +1143,24 @@ func HandleGetTracksViewLatest(db *models.DataBase) func(c *gin.Context) {
 func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == NO_USER_ID {
+		if requesting_user_id == defs.NO_USER_ID {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
 
 		user_id_param := c.Param("id")
-		// user_id, err := strconv.Atoi(user_id_param)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	c.Redirect(http.StatusSeeOther, "/error-page")
-		// 	return
-		// }
+		user_id, err := strconv.Atoi(user_id_param)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
+
+		if requesting_user_id != user_id {
+			log.Println("You cannot delete another persons track")
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
 
 		track_id_param := c.Param("track_id")
 		track_id, err := strconv.Atoi(track_id_param)
@@ -1168,18 +1170,18 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		track, err := db.ReadWorkoutTrack(track_id)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusPermanentRedirect, "/error-page")
-			return
-		}
+		// track, err := db.ReadWorkoutTrack(track_id)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusPermanentRedirect, "/error-page")
+		// 	return
+		// }
+		//
+		// if requesting_user_id != track.User {
+			// log.Println("You cannot delete another persons track")
+		// }
 
-		if requesting_user_id != track.User /* || user_id != track.User */{
-			log.Println("You cannot delete another persons track")
-		}
-
-		_, err = db.DeleteWorkoutTrack(track)
+		_, err = db.DeleteWorkoutTracks(track_id)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusPermanentRedirect, "/error-page")

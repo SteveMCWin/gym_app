@@ -293,7 +293,7 @@ func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, 
 	return plans, nil
 }
 
-func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNING: NOT TESTED PROPERLY
+func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
@@ -367,7 +367,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) { // WARNIN
 	return true, nil
 }
 
-func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([][]bool, error) { // WARNING: NOT TESTED AT ALL
+func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([][]bool, error) {
 
 	search_query := "select day_name, exercise, weight, unit, sets, min_reps, max_reps from exercise_day where plan = ? and day_order = ? and exercise_order = ?"
 	search_stmt, err := tx.Prepare(search_query)
@@ -430,46 +430,6 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([
 	return diff, nil // NOTE: THE TRUE ONES ARE THE ONES THAT CHANGED
 }
 
-func (Db *DataBase) DeleteAllWorkoutsForUser(user_id int) (bool, error) {
-
-	plans, err := Db.GetPlansUserUses(user_id)
-	if err != nil {
-		return false, err
-	}
-
-	deletion_chan := make(chan bool, len(plans))
-	finished_chan := make(chan bool)
-	counter := 0
-
-	for _, p := range plans {
-		go func(p_id int, ch chan<- bool) {
-			res, err := Db.DeleteWorkoutPlan(p_id)
-			if err != nil {
-				log.Println("Couldn't delete plan with id:", p_id)
-				log.Println(err)
-			}
-			ch <- res
-		}(p, deletion_chan)
-	}
-
-	for {
-		select {
-		case ok := <-deletion_chan:
-			if ok != true {
-				return false, errors.New("Couldn't delete all plans")
-			}
-			counter += 1
-			if counter >= len(plans) {
-				finished_chan <- true
-			}
-		case <-finished_chan:
-			// tx.Commit()
-			log.Println("plans deleted")
-			return true, nil
-		}
-	}
-}
-
 func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
 	rows, err := Db.Data.Query("select plan from users_plans where usr = ?", user_id)
 	if err != nil {
@@ -491,7 +451,7 @@ func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
 	return res, nil
 }
 
-func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
+func (Db *DataBase) DeleteWorkoutPlans(plan_ids ...int) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
@@ -513,26 +473,29 @@ func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
 
 	defer stmt_day.Close()
 
-	stmt_usr, err := tx.Prepare("DELETE from users_plans where plan = ?") // WARNING: I AM ASSUMING THAT USING OTHER PEOPLE'S PLANS WIL GENERATE A PLAN WITH A NEW ID
+	stmt_usr, err := tx.Prepare("DELETE from users_plans where plan = ?")
 	if err != nil {
 		return false, err
 	}
 
 	defer stmt_usr.Close()
 
-	_, err = stmt_usr.Exec(wp_id)
-	if err != nil {
-		return false, err
-	}
+	for _, p_id := range plan_ids {
+		_, err = stmt_usr.Exec(p_id)
+		if err != nil {
+			return false, err
+		}
 
-	_, err = stmt_day.Exec(wp_id)
-	if err != nil {
-		return false, err
-	}
+		_, err = stmt_day.Exec(p_id)
+		if err != nil {
+			return false, err
+		}
 
-	_, err = stmt_wp.Exec(wp_id)
-	if err != nil {
-		return false, err
+		_, err = stmt_wp.Exec(p_id)
+		if err != nil {
+			return false, err
+		}
+		log.Println("Deleted a plan with id:", p_id)
 	}
 
 	err = tx.Commit()

@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"fitness_app/defs"
 	"log"
 	"time"
 
@@ -60,7 +61,7 @@ func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
 			usr.IsTrainer,
 			usr.GymGoals,
 			usr.CurrentGym.Id,
-			1, // WARNING: I am assuming there will be a default plan number 1 that is used only for indicating there is no plan
+			defs.PLACEHOLDER_PLAN_ID,
 			time.Now().Format("2006-01-02")).Scan(&usr_id)
 
 		if err != nil {
@@ -290,7 +291,7 @@ func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { 
 	return true, nil
 }
 
-func (Db *DataBase) DeleteUser(id int) (bool, error) { // WARNING: should probably pass teh tx to the DeleteAll_ForUser functions so if one fails, all fail
+func (Db *DataBase) DeleteUser(user_id int) (bool, error) {
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
@@ -305,22 +306,26 @@ func (Db *DataBase) DeleteUser(id int) (bool, error) { // WARNING: should probab
 
 	defer stmt_usr.Close()
 
-	_, err = stmt_usr.Exec(id)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = Db.DeleteAllWorkoutsForUser(id)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = Db.DeleteAllTracksForUser(id)
+	_, err = stmt_usr.Exec(user_id)
 	if err != nil {
 		return false, err
 	}
 
 	tx.Commit()
+
+	users_plan_ids, err := Db.GetPlansUserUses(user_id)
+	_, err = Db.DeleteWorkoutPlans(users_plan_ids...)
+	if err != nil {
+		log.Println("Couldn't delete workout plans!")
+		return false, err
+	}
+
+	users_track_ids, err := Db.GetTracksUserUses(user_id)
+	_, err = Db.DeleteWorkoutTracks(users_track_ids...)
+	if err != nil {
+		log.Println("Couldn't delete workout tracks!")
+		return false, err
+	}
 
 	return true, nil
 }
