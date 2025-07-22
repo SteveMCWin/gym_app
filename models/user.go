@@ -290,7 +290,7 @@ func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { 
 	return true, nil
 }
 
-func (Db *DataBase) DeleteUser(id int) (bool, error) {
+func (Db *DataBase) DeleteUser(id int) (bool, error) { // WARNING: should probably pass teh tx to the DeleteAll_ForUser functions so if one fails, all fail
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
@@ -306,12 +306,16 @@ func (Db *DataBase) DeleteUser(id int) (bool, error) {
 	defer stmt_usr.Close()
 
 	_, err = stmt_usr.Exec(id)
-
 	if err != nil {
 		return false, err
 	}
 
 	_, err = Db.DeleteAllWorkoutsForUser(id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = Db.DeleteAllTracksForUser(id)
 	if err != nil {
 		return false, err
 	}

@@ -441,22 +441,15 @@ func (Db *DataBase) DeleteAllWorkoutsForUser(user_id int) (bool, error) {
 	finished_chan := make(chan bool)
 	counter := 0
 
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
 	for _, p := range plans {
-		go func() {
-			res, err := Db.DeleteWorkoutPlan(p, tx)
+		go func(p_id int, ch chan<- bool) {
+			res, err := Db.DeleteWorkoutPlan(p_id)
 			if err != nil {
-				log.Println("Couldn't delete plan with id:", p)
+				log.Println("Couldn't delete plan with id:", p_id)
 				log.Println(err)
 			}
-			deletion_chan <- res
-		}()
+			ch <- res
+		}(p, deletion_chan)
 	}
 
 	for {
@@ -470,7 +463,8 @@ func (Db *DataBase) DeleteAllWorkoutsForUser(user_id int) (bool, error) {
 				finished_chan <- true
 			}
 		case <-finished_chan:
-			tx.Commit()
+			// tx.Commit()
+			log.Println("plans deleted")
 			return true, nil
 		}
 	}
@@ -497,20 +491,13 @@ func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
 	return res, nil
 }
 
-func (Db *DataBase) DeleteWorkoutPlan(wp_id int, transaction ...*sql.Tx) (bool, error) {
-	var tx *sql.Tx
-	var err error
-
-	if len(transaction) == 0 {
-		tx, err = Db.Data.Begin()
-		if err != nil {
-			return false, err
-		}
-
-		defer tx.Rollback()
-	} else {
-		tx = transaction[0]
+func (Db *DataBase) DeleteWorkoutPlan(wp_id int) (bool, error) {
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return false, err
 	}
+
+	defer tx.Rollback()
 
 	stmt_wp, err := tx.Prepare("DELETE from workout_plan where id = ?")
 	if err != nil {
@@ -548,11 +535,9 @@ func (Db *DataBase) DeleteWorkoutPlan(wp_id int, transaction ...*sql.Tx) (bool, 
 		return false, err
 	}
 
-	if len(transaction) == 0 {
-		err = tx.Commit()
-		if err != nil {
-			return false, err
-		}
+	err = tx.Commit()
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil

@@ -276,12 +276,6 @@ func HandleGetDeleteAccount() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requsting_usr_id := GetUserId(c)
 
-		// if sessionManager.Exists(c.Request.Context(), "user_id") == false {
-		// 	requsting_usr_id = 0
-		// } else {
-		// 	requsting_usr_id = sessionManager.GetInt(c.Request.Context(), "user_id")
-		// }
-
 		c.HTML(http.StatusOK, "delete_accout.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "UserID": requsting_usr_id})
 	}
 }
@@ -295,11 +289,16 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 		if err != nil {
 			log.Println("Couldn't delete accoutn")
 			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/user/delete_account")
+			c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
 			return
 		}
 
-		db.DeleteUser(usr_id)
+		_, err = db.DeleteUser(usr_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
+			return
+		}
 		sessionManager.Clear(c.Request.Context())
 		// log.Println("Deleted user with id", usr_id)
 		c.Redirect(http.StatusSeeOther, "/")

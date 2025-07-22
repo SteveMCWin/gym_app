@@ -433,18 +433,89 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) DeleteWorkoutTrack(track *WorkoutTrack) (bool, error) { // WARNING: NOT USING tx.Rollback
+func (Db *DataBase) DeleteAllTracksForUser(user_id int) (bool, error) {
+
+	tracks, err := Db.GetTracksUserUses(user_id)
+	if err != nil {
+		return false, err
+	}
+
+	deletion_chan := make(chan bool, len(tracks))
+	finished_chan := make(chan bool)
+	counter := 0
+
+	// tx, err := Db.Data.Begin()
+	// if err != nil {
+	// 	return false, err
+	// }
+	//
+	// defer tx.Rollback()
+
+	for _, t := range tracks {
+		go func(t_id int, ch chan<- bool) {
+			track, err := Db.ReadWorkoutTrack(t_id)
+			if err != nil {
+				log.Println("Couldn't read workout track with id:", t_id)
+				log.Println(err)
+				ch <- false
+				return
+			}
+			res, err := Db.DeleteWorkoutTrack(track)
+			if err != nil {
+				log.Println("Couldn't delete workout track with id:", t)
+				log.Println(err)
+			}
+			ch <- res
+		}(t, deletion_chan)
+	}
+
+	for {
+		select {
+		case ok := <-deletion_chan:
+			if ok != true {
+				return false, errors.New("Couldn't delete all plans")
+			}
+			counter += 1
+			if counter >= len(tracks) {
+				finished_chan <- true
+			}
+		case <-finished_chan:
+			// tx.Commit()
+			log.Println("tracks deleted")
+			return true, nil
+		}
+	}
+}
+
+func (Db *DataBase) GetTracksUserUses(user_id int) ([]int, error) {
+	rows, err := Db.Data.Query("select id from workout_track where usr = ?", user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]int, 0)
+
+	for rows.Next() {
+		var tmp int
+		err = rows.Scan(&tmp)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, tmp)
+	}
+
+	return res, nil
+}
+
+func (Db *DataBase) DeleteWorkoutTrack(track *WorkoutTrack) (bool, error) {
+
 	tx, err := Db.Data.Begin()
 	if err != nil {
 		return false, err
 	}
 
 	defer tx.Rollback()
-
-	// track, err := Db.ReadWorkoutTrack(track_id)
-	// if err != nil {
-	// 	return false, err
-	// }
 
 	stmt_track, err := tx.Prepare("DELETE from workout_track where id = ?")
 	if err != nil {
@@ -491,7 +562,7 @@ func (Db *DataBase) DeleteWorkoutTrack(track *WorkoutTrack) (bool, error) { // W
 		}
 	}
 	
-	tx.Commit()
+	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}
