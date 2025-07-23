@@ -45,6 +45,12 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	SessionManager.Cookie.Persist = true
 	SessionManager.Cookie.Secure = true
 
+	if gin.Mode() == gin.TestMode {
+		log.Println("WARNING: TEST MODE")
+		SessionManager.Cookie.Secure = false // HTTP is fine for testing
+		SessionManager.Cookie.SameSite = http.SameSiteDefaultMode // Less restrictive for tests
+		SessionManager.Cookie.Name = "test_session" // Explicit name
+	} 
 
 	if domain == "" || csrf_key == "" {
 		log.Fatal("Missing domain and csrf_key")
@@ -110,10 +116,13 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
 
 	handler := SessionManager.LoadAndSave(router)
-	handler = csrf.Protect(
-		[]byte(csrf_key),
-		csrf.Secure(true),
-	)(handler)
+
+	if gin.Mode() != gin.TestMode {
+		handler = csrf.Protect(
+			[]byte(csrf_key),
+			csrf.Secure(true),
+		)(handler)
+	}
 
 	return handler
 }
@@ -439,7 +448,7 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 		user_id, err := strconv.Atoi(user_id_param)
 		if err != nil {
 			log.Println(err)
-			c.Redirect(http.StatusInternalServerError, "/error-page")
+			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
 
@@ -450,7 +459,9 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			c.Redirect(http.StatusSeeOther, "/error-page")
+			return
 		}
 
 		is_trainer := c.PostForm("is_trainer") != ""

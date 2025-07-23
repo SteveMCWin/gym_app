@@ -20,6 +20,7 @@ func (dataBase *DataBase) Close() {
 }
 
 func (Db *DataBase) InitDatabase(is_test ...bool) error {
+	log.Println("Initializing db")
 	if Db.is_open {
 		return errors.New("ERROR: Database already open")
 	}
