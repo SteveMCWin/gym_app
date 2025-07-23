@@ -2,9 +2,14 @@ package main
 
 import (
 	"net/http"
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
 
 	"fitness_app/handlers"
 	"fitness_app/models"
+	"fitness_app/mail"
 )
 
 func main() {
@@ -16,32 +21,24 @@ func main() {
 	}
 	defer db.Close()
 
-	err = db.CacheAllExercises()
+	err = godotenv.Load()
 	if err != nil {
-		panic(err)
+		log.Fatal("Couldn't load the .env")
 	}
 
-	err = db.CacheAllTargets()
-	if err != nil {
-		panic(err)
+	domain := os.Getenv("DOMAIN")
+	csrf_key := os.Getenv("CSRF_KEY")
+
+	mail_pass := os.Getenv("GMAIL_APP_PASS")
+	mail_sender := os.Getenv("MAIL_SENDER")
+
+	mail.InitMail(mail_pass, mail_sender)
+
+	if domain == "" || csrf_key == "" {
+		log.Fatal("Couldn't load .env variables")
 	}
 
-	err = db.LinkCachedExercisesAndTargets()
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.CacheAllPlansBasic()
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.CacheAllGyms()
-	if err != nil {
-		panic(err)
-	}
-
-	router := handlers.SetUpRouter(db)
+	router := handlers.SetUpRouter(domain, csrf_key, db)
 
 	http.ListenAndServe(":8080", router)
 }

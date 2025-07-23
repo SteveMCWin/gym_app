@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"os"
 	"html/template"
 
 	"fitness_app/mail"
@@ -18,12 +17,10 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/alexedwards/scs/sqlite3store"
 
-	"github.com/joho/godotenv"
 )
 
-var sessionManager *scs.SessionManager
-var domain string
-
+var SessionManager *scs.SessionManager
+var Domain string
 
 // used by gin to load template funcs
 func templateFuncs() template.FuncMap {
@@ -41,25 +38,19 @@ func templateFuncs() template.FuncMap {
     }
 }
 
-func SetUpRouter(db models.DataBase) http.Handler {
-	sessionManager = scs.New()
-	sessionManager.Lifetime = time.Hour * 24 * 30
-	sessionManager.Store = sqlite3store.New(db.Data)
-	sessionManager.Cookie.Persist = true
-	sessionManager.Cookie.Secure = true
+func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
+	SessionManager = scs.New()
+	SessionManager.Lifetime = time.Hour * 24 * 30
+	SessionManager.Store = sqlite3store.New(db.Data)
+	SessionManager.Cookie.Persist = true
+	SessionManager.Cookie.Secure = true
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Couldn't load the .env")
-	}
-
-	domain = os.Getenv("DOMAIN")
-	csrf_key := os.Getenv("CSRF_KEY")
 
 	if domain == "" || csrf_key == "" {
-		log.Fatal("Couldn't load .env variables")
+		log.Fatal("Missing domain and csrf_key")
 	}
 
+	Domain = domain
 
 	router := gin.Default()
 
@@ -118,7 +109,7 @@ func SetUpRouter(db models.DataBase) http.Handler {
 	gym_router.GET("/view_all", HandleGetViewAllGyms())
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
 
-	handler := sessionManager.LoadAndSave(router)
+	handler := SessionManager.LoadAndSave(router)
 	handler = csrf.Protect(
 		[]byte(csrf_key),
 		csrf.Secure(true),
@@ -128,10 +119,10 @@ func SetUpRouter(db models.DataBase) http.Handler {
 }
 
 func GetUserId(c *gin.Context) int {
-	if sessionManager.Exists(c.Request.Context(), "user_id") == false {
+	if SessionManager.Exists(c.Request.Context(), "user_id") == false {
 		return defs.NO_USER_ID
 	}
-	return sessionManager.GetInt(c.Request.Context(), "user_id")
+	return SessionManager.GetInt(c.Request.Context(), "user_id")
 }
 
 func HandleGetHome() func(c *gin.Context) {
@@ -232,7 +223,7 @@ func HandlePostLogin(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
+		SessionManager.Put(c.Request.Context(), "user_id", usr_id)
 		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
 	}
 }
@@ -264,7 +255,7 @@ func HandlePostSignup(db *models.DataBase) func(c *gin.Context) {
 			Recievers:    []string{usr_email},
 			Subject:      "Signup Verification",
 			TempaltePath: "./templates/mail_register.html",
-			ExtLink:      domain + "/user/signup/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
+			ExtLink:      Domain + "/user/signup/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
 
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
@@ -367,7 +358,7 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		sessionManager.Put(c.Request.Context(), "user_id", usr_id)
+		SessionManager.Put(c.Request.Context(), "user_id", usr_id)
 
 		delete(signupTokens, token_val)
 
@@ -403,7 +394,7 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
 			return
 		}
-		sessionManager.Clear(c.Request.Context())
+		SessionManager.Clear(c.Request.Context())
 		c.Redirect(http.StatusSeeOther, "/")
 
 	}
@@ -411,7 +402,7 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 
 func HandleGetLogout(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		sessionManager.Destroy(c.Request.Context())
+		SessionManager.Destroy(c.Request.Context())
 
 		c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 	}
@@ -522,7 +513,7 @@ func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 			Recievers:    []string{usr.Email},
 			Subject:      "Password Change",
 			TempaltePath: "./templates/mail_change_password.html",
-			ExtLink:      domain + "/user/change_password/" + strconv.Itoa(token_val) + "/" + usr.Email} // NOTE: the domain mustn't end with a '/'
+			ExtLink:      Domain + "/user/change_password/" + strconv.Itoa(token_val) + "/" + usr.Email} // NOTE: the domain mustn't end with a '/'
 
 		err = mail.SendMailHtml(new_mail)
 		if err != nil {
@@ -746,7 +737,7 @@ func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 		}
 
 		if user_id <= 0 {
-			user_id = sessionManager.GetInt(c.Request.Context(), "user_id")
+			user_id = SessionManager.GetInt(c.Request.Context(), "user_id")
 		}
 
 		wps, err := Db.ReadAllWorkoutsUserUses(user_id)
@@ -816,7 +807,7 @@ func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		if user_id != sessionManager.GetInt(c.Request.Context(), "user_id") {
+		if user_id != SessionManager.GetInt(c.Request.Context(), "user_id") {
 			log.Println("Cannot edit a plan that isn't yours!!")
 			c.Redirect(http.StatusTemporaryRedirect, "/")
 		}
@@ -919,7 +910,7 @@ func HandlePostForgotPassword(db *models.DataBase) func(c *gin.Context) {
 			Recievers:    []string{usr_email},
 			Subject:      "Password Change",
 			TempaltePath: "./templates/mail_change_password.html",
-			ExtLink:      domain + "/user/forgot_password/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
+			ExtLink:      Domain + "/user/forgot_password/from-mail/" + strconv.Itoa(token_val) + "/" + usr_email} // NOTE: the domain mustn't end with a '/'
 
 		err := mail.SendMailHtml(new_mail)
 		if err != nil {
@@ -1022,7 +1013,7 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
 			return
 		}
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		user_id := SessionManager.GetInt(c.Request.Context(), "user_id")
 
 		p_id := c.Param("plan_id")
 		if p_id == "" {
@@ -1308,7 +1299,7 @@ func HandleGetSearchForUser(db *models.DataBase) func(c *gin.Context) {
 			c.HTML(http.StatusOK, "search_users.html", gin.H{})
 		} else {
 			// return JSON results
-			results, err := db.SearchForUsers(query, sessionManager.GetInt(c.Request.Context(), "user_id"))
+			results, err := db.SearchForUsers(query, SessionManager.GetInt(c.Request.Context(), "user_id"))
 			if err != nil {
 				log.Println(err)
 				c.Redirect(http.StatusPermanentRedirect, "/error-page")
@@ -1380,7 +1371,7 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 		var user_has_plan bool
 		ex_no_eq := make([]models.Exercise, 0)
 
-		if !sessionManager.Exists(c.Request.Context(), "user_id") {
+		if !SessionManager.Exists(c.Request.Context(), "user_id") {
 			log.Println("render 1")
 			c.HTML(http.StatusOK, "view_gym.html", gin.H {
 				"gym": gym,
@@ -1390,7 +1381,7 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		user_id := sessionManager.GetInt(c.Request.Context(), "user_id")
+		user_id := SessionManager.GetInt(c.Request.Context(), "user_id")
 		user, err := db.ReadUser(user_id)
 		if err != nil {
 			log.Println(err)

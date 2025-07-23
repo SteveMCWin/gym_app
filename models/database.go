@@ -1,9 +1,10 @@
 package models
 
 import (
-	"os"
 	"database/sql"
 	"errors"
+	"log"
+	"os"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -18,8 +19,8 @@ func (dataBase *DataBase) Close() {
 	dataBase.is_open = false
 }
 
-func (dataBase *DataBase) InitDatabase() error {
-	if dataBase.is_open {
+func (Db *DataBase) InitDatabase(is_test ...bool) error {
+	if Db.is_open {
 		return errors.New("ERROR: Database already open")
 	}
 
@@ -28,20 +29,56 @@ func (dataBase *DataBase) InitDatabase() error {
 		return err
 	}
 
+	log.Println("cwd:", dir)
+
+	spellfix_relative_path := "/models/spellfix.so"
+
 	sql.Register("sqlite3_with_extension",
 		&sqlite3.SQLiteDriver{
 			Extensions: []string{
-				dir+"/models/spellfix.so",
+				dir + spellfix_relative_path,
 			},
 		},
 	)
 
-	dataBase.Data, err = sql.Open("sqlite3_with_extension", "models/database.db")
+	db_path := "models/"
+	if len(is_test) == 0 {
+		db_path = db_path + "database.db"
+	} else {
+		db_path = db_path + "test_database.db"
+	}
+
+	Db.Data, err = sql.Open("sqlite3_with_extension", db_path)
 	if err != nil {
 		return err
 	}
 
-	dataBase.is_open = true
+	Db.is_open = true
+
+	err = Db.CacheAllExercises()
+	if err != nil {
+		return err
+	}
+
+	err = Db.CacheAllTargets()
+	if err != nil {
+		return err
+	}
+
+	err = Db.LinkCachedExercisesAndTargets()
+	if err != nil {
+		return err
+	}
+
+	err = Db.CacheAllPlansBasic()
+	if err != nil {
+		return err
+	}
+
+	err = Db.CacheAllGyms()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
