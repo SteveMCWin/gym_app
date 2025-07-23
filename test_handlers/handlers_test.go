@@ -1,19 +1,20 @@
 package handlers_test
 
 import (
-	"fmt"
-	// "errors"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
-	// "strings"
-	"testing"
+	"strings"
+	"time"
 	"os"
+	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/assert"
+
 	// "github.com/stretchr/testify/require"
 
 	"fitness_app/handlers"
@@ -24,6 +25,7 @@ var db models.DataBase
 
 var domain string
 var csrf_key string
+var handler http.Handler
 
 func init() {
 
@@ -36,13 +38,6 @@ func init() {
 	if err != nil {
 		log.Fatal("Couldn't change to project root:", err)
 	}
-
-	// defer func() {
-	// 	err = os.Chdir(dir)
-	// 	if err != nil {
-	// 		log.Fatal("couldn't change to starting dir")
-	// 	}
-	// }()
 
 	err = godotenv.Load(".env")
 	if err != nil {
@@ -62,14 +57,14 @@ func init() {
 	if err != nil {
 		log.Fatal("Couldn't open DataBase, error:", err)
 	}
+
+
+	handler = handlers.SetUpRouter(domain, csrf_key, db)
 }
 
 func TestHandleGetProfile_NotLoggedIn(t *testing.T) {
-	log.Println("LoggedOut test")
-
 	test_user_id := 4
 
-	handler := handlers.SetUpRouter(domain, csrf_key, db)
 	req := httptest.NewRequest(http.MethodGet, "/user/"+strconv.Itoa(test_user_id), nil)
 	resp := httptest.NewRecorder()
 
@@ -82,42 +77,79 @@ func TestHandleGetProfile_NotLoggedIn(t *testing.T) {
 	assert.Contains(t, resp.Header().Get("Location"), "/user/login")
 }
 
-func TestHandleGetProfile_LoggedIn(t *testing.T) {
-	log.Println("LoggedIn test")
-
-	test_user_id := 4
-	
-	handler := handlers.SetUpRouter(domain, csrf_key, db)
-
-	sessionSetupReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/user/%d", test_user_id), nil)
-	sessionSetupResp := httptest.NewRecorder()
-	
-	handler.ServeHTTP(sessionSetupResp, sessionSetupReq)
-
-	t.Logf("Session setup response code: %d", sessionSetupResp.Code)
-	t.Logf("Session setup response body: %s", sessionSetupResp.Body.String())
-	t.Logf("Session setup response headers: %v", sessionSetupResp.Header())
-
-	var sessionCookie *http.Cookie
-	for _, cookie := range sessionSetupResp.Result().Cookies() {
-		t.Logf("fount cookie: %s", cookie.Name)
-		if cookie.Name == "test_session" { // Check your SCS config for actual cookie name
-			sessionCookie = cookie
-			break
-		}
-	}
-	
-	if sessionCookie == nil {
-		t.Fatal("No session cookie found after setting session")
-	}
-	
-	// Step 2: Make the actual test request with the session cookie
-	req := httptest.NewRequest(http.MethodGet, "/user/"+strconv.Itoa(test_user_id), nil)
-	req.AddCookie(sessionCookie)
-	
+func TestHandleGetLogIn(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/user/login", nil)
 	resp := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(resp)
+	c.Request = req
+
 	handler.ServeHTTP(resp, req)
-	
-	// Test the response
+
 	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestHandlePostLogIn(t *testing.T) {
+	g, ok := models.FetchCachedGym(3)
+	if !ok {
+		t.Error("Couldnt load gym with id 3")
+	}
+
+	test_user := models.User {
+		Name: "TestUser",
+		Email: "test@gmail.com",
+		Password: "right_password",
+		TrainingSince: time.Now(),
+		IsTrainer: false,
+		GymGoals: "strength",
+		CurrentGym: *g,
+		DateCreated: time.Now(),
+	}
+
+	user_id, err := db.CreateUser(test_user)
+	if err != nil {
+		t.Error("Couldn't create user!")
+	}
+
+	defer func() {
+		_, err = db.DeleteUser(user_id)
+		if err != nil {
+			t.Error("Couldn't delete user!")
+		}
+	}()
+
+	form := url.Values{}
+	form.Add("email", "test@gmail.com")
+	form.Add("password", "wrong_password")
+
+	req := httptest.NewRequest(http.MethodPost, "/user/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp := httptest.NewRecorder()
+
+	c, _ := gin.CreateTestContext(resp)
+	c.Request = req
+
+	handler.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusSeeOther, resp.Code)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/login")
+
+	log.Println("Should have said 'wrong password' just now")
+
+	form = url.Values{}
+	form.Add("email", "test@gmail.com")
+	form.Add("password", "right_password")
+
+	req = httptest.NewRequest(http.MethodPost, "/user/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp = httptest.NewRecorder()
+
+	c, _ = gin.CreateTestContext(resp)
+	c.Request = req
+
+	handler.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusSeeOther, resp.Code)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/"+strconv.Itoa(user_id))
+
 }

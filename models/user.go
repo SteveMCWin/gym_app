@@ -7,7 +7,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +24,7 @@ type User struct {
 	DateCreated   time.Time `json:"time_created"`
 }
 
-func (Db *DataBase) CreateUser(c *gin.Context, usr User) (int, error) {
+func (Db *DataBase) CreateUser(usr User) (int, error) {
 
 	log.Println("CREATING USERRRRR")
 

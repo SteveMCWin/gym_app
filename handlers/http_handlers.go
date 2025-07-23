@@ -360,7 +360,7 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 			CurrentGym:    *curr_gym,
 		}
 
-		usr_id, err := db.CreateUser(c, new_user)
+		usr_id, err := db.CreateUser(new_user)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
