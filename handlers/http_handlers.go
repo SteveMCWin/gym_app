@@ -379,6 +379,11 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 func HandleGetDeleteAccount() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		requsting_usr_id := GetUserId(c)
+		if requsting_usr_id == defs.NO_USER_ID {
+			log.Println("Must be logged in to delete account")
+			c.Redirect(http.StatusTemporaryRedirect, "/user/login")
+			return
+		}
 
 		c.HTML(http.StatusOK, "delete_accout.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "UserID": requsting_usr_id})
 	}
@@ -388,6 +393,11 @@ func HandlePostDeleteAccount(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		password := c.PostForm("password")
 		usr_id := GetUserId(c)
+		if usr_id == defs.NO_USER_ID {
+			log.Println("Must be logged in to delete account")
+			c.Redirect(http.StatusSeeOther, "/user/login")
+			return
+		}
 
 		err := db.AuthUserByID(usr_id, password)
 		if err != nil {
@@ -651,9 +661,7 @@ func HandlePostCreatePlan(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-
 		c.JSON(http.StatusOK, wp_id)
-		// c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(usr_id))
 	}
 }
 

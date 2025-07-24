@@ -20,26 +20,6 @@ type Mail struct { // NOTE: could rework this to have more stuff, such as the me
 	ExtLink      string
 }
 
-// func init() {
-// 	LoadedTempaltes = make(map[string]*template.Template)
-//
-// 	err := godotenv.Load()
-//
-// 	if err != nil {
-// 		err = godotenv.Load("../.env") // WARNING: this is quite hacky
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 	}
-//
-// 	mail_pass = os.Getenv("GMAIL_APP_PASS")
-// 	mail_sender = os.Getenv("MAIL_SENDER")
-//
-// 	if mail_pass == "" || mail_sender == "" {
-// 		log.Fatal("ERROR: No mail sending data found in .env file")
-// 	}
-// }
-
 func InitMail(m_pass, m_sender string) {
 	mail_pass = m_pass
 	mail_sender = m_sender
