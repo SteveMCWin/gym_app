@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Find Gyms</title>
+<style>
+    body { font-family: sans-serif; padding: 40px; background-color: #f9f9f9; text-align: center; }
+    .search-container { max-width: 400px; margin: auto; }
+    .results { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .gym-btn {
+        padding: 10px;
+        background-color: #4CAF50;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        display: block;
+    }
+</style>
+</head>
+<body>
+
+<h2>Find Gyms</h2>
+
+<div class="search-container">
+    <input type="text" id="searchQuery" placeholder="Enter gym name">
+    <button onclick="findGyms()">Find</button>
+</div>
+
+<div class="results" id="results"></div>
+
+<script>
+async function findGyms() {
+    const query = document.getElementById("searchQuery").value.trim();
+    const resultsContainer = document.getElementById("results");
+    resultsContainer.innerHTML = "";  // clear old results
+
+    if (!query) {
+        return;
+    }
+
+    const res = await fetch(`/gym/search?name=` + encodeURIComponent(query));
+    if (!res.ok) {
+        resultsContainer.innerHTML = "<p style='color:red;'>Error searching gyms.</p>";
+        return;
+    }
+
+    const gyms = await res.json();
+
+    if (gyms.length === 0) {
+        resultsContainer.innerHTML = "<p>No gyms found.</p>";
+        return;
+    }
+
+    for (const gym of gyms) {
+        const link = document.createElement("a");
+        link.href = `/gym/view/${gym.id}`;
+        link.textContent = gym.name;
+        link.className = "gym-btn";
+        resultsContainer.appendChild(link);
+    }
+}
+</script>
+
+</body>
+</html>

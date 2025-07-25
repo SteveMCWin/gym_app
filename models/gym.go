@@ -2,6 +2,9 @@ package models
 
 import (
 	"log"
+	"github.com/lithammer/fuzzysearch/fuzzy"
+	"slices"
+	"cmp"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -154,4 +157,24 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 	tx.Commit()
 
 	return nil
+}
+
+func SearchForGym(name string) []*Gym {
+	all_gyms := FetchAllCachedGyms()
+	gym_names := make([]string, len(all_gyms))
+	for i, g := range all_gyms {
+		gym_names[i] = g.Name
+	}
+
+	ranks := fuzzy.RankFindFold(name, gym_names)
+	slices.SortFunc(ranks, func(a, b fuzzy.Rank) int {
+		return cmp.Compare(a.Distance, b.Distance)
+	})
+
+	res := make([]*Gym, 0)
+	for _, rank := range ranks {
+		res = append(res, all_gyms[rank.OriginalIndex])
+	}
+
+	return res
 }
