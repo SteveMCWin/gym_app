@@ -1,20 +1,23 @@
 package models
 
 import (
+	"cmp"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"log"
+	"slices"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type Gym struct {
-	Id int `json:"id"`
-	Name string `json:"name"`
-	Location string `json:"location"`
+	Id        int          `json:"id"`
+	Name      string       `json:"name"`
+	Location  string       `json:"location"`
 	Equipment []*Equipment `json:"equipment"`
 }
 
 type Equipment struct {
-	Id int `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -154,4 +157,24 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 	tx.Commit()
 
 	return nil
+}
+
+func SearchForGym(name string) []*Gym {
+	all_gyms := FetchAllCachedGyms()
+	gym_names := make([]string, len(all_gyms))
+	for i, g := range all_gyms {
+		gym_names[i] = g.Name
+	}
+
+	ranks := fuzzy.RankFindFold(name, gym_names)
+	slices.SortFunc(ranks, func(a, b fuzzy.Rank) int {
+		return cmp.Compare(a.Distance, b.Distance)
+	})
+
+	res := make([]*Gym, 0)
+	for _, rank := range ranks {
+		res = append(res, all_gyms[rank.OriginalIndex])
+	}
+
+	return res
 }

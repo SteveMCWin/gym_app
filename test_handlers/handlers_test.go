@@ -16,8 +16,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 
-	// "github.com/stretchr/testify/require"
-
 	"fitness_app/handlers"
 	"fitness_app/models"
 )

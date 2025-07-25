@@ -111,6 +111,7 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
 
+	gym_router.GET("/search", HandleGetSearchForGym())
 	gym_router.GET("/view_all", HandleGetViewAllGyms())
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
 
@@ -1429,6 +1430,21 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 			"user_has_plan": user_has_plan,
 			"ex_no_eq":      ex_no_eq,
 		})
+	}
+}
+
+func HandleGetSearchForGym() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// just render some html for the search page
+		query := c.Query("name")
+		if query == "" {
+			// render page
+			c.HTML(http.StatusOK, "search_gyms.html", gin.H{})
+		} else {
+			// return JSON results
+			results := models.SearchForGym(query)
+			c.JSON(200, results)
+		}
 	}
 }
 
