@@ -34,20 +34,20 @@ const (
 var test_user_id int
 
 func init() {
-	_, err := os.Getwd()
-	if err != nil {
-		log.Fatal("Couldn't get current working directory:", err)
-	}
-
-	err = os.Chdir("..")
-	if err != nil {
-		log.Fatal("Couldn't change to project root:", err)
-	}
 
 	// NOTE: the env vars can be read without loading the env when running the test in github actions, so first check that
 	domain = os.Getenv("DOMAIN")
 	csrf_key = os.Getenv("CSRF_KEY")
 	if domain == "" || csrf_key == "" {
+		_, err := os.Getwd()
+		if err != nil {
+			log.Fatal("Couldn't get current working directory:", err)
+		}
+
+		err = os.Chdir("..")
+		if err != nil {
+			log.Fatal("Couldn't change to project root:", err)
+		}
 		err = godotenv.Load(".env")
 		if err != nil {
 			log.Println("Couldn't load the .env:", err)
@@ -63,7 +63,7 @@ func init() {
 
 	gin.SetMode(gin.TestMode)
 
-	err = db.InitDatabase(true)
+	err := db.InitDatabase(true)
 	if err != nil {
 		log.Fatal("Couldn't open DataBase, error:", err)
 	}
