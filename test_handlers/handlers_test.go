@@ -36,9 +36,7 @@ var test_user_id int
 func init() {
 
 	// NOTE: the env vars can be read without loading the env when running the test in github actions, so first check that
-	domain = os.Getenv("DOMAIN")
-	csrf_key = os.Getenv("CSRF_KEY")
-	if domain == "" || csrf_key == "" {
+	if os.Getenv("CI") == "" {
 		_, err := os.Getwd()
 		if err != nil {
 			log.Fatal("Couldn't get current working directory:", err)
@@ -50,12 +48,12 @@ func init() {
 		}
 		err = godotenv.Load(".env")
 		if err != nil {
-			log.Println("Couldn't load the .env:", err)
+			log.Fatal("Couldn't load the .env:", err)
 		}
-
-		domain = os.Getenv("DOMAIN")
-		csrf_key = os.Getenv("CSRF_KEY")
 	}
+
+	domain = os.Getenv("DOMAIN")
+	csrf_key = os.Getenv("CSRF_KEY")
 
 	if domain == "" || csrf_key == "" {
 		log.Fatal("Couldn't load .env variables")
@@ -69,7 +67,7 @@ func init() {
 	}
 	err = db.CacheData()
 	if err != nil {
-		log.Fatal("Couldn't open DataBase, error:", err)
+		log.Fatal("Couldn't cache data, error:", err)
 	}
 
 	handler = handlers.SetUpRouter(domain, csrf_key, db)
