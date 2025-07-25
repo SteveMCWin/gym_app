@@ -65,6 +65,7 @@ func init() {
 	if err != nil {
 		log.Fatal("Couldn't open DataBase, error:", err)
 	}
+
 	err = db.CacheData()
 	if err != nil {
 		log.Fatal("Couldn't cache data, error:", err)
