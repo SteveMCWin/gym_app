@@ -35,4 +35,9 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-
+      env:
+        CI: true
+        DOMAIN: ${{ secrets.DOMAIN }}
+        CSRF_KEY: ${{ secrets.CSRF_KEY }}
+        MAIL_SENDER: ${{ secrets.MAIL_SENDER}}
+        GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS}}
