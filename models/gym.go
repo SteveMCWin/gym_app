@@ -1,23 +1,23 @@
 package models
 
 import (
-	"log"
-	"github.com/lithammer/fuzzysearch/fuzzy"
-	"slices"
 	"cmp"
+	"github.com/lithammer/fuzzysearch/fuzzy"
+	"log"
+	"slices"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type Gym struct {
-	Id int `json:"id"`
-	Name string `json:"name"`
-	Location string `json:"location"`
+	Id        int          `json:"id"`
+	Name      string       `json:"name"`
+	Location  string       `json:"location"`
 	Equipment []*Equipment `json:"equipment"`
 }
 
 type Equipment struct {
-	Id int `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }
 
