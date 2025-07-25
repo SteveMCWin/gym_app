@@ -43,8 +43,6 @@ func (Db *DataBase) InitDatabase(is_test ...bool) error {
 	db_path := "models/"
 	if len(is_test) == 0 {
 		db_path = db_path + "database.db"
-	} else if os.Getenv("CI") != "" {
-		db_path = ":memory:"
 	} else {
 		db_path = db_path + "test_database.db"
 	}
