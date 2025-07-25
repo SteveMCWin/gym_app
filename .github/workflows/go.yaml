@@ -21,6 +21,28 @@ jobs:
       with:
         go-version: '1.24.4'
 
+    - name: Install SQLite and build spellfix extension
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
+        wget https://raw.githubusercontent.com/sqlite/sqlite/master/ext/misc/spellfix.c -O spellfix.c
+        gcc -shared -fPIC -I/usr/include -o models/spellfix.so spellfix.c -lsqlite3
+        rm spellfix.c
+
+    - name: Setup test database
+      run: |
+        cd models
+        touch test_database.db
+        sqlite3 test_database.db < create_exercise_table.sql
+        sqlite3 test_database.db < create_user_table.sql
+        sqlite3 test_database.db < create_plan_table.sql
+        sqlite3 test_database.db < create_gym_table.sql
+        sqlite3 test_database.db < create_track_table.sql
+        sqlite3 test_database.db < create_sessions_table.sql
+        sqlite3 test_database.db < create_spellfix_users.sql
+        sqlite3 test_database.db < populate_exercise_table.sql
+        cd ..
+
     # - name: Go Tidy
     #   run: go mod tidy && git diff --exit-code
     # 
@@ -29,10 +51,15 @@ jobs:
     #
     # - name: Go Mod Verify
     #   run: go mod verify
-      
+
     - name: Build
-      run: go build -v ./...
+      run: go build -v 
 
     - name: Test
       run: go test -v ./...
-
+      env:
+        CI: true
+        DOMAIN: ${{ secrets.DOMAIN }}
+        CSRF_KEY: ${{ secrets.CSRF_KEY }}
+        MAIL_SENDER: ${{ secrets.MAIL_SENDER}}
+        GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS}}
