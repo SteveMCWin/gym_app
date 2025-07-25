@@ -25,17 +25,17 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
-        wget https://www.sqlite.org/src/raw/ext/misc/spellfix.c
+        wget https://raw.githubusercontent.com/sqlite/sqlite/master/ext/misc/spellfix.c -O spellfix.c
         gcc -shared -fPIC -I/usr/include -o models/spellfix.so spellfix.c -lsqlite3
-    # - name: Go Tidy
-    #   run: go mod tidy && git diff --exit-code
+    - name: Go Tidy
+      run: go mod tidy && git diff --exit-code
     # 
     # - name: Go Mod
     #   run: go mod download
     #
     # - name: Go Mod Verify
     #   run: go mod verify
-      
+
     - name: Build
       run: go build -v ./...
 
