@@ -1,22 +1,21 @@
 package handlers
 
 import (
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
-	"html/template"
 
+	"fitness_app/defs"
 	"fitness_app/mail"
 	"fitness_app/models"
-	"fitness_app/defs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/csrf"
 
-	"github.com/alexedwards/scs/v2"
 	"github.com/alexedwards/scs/sqlite3store"
-
+	"github.com/alexedwards/scs/v2"
 )
 
 var SessionManager *scs.SessionManager
@@ -24,18 +23,18 @@ var Domain string
 
 // used by gin to load template funcs
 func templateFuncs() template.FuncMap {
-    return template.FuncMap{
-        "until": func(n int) []int {
+	return template.FuncMap{
+		"until": func(n int) []int {
 			result := make([]int, n)
 			for i := range n {
 				result[i] = i
 			}
 			return result
-        },
+		},
 		"add": func(a, b int) int {
 			return a + b
 		},
-    }
+	}
 }
 
 func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
@@ -47,10 +46,10 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 
 	if gin.Mode() == gin.TestMode {
 		log.Println("WARNING: TEST MODE")
-		SessionManager.Cookie.Secure = false // HTTP is fine for testing
+		SessionManager.Cookie.Secure = false                      // HTTP is fine for testing
 		SessionManager.Cookie.SameSite = http.SameSiteDefaultMode // Less restrictive for tests
-		SessionManager.Cookie.Name = "test_session" // Explicit name
-	} 
+		SessionManager.Cookie.Name = "test_session"               // Explicit name
+	}
 
 	if domain == "" || csrf_key == "" {
 		log.Fatal("Missing domain and csrf_key")
@@ -60,7 +59,7 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 
 	router := gin.Default()
 
-    router.SetFuncMap(templateFuncs())
+	router.SetFuncMap(templateFuncs())
 	router.LoadHTMLGlob("templates/*") // loads all templates from the templates directory
 
 	router.GET("/", HandleGetHome())
@@ -204,7 +203,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "profile.html", gin.H{ "usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan })
+		c.HTML(http.StatusOK, "profile.html", gin.H{"usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan})
 	}
 }
 
@@ -301,9 +300,9 @@ func HandleGetSignupFromMail() func(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "make_account.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
-			"ID": token_val,
-			"Email": usr_email,
-			"Gyms": models.FetchAllCachedGyms(),
+			"ID":             token_val,
+			"Email":          usr_email,
+			"Gyms":           models.FetchAllCachedGyms(),
 		})
 	}
 }
@@ -442,15 +441,14 @@ func HandleGetEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "edit_profile.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
-			"old_user": old_user,
-			"Gyms": models.FetchAllCachedGyms(),
+			"old_user":       old_user,
+			"Gyms":           models.FetchAllCachedGyms(),
 		})
 	}
 }
 
 func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
-
 
 		requesting_user_id := GetUserId(c)
 
@@ -513,7 +511,7 @@ func HandleGetChangePassword(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
-		if requesting_user_id == defs.NO_USER_ID{
+		if requesting_user_id == defs.NO_USER_ID {
 			log.Println("You aren't logged in")
 			c.Redirect(http.StatusSeeOther, "/")
 			return
@@ -730,12 +728,12 @@ func HandleGetViewPlan(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.HTML(http.StatusOK, "view_plan.html", gin.H{
-			"wp": wp,
-			"MakeCurrent": makeCurrent,
-			"PlanAnalysis": plan_analysis,
-			"user_id": user_id,
+			"wp":                 wp,
+			"MakeCurrent":        makeCurrent,
+			"PlanAnalysis":       plan_analysis,
+			"user_id":            user_id,
 			"requesting_user_id": requesting_user_id,
-			"ex_no_eq": ex_no_eq,
+			"ex_no_eq":           ex_no_eq,
 		})
 	}
 }
@@ -766,7 +764,7 @@ func HandleGetViewAllUserPlans(Db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "view_all_user_plans.html", gin.H{ "wps": wps, "user_id": user_id })
+		c.HTML(http.StatusOK, "view_all_user_plans.html", gin.H{"wps": wps, "user_id": user_id})
 	}
 }
 
@@ -852,9 +850,9 @@ func HandleGetEditPlan(db *models.DataBase) func(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "edit_plan.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
-			"wp": wp,
-			"all_exercises": models.FetchAllCachedExercises(),
-			"user_id": user_id,
+			"wp":             wp,
+			"all_exercises":  models.FetchAllCachedExercises(),
+			"user_id":        user_id,
 		})
 	}
 }
@@ -975,7 +973,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 		user_id_param := c.Param("user_id")
 		var user_id int
 		var err error
-		if user_id_param == "" || user_id_param == "0"{
+		if user_id_param == "" || user_id_param == "0" {
 			user_id = requesting_user_id
 		} else {
 			user_id, err = strconv.Atoi(c.Param("user_id"))
@@ -994,7 +992,7 @@ func HandleGetTracks(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.HTML(http.StatusOK, "users_tracks.html", gin.H{
-			"tracks": workout_tracks,
+			"tracks":             workout_tracks,
 			"requesting_user_id": user_id,
 		})
 	}
@@ -1018,8 +1016,8 @@ func HandleGetTracksCreate(db *models.DataBase) func(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "create_track.html", gin.H{
 			csrf.TemplateTag: csrf.TemplateField(c.Request),
-			"plans": plans,
-			"user_id": requesting_user_id,
+			"plans":          plans,
+			"user_id":        requesting_user_id,
 		})
 	}
 }
@@ -1253,7 +1251,6 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 func HandleGetTracksViewLatest(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
-
 	}
 }
 
@@ -1295,7 +1292,7 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 		// }
 		//
 		// if requesting_user_id != track.User {
-			// log.Println("You cannot delete another persons track")
+		// log.Println("You cannot delete another persons track")
 		// }
 
 		_, err = db.DeleteWorkoutTracks(track_id)
@@ -1348,7 +1345,7 @@ func HandleGetPlanJSON(db *models.DataBase) func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{})
 		}
 
-		// WARNING: Really bad performance-vise. Try a solution with a custom MarshalJSON or something. But for now it works
+		// WARNING: Bad performance-vise. Try a solution with a custom MarshalJSON or something. But for now it works
 		for _, d := range wp.Days {
 			for _, e := range d.Exercises {
 				for _, t := range e.Exercise.Targets {
@@ -1365,7 +1362,7 @@ func HandleGetViewAllGyms() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		gyms := models.FetchAllCachedGyms()
 
-		c.HTML(http.StatusOK, "view_all_gyms.html", gin.H{ "gyms": gyms })
+		c.HTML(http.StatusOK, "view_all_gyms.html", gin.H{"gyms": gyms})
 	}
 }
 
@@ -1392,10 +1389,10 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 
 		if !SessionManager.Exists(c.Request.Context(), "user_id") {
 			log.Println("render 1")
-			c.HTML(http.StatusOK, "view_gym.html", gin.H {
-				"gym": gym,
+			c.HTML(http.StatusOK, "view_gym.html", gin.H{
+				"gym":           gym,
 				"user_has_plan": user_has_plan,
-				"ex_no_eq": ex_no_eq,
+				"ex_no_eq":      ex_no_eq,
 			})
 			return
 		}
@@ -1410,10 +1407,10 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 
 		if user.CurrentPlan <= 1 {
 			log.Println("render 2")
-			c.HTML(http.StatusOK, "view_gym.html", gin.H {
-				"gym": gym,
+			c.HTML(http.StatusOK, "view_gym.html", gin.H{
+				"gym":           gym,
 				"user_has_plan": user_has_plan,
-				"ex_no_eq": ex_no_eq,
+				"ex_no_eq":      ex_no_eq,
 			})
 			return
 		}
@@ -1427,14 +1424,13 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "view_gym.html", gin.H {
-			"gym": gym,
+		c.HTML(http.StatusOK, "view_gym.html", gin.H{
+			"gym":           gym,
 			"user_has_plan": user_has_plan,
-			"ex_no_eq": ex_no_eq,
+			"ex_no_eq":      ex_no_eq,
 		})
 	}
 }
-
 
 // MIDDLEWARE
 

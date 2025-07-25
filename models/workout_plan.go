@@ -157,35 +157,6 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 	return nil
 }
 
-// func (Db *DataBase) DeleteWorkoutPlanFromUser(usr_id, plan_id int) error {
-// 	tx, err := Db.Data.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	defer tx.Rollback()
-//
-// 	stmt, err := tx.Prepare("DELETE from workout_plan where user = ? AND plan = ?")
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	defer stmt.Close()
-//
-// 	_, err = stmt.Exec(usr_id, plan_id)
-//
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	err = tx.Commit()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
-
 func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 	wp := &WorkoutPlan{Id: id}
 
@@ -242,6 +213,29 @@ func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) 
 
 	return res, nil
 }
+
+// basically a simpler version of the funciton above for when I only need the ids
+func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
+	rows, err := Db.Data.Query("select plan from users_plans where usr = ?", user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]int, 0)
+
+	for rows.Next() {
+		var tmp int
+		err = rows.Scan(&tmp)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, tmp)
+	}
+
+	return res, nil
+}
+
 
 func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, error) {
 
@@ -428,27 +422,6 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([
 	}
 
 	return diff, nil // NOTE: THE TRUE ONES ARE THE ONES THAT CHANGED
-}
-
-func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
-	rows, err := Db.Data.Query("select plan from users_plans where usr = ?", user_id)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]int, 0)
-
-	for rows.Next() {
-		var tmp int
-		err = rows.Scan(&tmp)
-		if err != nil {
-			return nil, err
-		}
-
-		res = append(res, tmp)
-	}
-
-	return res, nil
 }
 
 func (Db *DataBase) DeleteWorkoutPlans(plan_ids ...int) (bool, error) {

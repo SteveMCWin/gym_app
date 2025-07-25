@@ -1,6 +1,8 @@
 package models
 
-import "errors"
+import (
+	"errors"
+)
 
 var cachedExercises map[int]*Exercise
 var exercisesByName map[string]int

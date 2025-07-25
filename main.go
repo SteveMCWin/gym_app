@@ -1,15 +1,15 @@
 package main
 
 import (
-	"net/http"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
 
 	"fitness_app/handlers"
-	"fitness_app/models"
 	"fitness_app/mail"
+	"fitness_app/models"
 )
 
 func main() {
@@ -20,6 +20,10 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
+	err = db.CacheData()
+	if err != nil {
+		panic(err)
+	}
 
 	err = godotenv.Load()
 	if err != nil {

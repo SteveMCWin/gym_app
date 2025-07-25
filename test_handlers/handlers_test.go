@@ -30,13 +30,12 @@ var handler http.Handler
 
 const (
 	TEST_USER_EMAIL = "test@gmail.com"
-	TEST_USER_PASS = "right_password"
+	TEST_USER_PASS  = "right_password"
 )
 
 var test_user_id int
 
 func init() {
-
 	_, err := os.Getwd()
 	if err != nil {
 		log.Fatal("Couldn't get current working directory:", err)
@@ -65,7 +64,10 @@ func init() {
 	if err != nil {
 		log.Fatal("Couldn't open DataBase, error:", err)
 	}
-
+	err = db.CacheData()
+	if err != nil {
+		log.Fatal("Couldn't open DataBase, error:", err)
+	}
 
 	handler = handlers.SetUpRouter(domain, csrf_key, db)
 }
@@ -112,15 +114,15 @@ func TestCreateUser(t *testing.T) {
 		t.Error("Couldnt load gym with id 3")
 	}
 
-	test_user := models.User {
-		Name: "TestUser",
-		Email: TEST_USER_EMAIL,
-		Password: TEST_USER_PASS,
+	test_user := models.User{
+		Name:          "TestUser",
+		Email:         TEST_USER_EMAIL,
+		Password:      TEST_USER_PASS,
 		TrainingSince: time.Now(),
-		IsTrainer: false,
-		GymGoals: "strength",
-		CurrentGym: *g,
-		DateCreated: time.Now(),
+		IsTrainer:     false,
+		GymGoals:      "strength",
+		CurrentGym:    *g,
+		DateCreated:   time.Now(),
 	}
 
 	// Creating test user
@@ -187,12 +189,11 @@ func TestHandlePostLogIn(t *testing.T) {
 			break
 		}
 	}
-	
+
 	assert.NotNil(t, sessionCookie, "Session cookie should be set after login")
 
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
 	assert.Contains(t, resp.Header().Get("Location"), "/user/"+strconv.Itoa(test_user_id))
-
 
 	// Once the user is logged in, going to the login page should redirect him to the profile page
 	req = httptest.NewRequest(http.MethodGet, "/user/login", nil)
@@ -278,9 +279,8 @@ func TestCreatePlan(t *testing.T) {
 			break
 		}
 	}
-	
-	assert.NotNil(t, sessionCookie, "Session cookie should be set after login")
 
+	assert.NotNil(t, sessionCookie, "Session cookie should be set after login")
 
 	req = httptest.NewRequest(http.MethodPost, "/user/"+strconv.Itoa(test_user_id)+"/plan/create", strings.NewReader(plan_json))
 	req.Header.Set("Content-Type", "application/json")
@@ -302,7 +302,6 @@ func TestCreatePlan(t *testing.T) {
 	log.Println("Response body:", string(body))
 	wp_id_str := string(body)
 
-
 	req = httptest.NewRequest(http.MethodGet, "/user/"+strconv.Itoa(test_user_id)+"/plan/view/"+wp_id_str, nil)
 	req.AddCookie(sessionCookie)
 	resp = httptest.NewRecorder()
@@ -313,7 +312,6 @@ func TestCreatePlan(t *testing.T) {
 	handler.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 
 }
 
@@ -353,12 +351,11 @@ func TestDeleteAccount(t *testing.T) {
 			break
 		}
 	}
-	
+
 	assert.NotNil(t, sessionCookie, "Session cookie should be set after login")
 
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
 	assert.Contains(t, resp.Header().Get("Location"), "/user/"+strconv.Itoa(test_user_id))
-
 
 	// Logged out user and correct password
 	req = httptest.NewRequest(http.MethodGet, "/user/delete_account", nil)
@@ -385,7 +382,6 @@ func TestDeleteAccount(t *testing.T) {
 
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
 	assert.Contains(t, resp.Header().Get("Location"), "/user/login")
-
 
 	// Logged in user and wrong password
 	req = httptest.NewRequest(http.MethodGet, "/user/delete_account", nil)
@@ -439,4 +435,3 @@ func TestDeleteAccount(t *testing.T) {
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
 	assert.Contains(t, resp.Header().Get("Location"), "/")
 }
-

@@ -3,14 +3,13 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"os"
 
 	"github.com/mattn/go-sqlite3"
 )
 
 type DataBase struct {
-	Data      *sql.DB
+	Data    *sql.DB
 	is_open bool
 }
 
@@ -19,8 +18,9 @@ func (dataBase *DataBase) Close() {
 	dataBase.is_open = false
 }
 
+// initializes the database
+// if there are no parameters passed in the database used is one for testing purposes
 func (Db *DataBase) InitDatabase(is_test ...bool) error {
-	log.Println("Initializing db")
 	if Db.is_open {
 		return errors.New("ERROR: Database already open")
 	}
@@ -29,8 +29,6 @@ func (Db *DataBase) InitDatabase(is_test ...bool) error {
 	if err != nil {
 		return err
 	}
-
-	log.Println("cwd:", dir)
 
 	spellfix_relative_path := "/models/spellfix.so"
 
@@ -56,7 +54,15 @@ func (Db *DataBase) InitDatabase(is_test ...bool) error {
 
 	Db.is_open = true
 
-	err = Db.CacheAllExercises()
+	return nil
+}
+
+func (Db *DataBase) CacheData() error {
+	if !Db.is_open {
+		return errors.New("Cannot cache data from closed database")
+	}
+
+	err := Db.CacheAllExercises()
 	if err != nil {
 		return err
 	}
@@ -82,6 +88,5 @@ func (Db *DataBase) InitDatabase(is_test ...bool) error {
 	}
 
 	return nil
+
 }
-
-
