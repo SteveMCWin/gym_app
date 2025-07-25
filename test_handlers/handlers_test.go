@@ -44,13 +44,18 @@ func init() {
 		log.Fatal("Couldn't change to project root:", err)
 	}
 
-	err = godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Couldn't open DataBase, error:", err)
-	}
-
+	// NOTE: the env vars can be read without loading the env when running the test in github actions, so first check that
 	domain = os.Getenv("DOMAIN")
 	csrf_key = os.Getenv("CSRF_KEY")
+	if domain == "" || csrf_key == "" {
+		err = godotenv.Load(".env")
+		if err != nil {
+			log.Println("Couldn't load the .env:", err)
+		}
+
+		domain = os.Getenv("DOMAIN")
+		csrf_key = os.Getenv("CSRF_KEY")
+	}
 
 	if domain == "" || csrf_key == "" {
 		log.Fatal("Couldn't load .env variables")
