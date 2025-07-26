@@ -4,59 +4,131 @@
 <meta charset="UTF-8">
 <title>Find Gyms</title>
 <style>
-    body { font-family: sans-serif; padding: 40px; background-color: #f9f9f9; text-align: center; }
-    .search-container { max-width: 400px; margin: auto; }
-    .results { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-    .gym-btn {
-        padding: 10px;
-        background-color: #4CAF50;
-        color: white;
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        padding: 40px;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .search-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    input[type="text"] {
+        padding: 8px;
+        width: 250px;
+        font-size: 16px;
+    }
+    button {
+        padding: 8px 16px;
+        font-size: 16px;
+        margin-left: 8px;
+    }
+    table {
+        width: 80%;
+        margin: 0 auto;
+        border-collapse: collapse;
+        background-color: #fff;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+        padding: 12px 20px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    tr:hover {
+        background-color: #f1f1f1;
+    }
+    a {
         text-decoration: none;
-        border-radius: 5px;
-        display: block;
+        color: #007bff;
+    }
+    a:hover {
+        text-decoration: underline;
     }
 </style>
 </head>
 <body>
 
-<h2>Find Gyms</h2>
+<h1>Find Gyms</h1>
 
 <div class="search-container">
     <input type="text" id="searchQuery" placeholder="Enter gym name">
     <button onclick="findGyms()">Find</button>
 </div>
 
-<div class="results" id="results"></div>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Location</th>
+        </tr>
+    </thead>
+    <tbody id="results">
+        {{ range .all_gyms }}
+        <tr>
+            <td><a href="/gym/view/{{ .Id }}">{{ .Name }}</a></td>
+            <td>{{ .Location }}</td>
+        </tr>
+        {{ else }}
+        <tr>
+            <td colspan="2" style="text-align:center;">No gyms available.</td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
 
 <script>
 async function findGyms() {
     const query = document.getElementById("searchQuery").value.trim();
     const resultsContainer = document.getElementById("results");
-    resultsContainer.innerHTML = "";  // clear old results
+    resultsContainer.innerHTML = ""; // Clear old rows
 
     if (!query) {
+        // Reset to full list by reloading
+        location.href = "/gym/search";
         return;
     }
 
-    const res = await fetch(`/gym/search?name=` + encodeURIComponent(query));
-    if (!res.ok) {
-        resultsContainer.innerHTML = "<p style='color:red;'>Error searching gyms.</p>";
-        return;
-    }
+    try {
+        const res = await fetch(`/gym/search?name=` + encodeURIComponent(query));
+        if (!res.ok) {
+            resultsContainer.innerHTML = `<tr><td colspan="2" style="color:red; text-align:center;">Error searching gyms.</td></tr>`;
+            return;
+        }
 
-    const gyms = await res.json();
+        const gyms = await res.json();
 
-    if (gyms.length === 0) {
-        resultsContainer.innerHTML = "<p>No gyms found.</p>";
-        return;
-    }
+        if (gyms.length === 0) {
+            resultsContainer.innerHTML = `<tr><td colspan="2" style="text-align:center;">No gyms found.</td></tr>`;
+            return;
+        }
 
-    for (const gym of gyms) {
-        const link = document.createElement("a");
-        link.href = `/gym/view/${gym.id}`;
-        link.textContent = gym.name;
-        link.className = "gym-btn";
-        resultsContainer.appendChild(link);
+        for (const gym of gyms) {
+            const row = document.createElement("tr");
+
+            const nameCell = document.createElement("td");
+            const link = document.createElement("a");
+            link.href = `/gym/view/${gym.id}`;
+            link.textContent = gym.name;
+            nameCell.appendChild(link);
+
+            const locationCell = document.createElement("td");
+            locationCell.textContent = gym.location;
+
+            row.appendChild(nameCell);
+            row.appendChild(locationCell);
+
+            resultsContainer.appendChild(row);
+        }
+    } catch (err) {
+        resultsContainer.innerHTML = `<tr><td colspan="2" style="color:red; text-align:center;">Something went wrong.</td></tr>`;
     }
 }
 </script>

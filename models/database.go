@@ -19,7 +19,7 @@ func (dataBase *DataBase) Close() {
 }
 
 // initializes the database
-// if there are no parameters passed in the database used is one for testing purposes
+// if any parameters are passed, uses the test_database
 func (Db *DataBase) InitDatabase(is_test ...bool) error {
 	if Db.is_open {
 		return errors.New("ERROR: Database already open")
@@ -57,6 +57,7 @@ func (Db *DataBase) InitDatabase(is_test ...bool) error {
 	return nil
 }
 
+// stores some stuff from the database to runtime memory for convenience and speed
 func (Db *DataBase) CacheData() error {
 	if !Db.is_open {
 		return errors.New("Cannot cache data from closed database")

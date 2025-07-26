@@ -26,8 +26,6 @@ type User struct {
 
 func (Db *DataBase) CreateUser(usr User) (int, error) {
 
-	log.Println("CREATING USERRRRR")
-
 	if usr.Email == "" {
 		return 0, errors.New("Cannot store a user without their email")
 	}
@@ -63,6 +61,11 @@ func (Db *DataBase) CreateUser(usr User) (int, error) {
 			defs.PLACEHOLDER_PLAN_ID,
 			time.Now().Format("2006-01-02")).Scan(&usr_id)
 
+		if err != nil {
+			return 0, err
+		}
+
+		err = Db.AddUserToGym(usr.CurrentGym.Id, usr_id)
 		if err != nil {
 			return 0, err
 		}
@@ -323,6 +326,12 @@ func (Db *DataBase) DeleteUser(user_id int) (bool, error) {
 	_, err = Db.DeleteWorkoutTracks(users_track_ids...)
 	if err != nil {
 		log.Println("Couldn't delete workout tracks!")
+		return false, err
+	}
+
+	err = Db.RemoveUserFromAllGyms(user_id)
+	if err != nil {
+		log.Println("Couldn't remove user from gyms")
 		return false, err
 	}
 

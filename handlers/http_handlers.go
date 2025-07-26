@@ -112,7 +112,6 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
 
 	gym_router.GET("/search", HandleGetSearchForGym())
-	gym_router.GET("/view_all", HandleGetViewAllGyms())
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
 
 	handler := SessionManager.LoadAndSave(router)
@@ -453,17 +452,24 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
 
-		user_id_param := c.Param("id")
-		user_id, err := strconv.Atoi(user_id_param)
+		// user_id_param := c.Param("id")
+		// user_id, err := strconv.Atoi(user_id_param)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusSeeOther, "/error-page")
+		// 	return
+		// }
+		//
+		// if requesting_user_id != user_id {
+		// 	log.Println("You cannot edit other peoples profiles")
+		// 	c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(requesting_user_id))
+		// }
+
+		user, err := db.ReadUser(requesting_user_id)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
-		}
-
-		if requesting_user_id != user_id {
-			log.Println("You cannot edit other peoples profiles")
-			c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(requesting_user_id))
 		}
 
 		training_since, err := time.Parse("2006-01-02", c.PostForm("training_since"))
@@ -475,18 +481,15 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		is_trainer := c.PostForm("is_trainer") != ""
 
-		curr_gym_id, err := strconv.Atoi(c.PostForm("current_gym"))
+		new_gym_id, err := strconv.Atoi(c.PostForm("new_gym"))
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
 
-		curr_gym, ok := models.FetchCachedGym(curr_gym_id)
-		if !ok {
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
+		if new_gym_id != user.CurrentGym.Id {
+			db.UpdateUsersGyms(requesting_user_id, user.CurrentGym.Id, new_gym_id)
 		}
 
 		edited_user := models.User{
@@ -495,7 +498,7 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 			TrainingSince: training_since,
 			IsTrainer:     is_trainer,
 			GymGoals:      c.PostForm("gym_goals"),
-			CurrentGym:    *curr_gym,
+			CurrentGym:    models.Gym{ Id: new_gym_id },
 		}
 
 		_, err = db.UpdateUserPublicData(&edited_user)
@@ -1359,14 +1362,6 @@ func HandleGetPlanJSON(db *models.DataBase) func(c *gin.Context) {
 	}
 }
 
-func HandleGetViewAllGyms() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		gyms := models.FetchAllCachedGyms()
-
-		c.HTML(http.StatusOK, "view_all_gyms.html", gin.H{"gyms": gyms})
-	}
-}
-
 func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
@@ -1436,10 +1431,11 @@ func HandleGetViewGym(db *models.DataBase) func(c *gin.Context) {
 func HandleGetSearchForGym() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// just render some html for the search page
+		all_gyms := models.FetchAllCachedGyms()
 		query := c.Query("name")
 		if query == "" {
 			// render page
-			c.HTML(http.StatusOK, "search_gyms.html", gin.H{})
+			c.HTML(http.StatusOK, "search_gyms.html", gin.H{ "all_gyms": all_gyms })
 		} else {
 			// return JSON results
 			results := models.SearchForGym(query)
