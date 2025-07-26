@@ -58,8 +58,8 @@
             <option value="bodybuilding" {{if eq .old_user.GymGoals "bodybuilding"}}selected{{end}}>Bodybuilding</option>
         </select>
 
-        <label for="current_gym">Current Gym</label>
-        <select id="current_gym" name="current_gym">
+        <label for="new_gym">Current Gym</label>
+        <select id="new_gym" name="new_gym">
             <option value="">-- Select a gym --</option>
             {{ range .Gyms }}
                 <option value="{{ .Id }}" {{ if eq .Id $.old_user.CurrentGym.Id }}selected{{ end }}>

@@ -8,7 +8,6 @@ CREATE TABLE users (
     training_since DATE,
     is_trainer BOOLEAN NOT NULL DEFAULT 0,
     gym_goals TEXT CHECK (gym_goals IN ('health', 'strength', 'mobility', 'athleticism', 'bodybuilding', '')),
-    -- current_gym TEXT,
     current_gym INTEGER,
     current_plan INTEGER DEFAULT 1,
     date_created DATE NOT NULL,
