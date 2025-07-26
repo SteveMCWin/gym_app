@@ -30,10 +30,11 @@ func (Db *DataBase) CreateUser(usr User) (int, error) {
 		return 0, errors.New("Cannot store a user without their email")
 	}
 
+	// used to check if the user already has an account
 	err := Db.Data.QueryRow("select id from users where email like ?", usr.Email).Scan(&usr.Id)
 
+	// user is signing up for the first time
 	if err != nil {
-		// user is signing up
 		statement := "insert into users (name, email, password, training_since, is_trainer, gym_goals, current_gym, current_plan, date_created) values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id"
 		var stmt *sql.Stmt
 		stmt, err = Db.Data.Prepare(statement)
@@ -205,14 +206,9 @@ func (Db *DataBase) EmailExists(email string) bool {
 }
 
 func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return false, err
-	}
 
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("UPDATE users SET name = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE id = ?")
+	statement := "UPDATE users SET name = ?, training_since = ?, is_trainer = ?, gym_goals = ?, current_gym = ? WHERE id = ?"
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return false, err
 	}
@@ -225,8 +221,6 @@ func (Db *DataBase) UpdateUserPublicData(usr *User) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-
 	return true, nil
 }
 
@@ -236,14 +230,8 @@ func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 		return false, errors.New("Cannot make plan current if user doesn't even use it")
 	}
 
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("UPDATE users SET current_plan = ? WHERE Id = ?")
+	statement := "UPDATE users SET current_plan = ? WHERE Id = ?"
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return false, err
 	}
@@ -256,20 +244,12 @@ func (Db *DataBase) UpdateUserCurrentPlan(usr_id, plan_id int) (bool, error) {
 		return false, err
 	}
 
-	tx.Commit()
-
 	return true, nil
 }
 
 func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { // before this, should send email from which you change your password
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("UPDATE users SET password = ? WHERE Id = ?")
+	statement := "UPDATE users SET password = ? WHERE Id = ?"
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return false, err
 	}
@@ -287,8 +267,6 @@ func (Db *DataBase) UpdateUserPassword(usr_id int, pass string) (bool, error) { 
 	if err != nil {
 		return false, err
 	}
-
-	tx.Commit()
 
 	return true, nil
 }
@@ -343,6 +321,8 @@ func (Db *DataBase) SearchForUsers(username string, requesting_user_id int) ([]U
 	if err != nil {
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	matches := make([]User, 0)
 

@@ -14,4 +14,4 @@ This poject is the continuation of learning backend web development, which start
 - Gym - workout plan compatability analysis
 
 ## Screenshots
-![alt text][https://github.com/SteveMCWin/gym_app/screenshots/plan_example.png]
+![Check out the screenshots directory](screenshots/plan_example.png?raw=true)
