@@ -31,8 +31,10 @@
 </head>
 <body>
     <h1>Welcome to My Web App</h1>
-    <a href="/user/login" class="btn">Login</a>
-    <a href="/user/signup" class="btn">Sign Up</a>
+    {{ if eq .user_id 0 }}
+        <a href="/user/login" class="btn">Login</a>
+        <a href="/user/signup" class="btn">Sign Up</a>
+    {{ end }}
     <a href="/user/{{ .user_id }}" class="btn">Profile</a>
     <a href="/user/search" class="btn">Find User</a>
     <a href="/gym/search" class="btn">Find Gyms</a>

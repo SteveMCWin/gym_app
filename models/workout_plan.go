@@ -51,6 +51,7 @@ type Target struct {
 
 type PlanAnalysis struct {
 	SetsPerTarget map[*Target]int
+	// TODO: expand analysis. check for exercise types, is max_reps high etc.
 }
 
 func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
@@ -125,14 +126,8 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 		return nil
 	}
 
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("insert into users_plans (usr, plan, date_added) values (?, ?, ?)")
+	statement := "insert into users_plans (usr, plan, date_added) values (?, ?, ?)"
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return err
 	}
@@ -145,11 +140,6 @@ func (Db *DataBase) AddWorkoutPlanToUser(usr_id, plan_id int) error { // adds th
 		time.Now(),
 	)
 
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -220,6 +210,8 @@ func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	res := make([]int, 0)
 
@@ -527,10 +519,6 @@ func (Db *DataBase) CreateExerciseDays(wp *WorkoutPlan) error {
 
 func ValidateExerciseDayInput(ex ExerciseData) error {
 
-	// if ex_day.Plan == 0 || ex_day.Exercise == 0 {
-	// 	return errors.New("Cannot create ExerciseDay without Plan and Exercise ID")
-	// }
-
 	if ex.Sets <= 0 {
 		ex.Sets = 1
 	}
@@ -550,29 +538,6 @@ func ValidateExerciseDayInput(ex ExerciseData) error {
 	return nil
 
 }
-
-// func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseDay, error) {
-// 	ex_day := &ExerciseDay{Id: ex_day_id}
-//
-// 	err := Db.Data.QueryRow("select plan, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order, exercise_order from workout_plan where id = ?", ex_day_id).Scan(
-// 		&ex_day.Plan,
-// 		&ex_day.DayName,
-// 		&ex_day.Exercise,
-// 		&ex_day.Weight,
-// 		&ex_day.Unit,
-// 		&ex_day.Sets,
-// 		&ex_day.MinReps,
-// 		&ex_day.MaxReps,
-// 		&ex_day.DayOrder,
-// 		&ex_day.ExerciseOrder,
-// 	)
-//
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	return ex_day, nil
-// }
 
 func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 	rows, err := Db.Data.Query("select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
@@ -627,14 +592,9 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 }
 
 func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return false, err
-	}
 
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("DELETE from exercise_day where id = ?")
+	statement := "DELETE from exercise_day where id = ?"
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return false, err
 	}
@@ -643,11 +603,6 @@ func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
 
 	_, err = stmt.Exec(id)
 
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return false, err
 	}

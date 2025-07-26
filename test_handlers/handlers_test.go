@@ -314,7 +314,6 @@ func TestCreatePlan(t *testing.T) {
 	handler.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 }
 
 func TestDeleteAccount(t *testing.T) {
