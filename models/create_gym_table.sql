@@ -20,8 +20,8 @@ DROP TABLE IF EXISTS gym;
 CREATE TABLE gym (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    location TEXT NOT NULL
-    description TEXT
+    location TEXT NOT NULL,
+    description TEXT DEFAULT 'No description'
     -- figure out how to add working hours
 );
 
