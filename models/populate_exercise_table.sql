@@ -262,10 +262,28 @@ INSERT INTO exercise_equipment (equipment, exercise) VALUES (21, 45); -- romania
 DELETE from gym;
 DELETE FROM sqlite_sequence WHERE name='gym';
 
-INSERT into gym (name, location) values ('No Gym', '');
-INSERT into gym (name, location) values ('Prime', 'Svetozara Miletica 43');
-INSERT into gym (name, location) values ('Muscle Gym', 'Kisacka 5');
-INSERT into gym (name, location) values ('Stevina Garaza', 'Nema ulice 130');
+INSERT into gym (name, location, description) values ('No Gym', '', '');
+INSERT into gym (name, location, description) values ('Prime', 'Svetozara Miletica 43', 'Old school style gym with a great atmosphere');
+INSERT into gym (name, location, description) values ('Muscle Gym', 'Kisacka 5', 'Idk, prolly a decent gym');
+INSERT into gym (name, location, description) values ('Stevina Garaza', 'Nema ulice 130', 'Where the magic happens');
+
+----------------
+--- GYM TAGS ---
+----------------
+
+DELETE from gym_tag;
+DELETE FROM sqlite_sequence WHERE name='gym_tag';
+
+INSERT into gym_tag (name) values ('crossfit'), ('women only'), ('powerlifting'), ('mma'), ('fitpass'), ('comercial'), ('home gym');
+
+-----------------
+--- GYMS TAGS ---
+-----------------
+
+DELETE from gyms_tags;
+DELETE FROM sqlite_sequence WHERE(name='gyms_tags');
+
+INSERT into gyms_tags(gym, tag) values (2, 'powerlifting'), (2, 'fitpass'), (3, 'comerial'), (3, 'crossfit'), (3, 'fitpass'), (4, 'home gym');
 
 -------------
 --- GYM-EQ---

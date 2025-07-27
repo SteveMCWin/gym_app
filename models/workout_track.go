@@ -51,7 +51,7 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 
 	defer stmt_wt.Close()
 
-	statement_te := "insert into track_exercise (track, ex_day) values (?, ?) returning 1"
+	statement_te := "insert into track_exercise (track, ex_day) values (?, ?)"
 	stmt_te, err := Db.Data.Prepare(statement_te)
 	if err != nil {
 		return 0, err
@@ -79,10 +79,9 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 		return 0, err
 	}
 
-	var tmp int
 	for _, day := range ex_days {
 		for _, ex := range day.Exercises {
-			err = stmt_te.QueryRow(workout_track_id, ex.Id).Scan(&tmp) // Perhaps this should be an Exec and not QueryRow
+			_, err = stmt_te.Exec(workout_track_id, ex.Id) // Perhaps this should be an Exec and not QueryRow
 			if err != nil {
 				log.Println("HERE 3")
 				return 0, err
