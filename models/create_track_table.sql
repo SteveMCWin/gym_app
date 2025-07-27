@@ -32,10 +32,10 @@ CREATE TABLE workout_track (
 DROP TABLE IF EXISTS track_exercise;
 
 -- NOTE: this table is used to track which ex_days are for which track since ex days can be changed in a plan, but the track needs to remember them
-CREATE TABLE track_exercise (
-    track INTEGER,
-    ex_day INTEGER,
-    PRIMARY KEY(track, ex_day),
-    FOREIGN KEY(track) REFERENCES workout_track(id),
-    FOREIGN KEY(ex_day) REFERENCES exercise_day(id)
-);
+-- CREATE TABLE track_exercise (
+--     track INTEGER,
+--     ex_day INTEGER,
+--     PRIMARY KEY(track, ex_day),
+--     FOREIGN KEY(track) REFERENCES workout_track(id),
+--     FOREIGN KEY(ex_day) REFERENCES exercise_day(id)
+-- );

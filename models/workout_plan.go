@@ -7,6 +7,8 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+
+	"fitness_app/defs"
 )
 
 type WorkoutPlan struct {
@@ -325,12 +327,12 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	for i := range len(old_ex_days) {
 		for j := range len(old_ex_days[i].Exercises) {
 			if i >= len(diff) || j >= len(diff[i]) {
-				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
+				_, err := stmt_ex.Exec(defs.PLACEHOLDER_PLAN_ID, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
 					return false, err
 				}
 			} else if diff[i][j] {
-				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
+				_, err := stmt_ex.Exec(defs.PLACEHOLDER_PLAN_ID, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
 					return false, err
 				}
