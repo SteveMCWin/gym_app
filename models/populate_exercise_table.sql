@@ -267,6 +267,24 @@ INSERT into gym (name, location) values ('Prime', 'Svetozara Miletica 43');
 INSERT into gym (name, location) values ('Muscle Gym', 'Kisacka 5');
 INSERT into gym (name, location) values ('Stevina Garaza', 'Nema ulice 130');
 
+----------------
+--- GYM TAGS ---
+----------------
+
+DELETE from gym_tag;
+DELETE FROM sqlite_sequence WHERE name='gym_tag';
+
+INSERT into gym_tag (name) values ('crossfit'), ('women only'), ('powerlifting'), ('mma'), ('fitpass'), ('comercial'), ('home gym');
+
+-----------------
+--- GYMS TAGS ---
+-----------------
+
+DELETE from gyms_tags;
+DELETE FROM sqlite_sequence WHERE(name='gyms_tags')
+
+INSERT into gyms_tags(gym, tag) values (2, 'powerlifting'), (2, 'fitpass'), (3, 'comerial'), (3, 'crossfit'), (3, 'fitpass'), (4, 'home gym')
+
 -------------
 --- GYM-EQ---
 -------------

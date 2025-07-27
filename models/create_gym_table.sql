@@ -21,6 +21,8 @@ CREATE TABLE gym (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     location TEXT NOT NULL
+    description TEXT
+    -- figure out how to add working hours
 );
 
 DROP TABLE IF EXISTS gym_equipment;
@@ -41,4 +43,20 @@ CREATE TABLE gym_users (
     PRIMARY KEY (gym_id, user_id),
     FOREIGN KEY (gym_id) REFERENCES gym(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+DROP TABLE IF EXISTS gym_tag;
+
+CREATE TABLE gym_tag (
+    name TEXT PRIMARY KEY
+);
+
+DROP TABLE IF EXISTS gyms_tags;
+
+CREATE TABLE gyms_tags (
+    gym INTEGER,
+    tag TEXT,
+    PRIMARY KEY (gym, tag),
+    FOREIGN KEY (gym) REFERENCES gym(id),
+    FOREIGN KEY (tag) REFERENCES gym_tag(name)
 );

@@ -13,7 +13,9 @@ type Gym struct {
 	Id            int          `json:"id"`
 	Name          string       `json:"name"`
 	Location      string       `json:"location"`
+	Description   string       `json:"description"`
 	NumberOfUsers int          `json:"number_of_users"`
+	Tags          []string     `json:"tags"`
 	Equipment     []*Equipment `json:"equipment"`
 }
 
@@ -23,9 +25,14 @@ type Equipment struct {
 }
 
 func (Db *DataBase) ReadGym(gym_id int) (*Gym, error) {
-	row := Db.Data.QueryRow("select name, location from gym where id = ?", gym_id)
-	g := &Gym{ Id: gym_id }
-	err := row.Scan(&g.Name, &g.Location)
+	row := Db.Data.QueryRow("select name, location, description from gym where id = ?", gym_id)
+	g := &Gym{Id: gym_id}
+	err := row.Scan(&g.Name, &g.Location, &g.Description)
+	if err != nil {
+		return nil, err
+	}
+
+	g.Tags, err = Db.ReadGymTags(g.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +52,7 @@ func (Db *DataBase) ReadGym(gym_id int) (*Gym, error) {
 }
 
 func (Db *DataBase) ReadAllGyms() ([]*Gym, error) {
-	rows, err := Db.Data.Query("select id, name, location from gym")
+	rows, err := Db.Data.Query("select id, name, location, description from gym")
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +63,12 @@ func (Db *DataBase) ReadAllGyms() ([]*Gym, error) {
 
 	for rows.Next() {
 		g := &Gym{}
-		err = rows.Scan(&g.Id, &g.Name, &g.Location)
+		err = rows.Scan(&g.Id, &g.Name, &g.Location, &g.Description)
+		if err != nil {
+			return nil, err
+		}
+
+		g.Tags, err = Db.ReadGymTags(g.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -76,6 +88,29 @@ func (Db *DataBase) ReadAllGyms() ([]*Gym, error) {
 	}
 
 	return gyms, nil
+}
+
+func (Db *DataBase) ReadGymTags(gym_id int) ([]string, error) {
+	rows, err := Db.Data.Query("select tag from gyms_tags where gym = ?", gym_id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	res := make([]string, 0)
+
+	for rows.Next() {
+		var tag string
+		err = rows.Scan(&tag)
+		if err != nil {
+			return nil, err
+		}
+		
+		res = append(res, tag)
+	}
+
+	return res, nil
 }
 
 func (Db *DataBase) ReadGymEquipment(gym_id int) ([]*Equipment, error) {
@@ -160,7 +195,7 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 	}
 	defer tx.Rollback()
 
-	statement := "insert into gym (name, location) values (?, ?) returning id"
+	statement := "insert into gym (name, location, description) values (?, ?, ?) returning id"
 	stmt_gym, err := tx.Prepare(statement)
 	if err != nil {
 		return err
@@ -168,10 +203,18 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 
 	defer stmt_gym.Close()
 
-	err = stmt_gym.QueryRow(g.Name, g.Location).Scan(&g.Id)
+	err = stmt_gym.QueryRow(g.Name, g.Location, g.Description).Scan(&g.Id)
 	if err != nil {
 		return err
 	}
+
+	statement = "insert into gyms_tags (gym, tag) values (?, ?)"
+	stmt_tags, err := tx.Prepare(statement)
+	if err != nil {
+		return err
+	}
+
+	defer stmt_tags.Close()
 
 	statement = "insert into gym_equipment (gym_id, equipment) values (?, ?)"
 	stmt_eq, err := tx.Prepare(statement)
@@ -180,6 +223,14 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 	}
 
 	defer stmt_eq.Close()
+
+	for _, tag := range g.Tags {
+		// WARNING: should check if the tag exists
+		_, err = stmt_tags.Exec(g.Id, tag)
+		if err != nil {
+			return err
+		}
+	}
 
 	for _, eq := range g.Equipment {
 		_, err = stmt_eq.Exec(g.Id, eq.Id)
@@ -314,7 +365,6 @@ func (Db *DataBase) UpdateUsersGyms(user_id, old_gym_id, new_gym_id int) error {
 			return err
 		}
 		err = CacheGym(new_g)
-		// cache the gym
 	}
 
 	return err
