@@ -7,14 +7,16 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+
+	"fitness_app/defs"
 )
 
 type WorkoutPlan struct {
-	Id          int       `json:"id"` // id of the workout plan
-	Name        string    `json:"name"`
-	Creator     int       `json:"creator"`
-	Description string    `json:"description"`
-	MakeCurrent bool      `json:"make_current"`
+	Id          int     `json:"id"` // id of the workout plan
+	Name        string  `json:"name"`
+	Creator     int     `json:"creator"`
+	Description string  `json:"description"`
+	MakeCurrent bool    `json:"make_current"`
 	Days        []ExDay `json:"days"`
 }
 
@@ -228,7 +230,6 @@ func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
 	return res, nil
 }
 
-
 func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, error) {
 
 	sql_query := `
@@ -306,8 +307,6 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 		return false, err
 	}
 
-
-
 	old_ex_days, err := Db.ReadAllExerciseDaysFromPlan(wp.Id)
 	if err != nil {
 		return false, err
@@ -325,12 +324,12 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	for i := range len(old_ex_days) {
 		for j := range len(old_ex_days[i].Exercises) {
 			if i >= len(diff) || j >= len(diff[i]) {
-				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
+				_, err := stmt_ex.Exec(defs.PLACEHOLDER_PLAN_ID, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
 					return false, err
 				}
 			} else if diff[i][j] {
-				_, err := stmt_ex.Exec(1, old_ex_days[i].Exercises[j].Id)
+				_, err := stmt_ex.Exec(defs.PLACEHOLDER_PLAN_ID, old_ex_days[i].Exercises[j].Id)
 				if err != nil {
 					return false, err
 				}
@@ -343,12 +342,10 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 		return false, err
 	}
 
-
 	err = Db.CachePlanBasic(wp.Id)
 	if err != nil {
 		return false, err
 	}
-
 
 	return true, nil
 }
@@ -390,20 +387,20 @@ func (Db *DataBase) getExerciseDayDifference(new_wp *WorkoutPlan, tx *sql.Tx) ([
 			var old_day_name string
 			var tmp_ex ExerciseData
 			err = search_stmt.QueryRow(new_wp.Id, i, j).Scan(&old_day_name, &tmp_ex.Exercise.Id, &tmp_ex.Weight, &tmp_ex.Unit, &tmp_ex.Sets, &tmp_ex.MinReps, &tmp_ex.MaxReps)
-			if  err != nil ||
-			ex.Exercise.Id != tmp_ex.Exercise.Id ||
-			ex.Weight != tmp_ex.Weight ||
-			ex.Unit != tmp_ex.Unit ||
-			ex.Sets != tmp_ex.Sets ||
-			ex.MinReps != tmp_ex.MinReps ||
-			ex.MaxReps != tmp_ex.MaxReps {
+			if err != nil ||
+				ex.Exercise.Id != tmp_ex.Exercise.Id ||
+				ex.Weight != tmp_ex.Weight ||
+				ex.Unit != tmp_ex.Unit ||
+				ex.Sets != tmp_ex.Sets ||
+				ex.MinReps != tmp_ex.MinReps ||
+				ex.MaxReps != tmp_ex.MaxReps {
 				log.Println("Error in search stmt:", err)
 				diff[i][j] = true
 				err := insert_stmt.QueryRow(new_wp.Id, day.Name, ex.Exercise.Id, ex.Weight, ex.Unit, ex.Sets, ex.MinReps, ex.MaxReps, i, j).Scan(&tmp_ex.Id)
 				if err != nil {
 					return nil, err
 				}
-			} else if old_day_name != day.Name{
+			} else if old_day_name != day.Name {
 				_, err = day_name_stmt.Exec(day.Name, new_wp.Id, i)
 				if err != nil {
 					return nil, err
@@ -539,6 +536,10 @@ func ValidateExerciseDayInput(ex ExerciseData) error {
 
 }
 
+// func (Db *DataBase) ReadExerciseDay(ex_day_id int) (*ExerciseData, error) {
+// 	row, err := Db.Data.QueryRow("select plan, day")
+// }
+
 func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 	rows, err := Db.Data.Query("select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order from exercise_day where plan = ? order by day_order asc, exercise_order asc", plan_id)
 	if err != nil {
@@ -575,7 +576,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromPlan(plan_id int) ([]ExDay, error) {
 		if !ok {
 			return nil, err
 		}
-		// tmp.Targets = nil // NOTE: this is needed for converting the plan to json. If the targets are left as is, the json gets into an infinite loop
+
 		ex.Exercise = *tmp
 
 		if curr_day != prev_day {
@@ -612,7 +613,7 @@ func (Db *DataBase) DeleteExerciseDay(id int) (bool, error) {
 
 func (Db *DataBase) CachePlanBasic(wp_id int) error {
 	row := Db.Data.QueryRow("select name, creator, description from workout_plan where id = ?", wp_id)
-	wp := WorkoutPlan{ Id: wp_id }
+	wp := WorkoutPlan{Id: wp_id}
 	err := row.Scan(&wp.Name, &wp.Creator, &wp.Description)
 	if err != nil {
 		return err
@@ -627,7 +628,7 @@ func (wp *WorkoutPlan) GetAnalysis() *PlanAnalysis {
 		return nil
 	}
 
-	analysis := &PlanAnalysis{ SetsPerTarget: make(map[*Target]int)}
+	analysis := &PlanAnalysis{SetsPerTarget: make(map[*Target]int)}
 
 	for _, day := range wp.Days {
 		for _, ex := range day.Exercises {
