@@ -24,15 +24,15 @@ var Domain string
 // used by gin to load template funcs
 func templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"until": func(n int) []int {
-			result := make([]int, n)
-			for i := range n {
-				result[i] = i
-			}
-			return result
-		},
 		"add": func(a, b int) int {
 			return a + b
+		},
+		"rangeN": func(n int) []int {
+			out := make([]int, n)
+			for i := range n {
+				out[i] = i
+			}
+			return out
 		},
 	}
 }
@@ -46,9 +46,9 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 
 	if gin.Mode() == gin.TestMode {
 		log.Println("WARNING: TEST MODE")
-		SessionManager.Cookie.Secure = false                      // HTTP is fine for testing
-		SessionManager.Cookie.SameSite = http.SameSiteDefaultMode // Less restrictive for tests
-		SessionManager.Cookie.Name = "test_session"               // Explicit name
+		SessionManager.Cookie.Secure = false                      
+		SessionManager.Cookie.SameSite = http.SameSiteDefaultMode 
+		SessionManager.Cookie.Name = "test_session"               
 	}
 
 	if domain == "" || csrf_key == "" {
@@ -1072,13 +1072,6 @@ func HandlePostTracksCreate(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		err = db.CreateTrackDataForTrack(&wt)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
-		}
-
 		c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(user_id)+"/track/view/"+strconv.Itoa(wt.Id))
 	}
 }
@@ -1120,14 +1113,6 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page") // NOTE: create a page for Private or something
 			return
 		}
-
-		// track_data, err := db.ReadTrackDataForTrack(track.Id)
-		// if err != nil {
-		// 	log.Println("ERROR: error while reading track data")
-		// 	log.Println(err)
-		// 	c.Redirect(http.StatusSeeOther, "/error-page")
-		// 	return
-		// }
 
 		c.HTML(http.StatusOK, "view_track.html", gin.H{"track": track, "user_id": user_id, "requesting_user_id": requesting_user_id})
 	}
@@ -1236,12 +1221,14 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		// var track_json models.TrackJSON
-		if err := c.BindJSON(wt); err != nil {
+		td := make([]models.TrackData, 0)
+		if err := c.BindJSON(&td); err != nil {
+			log.Println(err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 			return
 		}
 
-		_, err = db.UpdateMultipleTrackData(wt.TrackData)
+		_, err = db.UpdateMultipleTrackData(td)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
