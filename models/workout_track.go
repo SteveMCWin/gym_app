@@ -1,9 +1,10 @@
 package models
 
 import (
-	"log"
-	"database/sql"
+	// "database/sql"
 	"errors"
+	"fitness_app/defs"
+	"log"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -33,26 +34,26 @@ import (
 // }
 
 type WorkoutTrack struct {
-	Id int `json:"id"`
-	PlanId int `json:"plan_id"` // NOTE: Only the id is saved since the only thing that is useful in the plan are id and the ex days, which can have different ExerciseData (for now only weight)
-	User int `json:"user"`
-	IsPrivate bool `json:"is_private"`
-	WorkoutDate time.Time `json:"workout_date"`
-	ExDays []ExDay `json:"ex_days"`
+	Id          int         `json:"id"`
+	Plan        WorkoutPlan `json:"plan_id"` // Used when creating the track and comparing the planned and tracked data
+	User        int         `json:"user"`
+	IsPrivate   bool        `json:"is_private"`
+	WorkoutDate time.Time   `json:"workout_date"`
+	TrackData   []TrackData `josn:"track_data"` // The actual data the user is interested in
 }
 
 type TrackData struct {
-	Id int `json:"id"`
-	// Track int `json:"track"`
-	ExData ExerciseData `json:"ex_data"`
+	Id     int     `json:"id"`
+	DayNum int     `json:"day_num"`
+	ExNum  int     `json:"ex_num"`
 	Weight float32 `json:"weight"`
-	SetNum int `json:"set_num"`
-	RepNum int `json:"rep_num"`
+	SetNum int     `json:"set_num"`
+	RepNum int     `json:"rep_num"`
 }
 
 func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 
-	if wt.PlanId <= 1 {
+	if wt.Plan.Id <= 1 {
 		return 0, errors.New("Invalid workout plan used in track")
 	}
 
@@ -61,7 +62,6 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 	}
 
 	statement_wt := "insert into workout_track (plan, usr, is_private, workout_date) values (?, ?, ?, ?) returning id"
-	var stmt_wt *sql.Stmt
 	stmt_wt, err := Db.Data.Prepare(statement_wt)
 	if err != nil {
 		return 0, err
@@ -69,42 +69,23 @@ func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 
 	defer stmt_wt.Close()
 
-	statement_te := "insert into track_exercise (track, ex_day) values (?, ?)"
-	stmt_te, err := Db.Data.Prepare(statement_te)
-	if err != nil {
-		return 0, err
-	}
-
-	defer stmt_te.Close()
-
-	var workout_track_id int
-
 	err = stmt_wt.QueryRow(
-		wt.PlanId,
+		wt.Plan.Id,
 		wt.User,
 		wt.IsPrivate,
 		time.Now(),
-	).Scan(&workout_track_id)
+	).Scan(&wt.Id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	ex_days, err := Db.ReadAllExerciseDaysFromPlan(wt.Plan.Id)
+	err = Db.CreateTrackDataForTrack(wt)
 	if err != nil {
 		return 0, err
 	}
 
-	for _, day := range ex_days {
-		for _, ex := range day.Exercises {
-			_, err = stmt_te.Exec(workout_track_id, ex.Id)
-			if err != nil {
-				return 0, err
-			}
-		}
-	}
-
-	return workout_track_id, nil
+	return wt.Id, nil
 }
 
 func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
@@ -118,13 +99,12 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 	)
 
 	wt.Plan = *cacehdPlansBasic[wt.Plan.Id]
-
+	wt.Plan.Days, err = Db.ReadAllExerciseDaysFromTrack(wt.Id) // Note: the ex days are not as the plan is currently but as the plan was when the track was created
 	if err != nil {
 		return nil, err
 	}
 
-	wt.ExDays, err = Db.ReadAllExerciseDaysFromTrack(wt_id)
-
+	wt.TrackData, err = Db.ReadTrackDataForTrack(wt.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -134,8 +114,8 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 
 func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]ExDay, error) {
 	querry := `
-	select id, day_name, exercise, weight, unit, sets, min_reps, max_reps, day_order
-	from exercise_day inner join track_exercise on id = ex_day
+	select exercise_day.id, day_name, exercise, exercise_day.weight, unit, sets, min_reps, max_reps, day_order
+	from exercise_day inner join workout_track_data on exercise_day.id = ex_day
 	where track = ?
 	order by day_order asc, exercise_order asc
 	`
@@ -191,7 +171,7 @@ func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]ExDay, error) {
 }
 
 func (Db *DataBase) ReadUsersWorkoutTracks(user_id, requesting_user_id int) ([]*WorkoutTrack, error) {
-	rows, err := Db.Data.Query("select id, plan, workout_date, is_private from workout_track where usr = ? order by workout_date desc", user_id) // TODO: add ordering options
+	rows, err := Db.Data.Query("select id, is_private from workout_track where usr = ? order by workout_date desc", user_id) // TODO: add ordering options
 	if err != nil {
 		return nil, err
 	}
@@ -201,54 +181,52 @@ func (Db *DataBase) ReadUsersWorkoutTracks(user_id, requesting_user_id int) ([]*
 	tracks := make([]*WorkoutTrack, 0)
 
 	for rows.Next() {
-		track := WorkoutTrack { User: user_id }
+		var wt_id int
+		var is_private bool
 
 		err = rows.Scan(
-			&track.Id,
-			&track.Plan.Id,
-			&track.WorkoutDate,
-			&track.IsPrivate,
+			&wt_id,
+			&is_private,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		if track.IsPrivate && user_id != requesting_user_id {
+		if is_private && user_id != requesting_user_id {
 			continue
 		}
 
-		plan_basic, ok := FetchCachedPlanBasic(track.Plan.Id)
-		if !ok {
-			return nil, errors.New("Couldn't read cached plan data")
+		track, err := Db.ReadWorkoutTrack(wt_id)
+		if err != nil {
+			return nil, err
 		}
-		track.Plan = *plan_basic
 
-		tracks = append(tracks, &track)
+		tracks = append(tracks, track)
 	}
 
 	return tracks, nil
 }
 
-func (Db *DataBase) GetTracksUserUses(user_id int) ([]int, error) { // TODO: delete either this one or the one above. And while at it go thorugh all the models and delete duplicates
-	rows, err := Db.Data.Query("select id from workout_track where usr = ?", user_id)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]int, 0)
-
-	for rows.Next() {
-		var tmp int
-		err = rows.Scan(&tmp)
-		if err != nil {
-			return nil, err
-		}
-
-		res = append(res, tmp)
-	}
-
-	return res, nil
-}
+// func (Db *DataBase) GetTracksUserUses(user_id int) ([]int, error) { // TODO: delete either this one or the one above. And while at it go thorugh all the models and delete duplicates
+// 	rows, err := Db.Data.Query("select id from workout_track where usr = ?", user_id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	res := make([]int, 0)
+//
+// 	for rows.Next() {
+// 		var tmp int
+// 		err = rows.Scan(&tmp)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+//
+// 		res = append(res, tmp)
+// 	}
+//
+// 	return res, nil
+// }
 
 func (Db *DataBase) UpdateWorkoutTrackPrivacy(wt *WorkoutTrack) (bool, error) {
 	tx, err := Db.Data.Begin()
@@ -281,44 +259,44 @@ func (Db *DataBase) UpdateWorkoutTrackPrivacy(wt *WorkoutTrack) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) CreateTrackData(td *TrackData) (int, error) {
-
-	if td.Track <= 1 {
-		return 0, errors.New("Invalid workout plan used in track")
-	}
-
-	if td.ExDay <= 0 {
-		return 0, errors.New("Invalid user used in track")
-	}
-
-	statement := "insert into workout_track_data (track, ex_day, weight, set_num) values (?, ?, ?, ?) returning id"
-	var stmt *sql.Stmt
-	stmt, err := Db.Data.Prepare(statement)
-	if err != nil {
-		return 0, err
-	}
-
-	defer stmt.Close()
-
-	var track_data_id int
-
-	err = stmt.QueryRow(
-		td.Track,
-		td.ExDay,
-		td.Weight,
-		td.SetNum,
-	).Scan(&track_data_id)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return track_data_id, nil
-}
+// func (Db *DataBase) CreateTrackData(td *TrackData) (int, error) {
+//
+// 	if td.Track <= 1 {
+// 		return 0, errors.New("Invalid workout plan used in track")
+// 	}
+//
+// 	if td.ExDay <= 0 {
+// 		return 0, errors.New("Invalid user used in track")
+// 	}
+//
+// 	statement := "insert into workout_track_data (track, ex_day, weight, set_num) values (?, ?, ?, ?) returning id"
+// 	var stmt *sql.Stmt
+// 	stmt, err := Db.Data.Prepare(statement)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+//
+// 	defer stmt.Close()
+//
+// 	var track_data_id int
+//
+// 	err = stmt.QueryRow(
+// 		td.Track,
+// 		td.ExDay,
+// 		td.Weight,
+// 		td.SetNum,
+// 	).Scan(&track_data_id)
+//
+// 	if err != nil {
+// 		return 0, err
+// 	}
+//
+// 	return track_data_id, nil
+// }
 
 func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 
-	if wt.Plan.Id <= 1 {
+	if wt.Plan.Id <= defs.PLACEHOLDER_PLAN_ID {
 		return errors.New("Cannot create track data for non-existing plan")
 	}
 
@@ -328,8 +306,7 @@ func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 	}
 
 	statement := "insert into workout_track_data (track, ex_day, weight, set_num) values (?, ?, ?, ?)"
-	var stmt *sql.Stmt
-	stmt, err = Db.Data.Prepare(statement)
+	stmt, err := Db.Data.Prepare(statement)
 	if err != nil {
 		return err
 	}
@@ -355,13 +332,13 @@ func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 	return nil
 }
 
-func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]*TrackData, error){
+func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]TrackData, error) {
 	query_str := `
-	select id, ex_day, weight, set_num, rep_num 
-	from workout_track_data 
+	select workout_track_data.id, ex_day, weight, set_num, rep_num 
+	from workout_track_data inner join exercise_day on ex_day = exercise_day.id
 	where track = ? 
-	` // WARNING: will probably have to order this depending on the exercise order that is defined by the set and day order in the ex_day
-	// But perhaps may be realized with just comparing the ex_day from here with the ex_day.id from the ex_day, we'll see
+	order by day_order acs, exercise_order asc
+	`
 
 	rows, err := Db.Data.Query(query_str, wt_id)
 	if err != nil {
@@ -370,55 +347,47 @@ func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]*TrackData, error){
 
 	defer rows.Close()
 
-	data := make([]*TrackData, 0)
+	data := make([]TrackData, 0)
 
 	for rows.Next() {
-		d := TrackData{ Track: wt_id }
+		td := TrackData{}
+
+		var ex_day_id int
 
 		err = rows.Scan(
-			&d.Id,
-			&d.ExDay,
-			&d.Weight,
-			&d.SetNum,
-			&d.RepNum,
+			&td.Id,
+			&ex_day_id,
+			&td.Weight,
+			&td.SetNum,
+			&td.RepNum,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		data = append(data, &d)
+		data = append(data, td)
 	}
 
 	return data, nil
 }
 
-func (Db *DataBase) UpdateTrackData(td *TrackData) (bool, error) {
-	tx, err := Db.Data.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
-	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ?")
-	if err != nil {
-		return false, err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(td.Weight, td.RepNum, td.Track, td.ExDay)
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
+// func (Db *DataBase) UpdateTrackData(td *TrackData) (bool, error) {
+//
+// 	statement := "UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?"
+// 	stmt, err := Db.Data.Prepare(statement)
+// 	if err != nil {
+// 		return false, err
+// 	}
+//
+// 	defer stmt.Close()
+//
+// 	_, err = stmt.Exec(td.Weight, td.RepNum, td.Id)
+// 	if err != nil {
+// 		return false, err
+// 	}
+//
+// 	return true, nil
+// }
 
 func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 
@@ -433,7 +402,6 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 
 	defer tx.Rollback()
 
-	// stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE track = ? and ex_day = ? and set_num = ?")
 	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?")
 	if err != nil {
 		return false, err
@@ -456,7 +424,7 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 	return true, nil
 }
 
-func (Db *DataBase) DeleteWorkoutTracks(track_ids ...int) (bool, error) {
+func (Db *DataBase) DeleteWorkoutTracks(tracks ...*WorkoutTrack) (bool, error) {
 
 	tx, err := Db.Data.Begin()
 	if err != nil {
@@ -465,15 +433,15 @@ func (Db *DataBase) DeleteWorkoutTracks(track_ids ...int) (bool, error) {
 
 	defer tx.Rollback()
 
-	tracks := make([]*WorkoutTrack, 0)
+	// tracks := make([]*WorkoutTrack, 0)
 
-	for _, t_id := range track_ids {
-		track, err := Db.ReadWorkoutTrack(t_id)
-		if err != nil {
-			return false, err
-		}
-		tracks = append(tracks, track)
-	}
+	// for _, t_id := range track_ids {
+	// 	track, err := Db.ReadWorkoutTrack(t_id)
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// 	tracks = append(tracks, track)
+	// }
 
 	stmt_track, err := tx.Prepare("DELETE from workout_track where id = ?")
 	if err != nil {
@@ -481,19 +449,13 @@ func (Db *DataBase) DeleteWorkoutTracks(track_ids ...int) (bool, error) {
 	}
 	defer stmt_track.Close()
 
-	stmt_track_ex, err := tx.Prepare("DELETE from track_exercise where track = ?")
-	if err != nil {
-		return false, err
-	}
-	defer stmt_track_ex.Close()
-
 	stmt_track_data, err := tx.Prepare("DELETE from workout_track_data where track = ?")
 	if err != nil {
 		return false, err
 	}
 	defer stmt_track_data.Close()
 
-	stmt_ex_days, err := tx.Prepare("DELETE from exercise_day where id = ? and plan = 1 and id not in (select ex_day from track_exercise where ex_day = ?)") // NOTE: remember to test if the ex_days are deleted when not used in any track or plan
+	stmt_ex_days, err := tx.Prepare("DELETE from exercise_day where id = ? and plan = 1 and id not in (select ex_day from workout_track_data where ex_day = ?)") // NOTE: remember to test if the ex_days are deleted when not used in any track or plan
 	if err != nil {
 		return false, err
 	}
@@ -505,23 +467,18 @@ func (Db *DataBase) DeleteWorkoutTracks(track_ids ...int) (bool, error) {
 			return false, err
 		}
 
-		_, err = stmt_track_ex.Exec(track.Id)
-		if err != nil {
-			return false, err
-		}
-
 		_, err = stmt_track_data.Exec(track.Id)
 		if err != nil {
 			return false, err
 		}
 
-		for _, d := range track.ExDays {
+		for _, d := range track.Plan.Days {
 			for _, e := range d.Exercises {
 				_, err = stmt_ex_days.Exec(e.Id, e.Id)
 			}
 		}
 	}
-	
+
 	err = tx.Commit()
 	if err != nil {
 		return false, err

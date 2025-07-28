@@ -300,8 +300,9 @@ func (Db *DataBase) DeleteUser(user_id int) (bool, error) {
 		return false, err
 	}
 
-	users_track_ids, err := Db.GetTracksUserUses(user_id)
-	_, err = Db.DeleteWorkoutTracks(users_track_ids...)
+	// users_track_ids, err := Db.GetTracksUserUses(user_id)
+	tracks, err := Db.ReadUsersWorkoutTracks(user_id, user_id)
+	_, err = Db.DeleteWorkoutTracks(tracks...)
 	if err != nil {
 		log.Println("Couldn't delete workout tracks!")
 		return false, err

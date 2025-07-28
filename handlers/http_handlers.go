@@ -1121,15 +1121,15 @@ func HandleGetViewTrack(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		track_data, err := db.ReadTrackDataForTrack(track.Id)
-		if err != nil {
-			log.Println("ERROR: error while reading track data")
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
-		}
+		// track_data, err := db.ReadTrackDataForTrack(track.Id)
+		// if err != nil {
+		// 	log.Println("ERROR: error while reading track data")
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusSeeOther, "/error-page")
+		// 	return
+		// }
 
-		c.HTML(http.StatusOK, "view_track.html", gin.H{"track_data": track_data, "Days": track.ExDays, "user_id": user_id, "requesting_user_id": requesting_user_id})
+		c.HTML(http.StatusOK, "view_track.html", gin.H{"track": track, "user_id": user_id, "requesting_user_id": requesting_user_id})
 	}
 }
 
@@ -1167,27 +1167,27 @@ func HandleGetTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		wt, err := db.ReadWorkoutTrack(wt_id)
+		track, err := db.ReadWorkoutTrack(wt_id)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
 			return
 		}
 
-		if wt.User != user_id {
+		if track.User != user_id {
 			log.Println("NU UUUUH")
 			c.Redirect(http.StatusTemporaryRedirect, "/error-page") // NOTE: create a page for Private or something
 			return
 		}
 
-		td, err := db.ReadTrackDataForTrack(wt_id)
-		if err != nil {
-			log.Println(err)
-			c.Redirect(http.StatusSeeOther, "/error-page")
-			return
-		}
+		// td, err := db.ReadTrackDataForTrack(wt_id)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	c.Redirect(http.StatusSeeOther, "/error-page")
+		// 	return
+		// }
 
-		c.HTML(http.StatusOK, "edit_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "Days": wt.ExDays, "track_data": td, "user_id": user_id})
+		c.HTML(http.StatusOK, "edit_track.html", gin.H{csrf.TemplateTag: csrf.TemplateField(c.Request), "track": track, "user_id": user_id})
 	}
 }
 
@@ -1235,13 +1235,13 @@ func HandlePostTracksEdit(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		var track_json models.TrackJSON
-		if err := c.BindJSON(&track_json); err != nil {
+		// var track_json models.TrackJSON
+		if err := c.BindJSON(wt); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 			return
 		}
 
-		_, err = db.UpdateMultipleTrackData(track_json.Data)
+		_, err = db.UpdateMultipleTrackData(wt.TrackData)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusSeeOther, "/error-page")
@@ -1299,7 +1299,14 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 		// log.Println("You cannot delete another persons track")
 		// }
 
-		_, err = db.DeleteWorkoutTracks(track_id)
+		track, err := db.ReadWorkoutTrack(track_id)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
+
+		_, err = db.DeleteWorkoutTracks(track)
 		if err != nil {
 			log.Println(err)
 			c.Redirect(http.StatusPermanentRedirect, "/error-page")
