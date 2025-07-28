@@ -29,11 +29,14 @@
 
 <form id="editTrackForm">
     {{ .csrfField }}
-    {{ $trackData := .track_data }}
-    {{ $trackID := (index .track_data 0).Track }}
-    {{ $userID := .user_id }}
 
-    {{ range $i, $day := .Days }}
+    {{ $trackData := .track.TrackData }}
+    {{ $tdLen := len $trackData }}
+    {{ $tdIndex := 0 }}
+    {{ $userID := .user_id }}
+    {{ $trackID := .track.Id }}
+
+    {{ range $i, $day := .track.Plan.Days }}
         <h2>{{ $day.Name }}</h2>
 
         {{ range $ex := $day.Exercises }}
@@ -49,17 +52,17 @@
                 <tbody>
                     {{ $exDayId := $ex.Id }}
                     {{ $found := false }}
-                    {{ range $td := $trackData }}
-                        {{ if eq $td.ExDay $exDayId }}
+                    {{ range $td := $.track.TrackData }}
+                        {{ if eq $td.ExDayId $exDayId }}
                             {{ $found = true }}
                             <tr>
                                 <td>
                                     <input type="number" step="0.1" name="weight" value="{{ printf "%.2f" $td.Weight }}"
-                                        data-id="{{ $td.Id }}" data-exday="{{ $td.ExDay }}" data-setnum="{{ $td.SetNum }}">
+                                           data-id="{{ $td.Id }}" data-exday="{{ $td.ExDayId }}" data-setnum="{{ $td.SetNum }}">
                                 </td>
                                 <td>
                                     <input type="number" name="repnum" value="{{ $td.RepNum }}"
-                                        data-id="{{ $td.Id }}" data-exday="{{ $td.ExDay }}" data-setnum="{{ $td.SetNum }}">
+                                           data-id="{{ $td.Id }}" data-exday="{{ $td.ExDayId }}" data-setnum="{{ $td.SetNum }}">
                                 </td>
                             </tr>
                         {{ end }}
@@ -81,9 +84,8 @@
 async function submitEdit() {
     const form = document.getElementById('editTrackForm');
     const csrfToken = form.querySelector('input[name="gorilla.csrf.Token"]').value;
+    const trackID = {{ .track.Id }};
     const userID = {{ .user_id }};
-    const trackID = {{ (index .track_data 0).Track }};
-
     const td = [];
 
     document.querySelectorAll('input[name="weight"]').forEach(input => {
@@ -107,25 +109,25 @@ async function submitEdit() {
         });
     });
 
-    const payload = {
-        wt: {
-            id: trackID,
-            user: userID
-        },
-        td: td
-    };
+    <!-- const payload = { -->
+    <!--     wt: { -->
+    <!--         id: trackID, -->
+    <!--         user: userID -->
+    <!--     }, -->
+    <!--     td: td -->
+    <!-- }; -->
 
-        const res = await fetch(`/user/{{ .user_id }}/track/edit/${trackID}`, {
+    const res = await fetch(`/user/${userID}/track/edit/${trackID}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-CSRF-Token": csrfToken
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(td)
     });
 
     if (res.ok) {
-        window.location.href = `/user/{{ .user_id }}/track/view/${trackID}`;
+        window.location.href = `/user/${userID}/track/view/${trackID}`;
     } else {
         alert("Failed to update track.");
     }

@@ -5,7 +5,7 @@
 <title>Workout Track</title>
 <style>
     body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
-    h2 { margin-top: 30px; }
+    h1, h2, h3 { text-align: center; }
     table {
         width: 80%;
         margin: 20px auto;
@@ -21,22 +21,11 @@
     th {
         background-color: #eee;
     }
-    .low-reps {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    .high-reps {
-        background-color: #cce5ff;
-        color: #004085;
-    }
-    .low-weight {
-        background-color: #fde2e2;
-        color: #b71c1c;
-    }
-    .high-weight {
-        background-color: #e2ecfd;
-        color: #0d47a1;
-    }
+    .low-reps { background-color: #f8d7da; color: #721c24; }
+    .high-reps { background-color: #cce5ff; color: #004085; }
+    .low-weight { background-color: #fde2e2; color: #b71c1c; }
+    .high-weight { background-color: #e2ecfd; color: #0d47a1; }
+
     .button {
         display: inline-block;
         padding: 8px 16px;
@@ -49,17 +38,19 @@
         border-radius: 4px;
         transition: background-color 0.2s ease-in-out;
     }
-
-    .button:hover {
-        background-color: #0056b3;
-    }
+    .button:hover { background-color: #0056b3; }
 
     .button-secondary {
         background-color: #6c757d;
     }
-
     .button-secondary:hover {
         background-color: #5a6268;
+    }
+
+    .button-group {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
     }
 </style>
 </head>
@@ -67,9 +58,9 @@
 
 <h1>Workout Track Details</h1>
 
-{{ $trackData := .track_data }}
+{{ $tdIndex := 0 }}
 
-{{ range $i, $day := .Days }}
+{{ range $day := .track.Plan.Days }}
     <h2>{{ $day.Name }}</h2>
 
     {{ range $ex := $day.Exercises }}
@@ -78,59 +69,43 @@
         <table>
             <thead>
                 <tr>
+                    <th>Set</th>
                     <th>Weight</th>
-                    <th>Rep Number</th>
+                    <th>Reps</th>
                 </tr>
             </thead>
             <tbody>
-                {{ $expectedWeight := $ex.Weight }}
-                {{ $minReps := $ex.MinReps }}
-                {{ $maxReps := $ex.MaxReps }}
-                {{ $exDayId := $ex.Id }}
-                {{ $found := false }}
-
-                {{ range $td := $trackData }}
-                    {{ if eq $td.ExDay $exDayId }}
-                        {{ $found = true }}
-                        <tr>
-                            <td
-                                {{ if lt $td.Weight $expectedWeight }}
-                                    class="low-weight"
-                                {{ else if gt $td.Weight $expectedWeight }}
-                                    class="high-weight"
-                                {{ end }}
-                            >
-                                {{ printf "%.2f" $td.Weight }}
-                            </td>
-                            <td
-                                {{ if and (lt $td.RepNum $minReps) (ne $td.RepNum 0) }}
-                                    class="low-reps"
-                                {{ else if and (ne $maxReps -1) (gt $td.RepNum $maxReps) }}
-                                    class="high-reps"
-                                {{ end }}
-                            >
-                                {{ $td.RepNum }}
-                            </td>
-                        </tr>
-                    {{ end }}
-                {{ end }}
-
-                {{ if not $found }}
-                    <tr><td colspan="2">No data recorded</td></tr>
+                {{ range $i := rangeN $ex.Sets }}
+                    {{ $td := index $.track.TrackData $tdIndex }}
+                    <tr>
+                        <td>{{ add $td.SetNum 1 }}</td>
+                        <td
+                            {{ if lt $td.Weight $ex.Weight }}
+                                class="low-weight"
+                            {{ else if gt $td.Weight $ex.Weight }}
+                                class="high-weight"
+                            {{ end }}
+                        >{{ printf "%.2f" $td.Weight }}</td>
+                        <td
+                            {{ if and (lt $td.RepNum $ex.MinReps) (ne $td.RepNum 0) }}
+                                class="low-reps"
+                            {{ else if and (ne $ex.MaxReps -1) (gt $td.RepNum $ex.MaxReps) }}
+                                class="high-reps"
+                            {{ end }}
+                        >{{ $td.RepNum }}</td>
+                    </tr>
+                    {{ $tdIndex = add $tdIndex 1 }}
                 {{ end }}
             </tbody>
         </table>
     {{ end }}
 {{ end }}
 
-
-<div>
+<div class="button-group">
     <a href="/user/{{ .user_id }}" class="button button-secondary">Back to Profile</a>
 
     {{ if eq .requesting_user_id .user_id }}
-            <a href="/user/{{ .user_id }}/track/edit/{{ (index .track_data 0).Track }}" class="button">
-            Edit
-        </a>
+        <a href="/user/{{ .user_id }}/track/edit/{{ .track.Id }}" class="button">Edit</a>
     {{ end }}
 </div>
 

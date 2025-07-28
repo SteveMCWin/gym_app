@@ -10,29 +10,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// type WorkoutTrack struct {
-// 	Id int `json:"id"`
-// 	Plan WorkoutPlan `json:"plan"`
-// 	User int `json:"user"`
-// 	IsPrivate bool `json:"is_private"`
-// 	WorkoutDate time.Time `json:"workout_date"`
-// 	ExDays []ExDay `json:"ex_days"`
-// }
-
-// type TrackData struct {
-// 	Id int `json:"id"`
-// 	Track int `json:"track"`
-// 	ExDay int `json:"ex_day"`
-// 	Weight float32 `json:"weight"`
-// 	SetNum int `json:"set_num"`
-// 	RepNum int `json:"rep_num"`
-// }
-
-// type TrackJSON struct {
-// 	WTrack WorkoutTrack `json:"wt"`
-// 	Data []TrackData `json:"td"`
-// }
-
 type WorkoutTrack struct {
 	Id          int         `json:"id"`
 	Plan        WorkoutPlan `json:"plan_id"` // Used when creating the track and comparing the planned and tracked data
@@ -43,12 +20,11 @@ type WorkoutTrack struct {
 }
 
 type TrackData struct {
-	Id     int     `json:"id"`
-	DayNum int     `json:"day_num"`
-	ExNum  int     `json:"ex_num"`
-	Weight float32 `json:"weight"`
-	SetNum int     `json:"set_num"`
-	RepNum int     `json:"rep_num"`
+	Id int `json:"id"`
+	ExDayId int     `json:"ex_day_id"`
+	Weight  float32 `json:"weight"`
+	SetNum  int     `json:"set_num"`
+	RepNum  int     `json:"rep_num"`
 }
 
 func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
@@ -114,7 +90,7 @@ func (Db *DataBase) ReadWorkoutTrack(wt_id int) (*WorkoutTrack, error) {
 
 func (Db *DataBase) ReadAllExerciseDaysFromTrack(wt_id int) ([]ExDay, error) {
 	querry := `
-	select exercise_day.id, day_name, exercise, exercise_day.weight, unit, sets, min_reps, max_reps, day_order
+	select distinct exercise_day.id, day_name, exercise, exercise_day.weight, unit, sets, min_reps, max_reps, day_order
 	from exercise_day inner join workout_track_data on exercise_day.id = ex_day
 	where track = ?
 	order by day_order asc, exercise_order asc
@@ -334,10 +310,10 @@ func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 
 func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]TrackData, error) {
 	query_str := `
-	select workout_track_data.id, ex_day, weight, set_num, rep_num 
+	select workout_track_data.id, ex_day, workout_track_data.weight, set_num, rep_num 
 	from workout_track_data inner join exercise_day on ex_day = exercise_day.id
 	where track = ? 
-	order by day_order acs, exercise_order asc
+	order by day_order asc, exercise_order asc
 	`
 
 	rows, err := Db.Data.Query(query_str, wt_id)
@@ -352,11 +328,9 @@ func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]TrackData, error) {
 	for rows.Next() {
 		td := TrackData{}
 
-		var ex_day_id int
-
 		err = rows.Scan(
 			&td.Id,
-			&ex_day_id,
+			&td.ExDayId,
 			&td.Weight,
 			&td.SetNum,
 			&td.RepNum,
