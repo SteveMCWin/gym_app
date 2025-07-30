@@ -347,7 +347,7 @@ func (Db *DataBase) GetAllDataForExerciseAndUser(user_id, exercise_id int) ([]*T
 	return res, nil
 }
 
-func CalcExerciseProgressFromTrackData(data []*TrackData) ([]float32, error) {
+func CalcExerciseProgressFromTrackData(data []*TrackData) ([]float32, error) { // TODO: implement
 
 	for td := range data {
 		_ = td

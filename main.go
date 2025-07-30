@@ -42,7 +42,7 @@ func main() {
 		log.Fatal("Couldn't load .env variables")
 	}
 
-	router := handlers.SetUpRouter(domain, csrf_key, db)
+	handler := handlers.SetUpRouter(domain, csrf_key, db)
 
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(":8080", handler)
 }
