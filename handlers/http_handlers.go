@@ -110,6 +110,8 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db))
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
+	track_router.GET("/progress", HandleGetTrackExerciseProgress(&db))
+	track_router.POST("/progress", HandlePostTrackExerciseProgress(&db))
 
 	gym_router.GET("/search", HandleGetSearchForGym())
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
@@ -203,7 +205,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "profile.html", gin.H{"usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan})
+		c.HTML(http.StatusOK, "profile.html", gin.H{"usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan}) // WARNING: not a good way to handle this
 	}
 }
 
@@ -1301,6 +1303,55 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.Redirect(http.StatusPermanentRedirect, "/user/"+user_id_param+"/track/view_all")
+	}
+}
+
+func HandleGetTrackExerciseProgress(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		requesting_user_id := GetUserId(c)
+		if requesting_user_id == defs.NO_USER_ID {
+			log.Println("Must be logged in to view progress")
+			c.Redirect(http.StatusPermanentRedirect, "/user/login")
+			return
+		}
+
+		all_exercises := models.FetchAllCachedExercises()
+
+		c.HTML(http.StatusOK, "track_analysis.html", gin.H{
+			"exercises": all_exercises,
+			"user_id": requesting_user_id,
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
+		})
+	}
+}
+
+func HandlePostTrackExerciseProgress(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		type ProgressRequest struct {
+			ExerciseId int `json:"exercise_id"`
+			UserId int `json:"user_id"`
+		}
+
+		var pr ProgressRequest
+
+		if err := c.BindJSON(&pr); err != nil {
+			log.Println("Error binding json to pr")
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{})
+			return
+		}
+
+		data, err := db.GetAllDataForExerciseAndUser(pr.UserId, pr.ExerciseId)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{})
+			return
+		}
+
+		exercise_progress := models.CalcExerciseProgressFromTrackData(data)
+
+		c.JSON(http.StatusOK, gin.H{ "exercise_progress": exercise_progress })
+
 	}
 }
 

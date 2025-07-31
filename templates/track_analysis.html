@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Progress Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .search-section {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .search-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        
+        .search-container {
+            position: relative;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .search-input:focus {
+            border-color: #667eea;
+        }
+        
+        .search-input.invalid {
+            border-color: #e74c3c;
+        }
+        
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .suggestion-item:hover,
+        .suggestion-item.highlighted {
+            background-color: #f8f9fa;
+        }
+        
+        .suggestion-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .suggestion-type {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+        }
+        
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .chart-section {
+            display: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
+        }
+        
+        .exercise-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .exercise-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        
+        .exercise-details {
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .chart-container {
+                height: 400px;
+            }
+            
+            .search-section {
+                padding: 40px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Exercise Progress Tracking</h1>
+            <p>Monitor your intensity improvements over time</p>
+        </div>
+        
+        <div class="content">
+            <!-- CSRF Token (hidden field) -->
+            {{ .csrfField }}
+            
+            <!-- Search Section -->
+            <div class="search-section" id="searchSection">
+                <h2>Input an exercise you want to see the progress of</h2>
+                <div class="search-container">
+                    <input type="text" 
+                           id="exerciseInput" 
+                           class="search-input" 
+                           placeholder="Start typing an exercise name..."
+                           autocomplete="off">
+                    <div class="autocomplete-suggestions" id="suggestions"></div>
+                </div>
+                <div class="error-message" id="errorMessage"></div>
+                <button class="submit-btn" id="submitBtn" disabled>Show Progress</button>
+            </div>
+            
+            <!-- Loading Section -->
+            <div class="loading-spinner" id="loadingSection">
+                <div class="spinner"></div>
+                <p>Loading your progress data...</p>
+            </div>
+            
+            <!-- Chart Section -->
+            <div class="chart-section" id="chartSection">
+                <button class="back-btn" id="backBtn">← Search Another Exercise</button>
+                
+                <div class="exercise-info" id="exerciseInfo">
+                    <div class="exercise-name" id="selectedExerciseName"></div>
+                    <div class="exercise-details" id="selectedExerciseType"></div>
+                    <div class="exercise-details" id="selectedExerciseDifficulty"></div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="progressChart"></canvas>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalSessions">-</div>
+                        <div class="stat-label">Total Sessions</div>
+                    </div>
+                    <!-- <div class="stat-card"> -->
+                    <!--     <div class="stat-value" id="avgIntensity">-</div> -->
+                    <!--     <div class="stat-label">Average Intensity</div> -->
+                    <!-- </div> -->
+                    <!-- <div class="stat-card"> -->
+                    <!--     <div class="stat-value" id="maxIntensity">-</div> -->
+                    <!--     <div class="stat-label">Peak Intensity</div> -->
+                    <!-- </div> -->
+                    <div class="stat-card">
+                        <div class="stat-value" id="improvement">-</div>
+                        <div class="stat-label">Improvement</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parse data from the template
+        const exercises = [
+            {{range $i, $ex := .exercises}}
+            {{if $i}},{{end}}
+            {
+                "id": {{$ex.Id}},
+                "name": "{{$ex.Name}}",
+                "description": "{{$ex.Description}}",
+                "exercise_type": "{{$ex.ExerciseType}}",
+                "difficulty": {{$ex.Difficulty}}
+            }
+            {{end}}
+        ];
+        const userId = {{if .user_id}}{{.user_id}}{{else}}null{{end}};
+        
+        // Extract CSRF token from the hidden field
+        const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]')?.value || '';
+        
+        // DOM elements
+        const searchSection = document.getElementById('searchSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const chartSection = document.getElementById('chartSection');
+        const exerciseInput = document.getElementById('exerciseInput');
+        const suggestions = document.getElementById('suggestions');
+        const submitBtn = document.getElementById('submitBtn');
+        const backBtn = document.getElementById('backBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        let selectedExercise = null;
+        let currentChart = null;
+        let highlightedIndex = -1;
+        
+        // Exercise search and autocomplete functionality
+        exerciseInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            clearError();
+            
+            if (query.length === 0) {
+                hideSuggestions();
+                selectedExercise = null;
+                updateSubmitButton();
+                return;
+            }
+            
+            // Check for exact match first
+            const exactMatch = exercises.find(exercise => 
+                exercise.name.toLowerCase() === query
+            );
+            
+            if (exactMatch) {
+                selectedExercise = exactMatch;
+                updateSubmitButton();
+            } else {
+                selectedExercise = null;
+                updateSubmitButton();
+            }
+            
+            // Show suggestions for partial matches
+            const filteredExercises = exercises.filter(exercise => 
+                exercise.name.toLowerCase().includes(query)
+            );
+            
+            if (filteredExercises.length > 0) {
+                showSuggestions(filteredExercises, query);
+            } else {
+                hideSuggestions();
+            }
+        });
+        
+        // Keyboard navigation for suggestions
+        exerciseInput.addEventListener('keydown', function(e) {
+            const suggestionItems = suggestions.querySelectorAll('.suggestion-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightedIndex = Math.min(highlightedIndex + 1, suggestionItems.length - 1);
+                updateHighlight(suggestionItems);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightedIndex = Math.max(highlightedIndex - 1, -1);
+                updateHighlight(suggestionItems);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedIndex >= 0 && suggestionItems[highlightedIndex]) {
+                    selectExercise(suggestionItems[highlightedIndex]);
+                } else if (selectedExercise) {
+                    submitForm();
+                }
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+        
+        // Click outside to hide suggestions
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                hideSuggestions();
+            }
+        });
+        
+        function showSuggestions(filteredExercises, query) {
+            suggestions.innerHTML = '';
+            highlightedIndex = -1;
+            
+            // Debug log to see if data is available
+            console.log('Showing suggestions for:', query, 'Found:', filteredExercises.length, 'exercises');
+            
+            filteredExercises.slice(0, 5).forEach((exercise, index) => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerHTML = `
+                    <div class="suggestion-name">${highlightMatch(exercise.name, query)}</div>
+                    <div class="suggestion-type">${exercise.exercise_type} • Difficulty: ${exercise.difficulty}</div>
+                `;
+                item.addEventListener('click', () => selectExercise(item, exercise));
+                suggestions.appendChild(item);
+            });
+            
+            suggestions.style.display = 'block';
+        }
+        
+        function hideSuggestions() {
+            suggestions.style.display = 'none';
+            highlightedIndex = -1;
+        }
+        
+        function highlightMatch(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<strong>$1</strong>');
+        }
+        
+        function updateHighlight(suggestionItems) {
+            suggestionItems.forEach((item, index) => {
+                item.classList.toggle('highlighted', index === highlightedIndex);
+            });
+        }
+        
+        function selectExercise(item, exercise = null) {
+            if (!exercise) {
+                // Extract the original exercise name (without HTML formatting)
+                const exerciseName = item.querySelector('.suggestion-name').textContent.trim();
+                exercise = exercises.find(ex => ex.name === exerciseName);
+            }
+            
+            if (exercise) {
+                selectedExercise = exercise;
+                exerciseInput.value = exercise.name;
+                exerciseInput.classList.remove('invalid');
+                hideSuggestions();
+                updateSubmitButton();
+                clearError();
+            }
+        }
+        
+        function updateSubmitButton() {
+            submitBtn.disabled = !selectedExercise;
+        }
+        
+        function clearError() {
+            errorMessage.textContent = '';
+            exerciseInput.classList.remove('invalid');
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            exerciseInput.classList.add('invalid');
+        }
+        
+        // Form submission
+        submitBtn.addEventListener('click', function(e) {
+            console.log('Submit button clicked');
+            e.preventDefault(); // Prevent any default form submission
+            submitForm();
+        });
+        
+        function submitForm() {
+            console.log('submitForm called');
+            console.log('selectedExercise:', selectedExercise);
+            console.log('userId:', userId);
+            
+            if (!selectedExercise) {
+                console.log('No selected exercise');
+                showError('Please select a valid exercise from the suggestions.');
+                return;
+            }
+            
+            if (!userId) {
+                console.log('No user ID');
+                showError('User ID is missing. Please refresh the page.');
+                return;
+            }
+            
+            console.log('Proceeding with form submission...');
+            
+            // Show loading state
+            searchSection.style.display = 'none';
+            loadingSection.style.display = 'block';
+            
+            // Send POST request to fetch progress data
+            const progressUrl = `/user/${userId}/track/progress`;
+            console.log('Sending request with:', {
+                exercise_id: selectedExercise.id,
+                user_id: userId,
+                url: progressUrl
+            });
+            
+            fetch(progressUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    exercise_id: selectedExercise.id,
+                    user_id: userId
+                })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.log('Error response body:', text);
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success data:', data);
+                loadingSection.style.display = 'none';
+                displayChart(data.exercise_progress);
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                loadingSection.style.display = 'none';
+                searchSection.style.display = 'block';
+                showError('Failed to load progress data. Please try again.');
+            });
+        }
+        
+        // Back button functionality
+        backBtn.addEventListener('click', function() {
+            chartSection.style.display = 'none';
+            searchSection.style.display = 'block';
+            
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            // Reset form
+            selectedExercise = null;
+            exerciseInput.value = '';
+            updateSubmitButton();
+            clearError();
+        });
+        
+        // Chart display function
+        function displayChart(exerciseProgress) {
+            if (!exerciseProgress || exerciseProgress.length === 0) {
+                searchSection.style.display = 'block';
+                showError('No progress data found for this exercise.');
+                return;
+            }
+            
+            // Update exercise info
+            document.getElementById('selectedExerciseName').textContent = selectedExercise.name;
+            document.getElementById('selectedExerciseType').textContent = `Type: ${selectedExercise.exercise_type}`;
+            document.getElementById('selectedExerciseDifficulty').textContent = `Difficulty: ${selectedExercise.difficulty}/10`;
+            
+            // Sort data by time_point
+            <!-- exerciseProgress.sort((a, b) => new Date(a.time_point) - new Date(b.time_point)); -->
+            
+            // Prepare data for Chart.js
+            const labels = exerciseProgress.map(item => {
+                const date = new Date(item.time_point);
+                return date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            });
+            
+            const intensityData = exerciseProgress.map(item => item.intensity);
+            
+            // Calculate statistics
+            const totalSessions = exerciseProgress.length;
+            <!-- const avgIntensity = (intensityData.reduce((a, b) => a + b, 0) / totalSessions).toFixed(1); -->
+            <!-- const maxIntensity = Math.max(...intensityData).toFixed(1); -->
+            const improvement = exerciseProgress.length > 1 
+                ? (intensityData[intensityData.length - 1] - intensityData[0]).toFixed(1)
+                : 0;
+            
+            // Update statistics
+            document.getElementById('totalSessions').textContent = totalSessions;
+            <!-- document.getElementById('avgIntensity').textContent = avgIntensity; -->
+            <!-- document.getElementById('maxIntensity').textContent = maxIntensity; -->
+            document.getElementById('improvement').textContent = improvement > 0 ? `+${improvement}` : improvement;
+            
+            // Create the chart
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Exercise Intensity',
+                        data: intensityData,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#764ba2',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#667eea',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Intensity: ${context.parsed.y.toFixed(1)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                maxTicksLimit: 8,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Intensity Level',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8
+                        }
+                    }
+                }
+            });
+            
+            // Show chart section
+            chartSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

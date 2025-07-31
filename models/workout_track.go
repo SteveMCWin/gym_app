@@ -28,6 +28,11 @@ type TrackData struct {
 	TimeRecorded sql.NullTime `json:"time_recorded"`
 }
 
+type ExerciseProgress struct {
+	Intensity float32 `json:"intensity"`
+	TimePoint time.Time `json:"time_point"`
+}
+
 func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
 
 	if wt.Plan.Id <= 1 {
@@ -347,13 +352,40 @@ func (Db *DataBase) GetAllDataForExerciseAndUser(user_id, exercise_id int) ([]*T
 	return res, nil
 }
 
-func CalcExerciseProgressFromTrackData(data []*TrackData) ([]float32, error) { // TODO: implement
+func CalcExerciseProgressFromTrackData(data []*TrackData) []*ExerciseProgress {
 
-	for td := range data {
-		_ = td
+	if len(data) <= 0 {
+		return nil
 	}
 
-	return nil, nil
+	res := make([]*ExerciseProgress, 0)
+
+	curr_set_num := -1
+	curr_ex_prog := new(ExerciseProgress)
+
+	for _, td := range data {
+		if td.SetNum <= curr_set_num {
+			res = append(res, curr_ex_prog)
+			curr_ex_prog = new(ExerciseProgress)
+		}
+
+		weight := td.Weight
+		if td.Weight <= 0 {
+			weight = 1.0
+		}
+
+		if td.TimeRecorded.Valid {
+			curr_ex_prog.TimePoint = td.TimeRecorded.Time
+			curr_ex_prog.Intensity += float32(td.RepNum) * weight
+		}
+		curr_set_num = td.SetNum
+	}
+
+	if curr_ex_prog.Intensity > 0.0 {
+		res = append(res, curr_ex_prog)
+	}
+
+	return res
 }
 
 func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
