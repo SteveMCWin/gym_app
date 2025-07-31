@@ -358,7 +358,6 @@ func CalcExerciseProgressFromTrackData(data []*TrackData) []*ExerciseProgress {
 		return nil
 	}
 
-	log.Println("data len:", len(data))
 	res := make([]*ExerciseProgress, 0)
 
 	curr_set_num := -1

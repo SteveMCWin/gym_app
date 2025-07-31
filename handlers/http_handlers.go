@@ -111,6 +111,7 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
 	track_router.GET("/progress", HandleGetTrackExerciseProgress(&db))
+	track_router.POST("/progress", HandlePostTrackExerciseProgress(&db))
 
 	gym_router.GET("/search", HandleGetSearchForGym())
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
@@ -1314,20 +1315,43 @@ func HandleGetTrackExerciseProgress(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		data, err := db.GetAllDataForExerciseAndUser(requesting_user_id, 2)
-		if err != nil {
+		all_exercises := models.FetchAllCachedExercises()
+
+		c.HTML(http.StatusOK, "track_analysis.html", gin.H{
+			"exercises": all_exercises,
+			"user_id": requesting_user_id,
+			csrf.TemplateTag: csrf.TemplateField(c.Request),
+		})
+	}
+}
+
+func HandlePostTrackExerciseProgress(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		type ProgressRequest struct {
+			ExerciseId int `json:"exercise_id"`
+			UserId int `json:"user_id"`
+		}
+
+		var pr ProgressRequest
+
+		if err := c.BindJSON(&pr); err != nil {
+			log.Println("Error binding json to pr")
 			log.Println(err)
-			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			c.JSON(http.StatusInternalServerError, gin.H{})
 			return
 		}
 
-		exProgress := models.CalcExerciseProgressFromTrackData(data)
+		data, err := db.GetAllDataForExerciseAndUser(pr.UserId, pr.ExerciseId)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{})
+			return
+		}
 
-		log.Println(exProgress)
+		exercise_progress := models.CalcExerciseProgressFromTrackData(data)
 
-		c.HTML(http.StatusOK, "track_analysis.html", gin.H{
-			"exercise_progress": exProgress,
-		})
+		c.JSON(http.StatusOK, gin.H{ "exercise_progress": exercise_progress })
+
 	}
 }
 
