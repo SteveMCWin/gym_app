@@ -1,3 +1,12 @@
+---------------------
+--- WOKROUT PLANS ---
+---------------------
+
+DELETE from workout_plan;
+DELETE FROM sqlite_sequence WHERE name='workout_plan';
+
+INSERT INTO workout_plan (name, creator, description) VALUES ('/', 1, '');
+
 -----------------
 --- EXERCISES ---
 -----------------

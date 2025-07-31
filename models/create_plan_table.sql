@@ -9,8 +9,6 @@ CREATE TABLE workout_plan (
     FOREIGN KEY(creator) REFERENCES users(id)
 );
 
-INSERT INTO workout_plan (name, creator, description) VALUES ('/', 1, '');
-
 
 
 DROP TABLE IF EXISTS exercise_day;

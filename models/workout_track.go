@@ -1,7 +1,7 @@
 package models
 
 import (
-	// "database/sql"
+	"database/sql"
 	"errors"
 	"fitness_app/defs"
 	"log"
@@ -20,11 +20,12 @@ type WorkoutTrack struct {
 }
 
 type TrackData struct {
-	Id int `json:"id"`
-	ExDayId int     `json:"ex_day_id"`
-	Weight  float32 `json:"weight"`
-	SetNum  int     `json:"set_num"`
-	RepNum  int     `json:"rep_num"`
+	Id           int          `json:"id"`
+	ExDayId      int          `json:"ex_day_id"`
+	Weight       float32      `json:"weight"`
+	SetNum       int          `json:"set_num"`
+	RepNum       int          `json:"rep_num"`
+	TimeRecorded sql.NullTime `json:"time_recorded"`
 }
 
 func (Db *DataBase) CreateWorkoutTrack(wt *WorkoutTrack) (int, error) {
@@ -235,41 +236,6 @@ func (Db *DataBase) UpdateWorkoutTrackPrivacy(wt *WorkoutTrack) (bool, error) {
 	return true, nil
 }
 
-// func (Db *DataBase) CreateTrackData(td *TrackData) (int, error) {
-//
-// 	if td.Track <= 1 {
-// 		return 0, errors.New("Invalid workout plan used in track")
-// 	}
-//
-// 	if td.ExDay <= 0 {
-// 		return 0, errors.New("Invalid user used in track")
-// 	}
-//
-// 	statement := "insert into workout_track_data (track, ex_day, weight, set_num) values (?, ?, ?, ?) returning id"
-// 	var stmt *sql.Stmt
-// 	stmt, err := Db.Data.Prepare(statement)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-//
-// 	defer stmt.Close()
-//
-// 	var track_data_id int
-//
-// 	err = stmt.QueryRow(
-// 		td.Track,
-// 		td.ExDay,
-// 		td.Weight,
-// 		td.SetNum,
-// 	).Scan(&track_data_id)
-//
-// 	if err != nil {
-// 		return 0, err
-// 	}
-//
-// 	return track_data_id, nil
-// }
-
 func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 
 	if wt.Plan.Id <= defs.PLACEHOLDER_PLAN_ID {
@@ -310,7 +276,7 @@ func (Db *DataBase) CreateTrackDataForTrack(wt *WorkoutTrack) error {
 
 func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]TrackData, error) {
 	query_str := `
-	select workout_track_data.id, ex_day, workout_track_data.weight, set_num, rep_num 
+	select workout_track_data.id, ex_day, workout_track_data.weight, set_num, rep_num, time_recorded
 	from workout_track_data inner join exercise_day on ex_day = exercise_day.id
 	where track = ? 
 	order by day_order asc, exercise_order asc
@@ -334,6 +300,7 @@ func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]TrackData, error) {
 			&td.Weight,
 			&td.SetNum,
 			&td.RepNum,
+			&td.TimeRecorded,
 		)
 		if err != nil {
 			return nil, err
@@ -345,23 +312,49 @@ func (Db *DataBase) ReadTrackDataForTrack(wt_id int) ([]TrackData, error) {
 	return data, nil
 }
 
-// func (Db *DataBase) UpdateTrackData(td *TrackData) (bool, error) {
-//
-// 	statement := "UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?"
-// 	stmt, err := Db.Data.Prepare(statement)
-// 	if err != nil {
-// 		return false, err
-// 	}
-//
-// 	defer stmt.Close()
-//
-// 	_, err = stmt.Exec(td.Weight, td.RepNum, td.Id)
-// 	if err != nil {
-// 		return false, err
-// 	}
-//
-// 	return true, nil
-// }
+func (Db *DataBase) GetAllDataForExerciseAndUser(user_id, exercise_id int) ([]*TrackData, error) {
+	query := `
+	select wtd.weight, wtd.set_num, wtd.rep_num, wtd.time_recorded
+	from workout_track_data wtd inner join workout_track wt on wt.id = wtd.track inner join exercise_day ed on wtd.ex_day = ed.id
+	where wt.usr = ? and ed.exercise = ? and wtd.time_recorded is not null
+	order by wt.workout_date asc, wtd.time_recorded asc, wtd.set_num asc
+	`
+	rows, err := Db.Data.Query(query, user_id, exercise_id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	res := make([]*TrackData, 0)
+
+	for rows.Next() {
+		tmp := &TrackData{}
+		err = rows.Scan(
+			&tmp.Weight,
+			&tmp.SetNum,
+			&tmp.RepNum,
+			&tmp.TimeRecorded,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, tmp)
+	}
+
+	return res, nil
+}
+
+func CalcExerciseProgressFromTrackData(data []*TrackData) ([]float32, error) { // TODO: implement
+
+	for td := range data {
+		_ = td
+	}
+
+	return nil, nil
+}
 
 func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 
@@ -376,7 +369,19 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 
 	defer tx.Rollback()
 
-	stmt, err := tx.Prepare("UPDATE workout_track_data SET weight = ?, rep_num = ? WHERE id = ?")
+	statement := `
+	update workout_track_data
+	set 
+		weight = ?,
+		rep_num = ?,
+		time_recorded = case
+			when time_recorded is null then ?
+			else time_recorded
+		end
+	where id = ?
+	`
+
+	stmt, err := tx.Prepare(statement)
 	if err != nil {
 		return false, err
 	}
@@ -384,7 +389,7 @@ func (Db *DataBase) UpdateMultipleTrackData(tds []TrackData) (bool, error) {
 	defer stmt.Close()
 
 	for _, td := range tds {
-		_, err = stmt.Exec(td.Weight, td.RepNum, td.Id)
+		_, err = stmt.Exec(td.Weight, td.RepNum, time.Now(), td.Id)
 		if err != nil {
 			return false, err
 		}

@@ -27,7 +27,7 @@ type User struct {
 func (Db *DataBase) CreateUser(usr User) (int, error) {
 
 	if usr.Email == "" {
-		return 0, errors.New("Cannot store a user without their email")
+		return defs.NO_USER_ID, errors.New("Cannot store a user without their email")
 	}
 
 	// used to check if the user already has an account
@@ -39,7 +39,7 @@ func (Db *DataBase) CreateUser(usr User) (int, error) {
 		var stmt *sql.Stmt
 		stmt, err = Db.Data.Prepare(statement)
 		if err != nil {
-			return 0, err
+			return defs.NO_USER_ID, err
 		}
 
 		defer stmt.Close()
@@ -48,7 +48,7 @@ func (Db *DataBase) CreateUser(usr User) (int, error) {
 
 		encrypted_pass, err := bcrypt.GenerateFromPassword([]byte(usr.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return 0, err
+			return defs.NO_USER_ID, err
 		}
 
 		err = stmt.QueryRow(
@@ -63,19 +63,19 @@ func (Db *DataBase) CreateUser(usr User) (int, error) {
 			time.Now().Format("2006-01-02")).Scan(&usr_id)
 
 		if err != nil {
-			return 0, err
+			return defs.NO_USER_ID, err
 		}
 
 		err = Db.AddUserToGym(usr.CurrentGym.Id, usr_id)
 		if err != nil {
-			return 0, err
+			return defs.NO_USER_ID, err
 		}
 
 		return usr_id, nil
 	}
 
 	// user already has an account
-	return 0, errors.New("ERROR: user already has an account") // NOTE: handle this better, lead the user to the login page
+	return defs.NO_USER_ID, errors.New("ERROR: user already has an account")
 }
 
 func (Db *DataBase) ReadUser(usr_id int) (*User, error) {
