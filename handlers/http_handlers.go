@@ -110,6 +110,7 @@ func SetUpRouter(domain, csrf_key string, db models.DataBase) http.Handler {
 	track_router.GET("/edit/:track_id", HandleGetTracksEdit(&db))
 	track_router.POST("/edit/:track_id", HandlePostTracksEdit(&db))
 	track_router.GET("/delete/:track_id", HandleGetTracksDelete(&db))
+	track_router.GET("/progress", HandleGetTrackExerciseProgress(&db))
 
 	gym_router.GET("/search", HandleGetSearchForGym())
 	gym_router.GET("/view/:gym_id", HandleGetViewGym(&db))
@@ -203,7 +204,7 @@ func HandleGetProfile(db *models.DataBase) func(c *gin.Context) {
 			return
 		}
 
-		c.HTML(http.StatusOK, "profile.html", gin.H{"usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan})
+		c.HTML(http.StatusOK, "profile.html", gin.H{"usr": usr, "requesting_user_id": requesting_user_id, "current_plan": current_plan}) // WARNING: not a good way to handle this
 	}
 }
 
@@ -1301,6 +1302,32 @@ func HandleGetTracksDelete(db *models.DataBase) func(c *gin.Context) {
 		}
 
 		c.Redirect(http.StatusPermanentRedirect, "/user/"+user_id_param+"/track/view_all")
+	}
+}
+
+func HandleGetTrackExerciseProgress(db *models.DataBase) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		requesting_user_id := GetUserId(c)
+		if requesting_user_id == defs.NO_USER_ID {
+			log.Println("Must be logged in to view progress")
+			c.Redirect(http.StatusPermanentRedirect, "/user/login")
+			return
+		}
+
+		data, err := db.GetAllDataForExerciseAndUser(requesting_user_id, 2)
+		if err != nil {
+			log.Println(err)
+			c.Redirect(http.StatusPermanentRedirect, "/error-page")
+			return
+		}
+
+		exProgress := models.CalcExerciseProgressFromTrackData(data)
+
+		log.Println(exProgress)
+
+		c.HTML(http.StatusOK, "track_analysis.html", gin.H{
+			"exercise_progress": exProgress,
+		})
 	}
 }
 
