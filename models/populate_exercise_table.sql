@@ -8,6 +8,15 @@ DELETE FROM sqlite_sequence WHERE name='workout_plan';
 INSERT INTO workout_plan (name, creator, description) VALUES ('/', 1, '');
 
 -----------------
+--- PLAN TAGS ---
+-----------------
+
+DELETE from plan_tag;
+DELETE FROM sqlite_sequence WHERE name='plan_tag';
+
+INSERT INTO plan_tag (name) values ('hypertrophy', 'low volume', 'high volume', 'strength', 'powerlifting', 'mobility', 'beginner friendly', 'at home')
+
+-----------------
 --- EXERCISES ---
 -----------------
 
@@ -20,14 +29,14 @@ INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('ba
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('incline bench press', '', '', 2);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('cable flies', '', '', 2);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('pushups', '', '', 2);
-INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('machine flies', '', '', 2);
+INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('machine flies', '', '', 1);
 -- BACK
-INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('barbell bent-over row', '', '', 2);
+INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('barbell bent-over row', '', '', 3);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('dumbbell row', '', '', 2);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('cable row', '', '', 2);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('pullups', '', '', 2);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('t-bar row', '', '', 2);
-INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('lat pulldowns', '', '', 2);
+INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('lat pulldowns', '', '', 1);
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('lat pullovers', '', '', 2);
 -- UPPER ARMS
 INSERT into exercises (name, description, exercise_type, difficulty) VALUES ('skull crushers', '', '', 2);

@@ -12,12 +12,13 @@ import (
 )
 
 type WorkoutPlan struct {
-	Id          int     `json:"id"` // id of the workout plan
-	Name        string  `json:"name"`
-	Creator     int     `json:"creator"`
-	Description string  `json:"description"`
-	MakeCurrent bool    `json:"make_current"`
-	Days        []ExDay `json:"days"`
+	Id          int      `json:"id"` // id of the workout plan
+	Name        string   `json:"name"`
+	Creator     int      `json:"creator"`
+	Description string   `json:"description"`
+	MakeCurrent bool     `json:"make_current"`
+	Days        []ExDay  `json:"days"`
+	Tags        []string `json:"tags"`
 }
 
 type ExDay struct {
@@ -83,21 +84,17 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 
 	defer stmt.Close()
 
-	var workout_plan_id int
-
 	err = stmt.QueryRow(
 		wp.Name,
 		wp.Creator,
 		wp.Description,
-	).Scan(&workout_plan_id)
+	).Scan(&wp.Id)
 
 	if err != nil {
 		return 0, err
 	}
 
-	wp.Id = workout_plan_id
-
-	err = Db.CachePlanBasic(wp.Id)
+	err = CachePlanBasic(wp)
 	if err != nil {
 		return 0, err
 	}
@@ -107,9 +104,39 @@ func (Db *DataBase) CreateWorkoutPlan(wp *WorkoutPlan) (int, error) {
 		return 0, err
 	}
 
+	err = Db.AddTagsToPlan(wp)
+	if err != nil {
+		return 0, err
+	}
+
 	Db.AddWorkoutPlanToUser(wp.Creator, wp.Id)
 
-	return workout_plan_id, nil
+	return wp.Id, nil
+}
+
+func (Db *DataBase) AddTagsToPlan(wp *WorkoutPlan) error {
+	tx, err := Db.Data.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	statemet := "insert into plans_tags (plan, tag) values (?, ?)"
+	stmt, err := tx.Prepare(statemet)
+	if err != nil {
+		return err
+	}
+
+	for _, tag := range wp.Tags {
+		_, err := stmt.Exec(wp.Id, tag)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	return err
 }
 
 func (Db *DataBase) CheckIfUserUsesPlan(usr_id, plan_id int) bool {
@@ -166,7 +193,33 @@ func (Db *DataBase) ReadWorkoutPlan(id int) (*WorkoutPlan, error) {
 		return nil, err
 	}
 
+	wp.Tags, err = Db.ReadAllTagsFromPlan(id)
+	if err != nil {
+		return nil, err
+	}
+
 	return wp, nil
+}
+
+func (Db *DataBase) ReadAllTagsFromPlan(wp_id int) ([]string, error) {
+	res := make([]string, 0)
+	query := "select tag from plans_tags where plan = ?"
+	rows, err := Db.Data.Query(query, wp_id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var tag string
+		err = rows.Scan(&tag)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, tag)
+	}
+
+	return res, nil
 }
 
 func (Db *DataBase) ReadAllWorkoutsUserUses(usr_id int) ([]*WorkoutPlan, error) {
@@ -232,25 +285,14 @@ func (Db *DataBase) GetPlansUserUses(user_id int) ([]int, error) {
 
 func (Db *DataBase) ReadUsersRecentlyTrackedPlans(user_id int) ([]*WorkoutPlan, error) {
 
-	sql_query := `
-	select workout_plan.id, workout_plan.name, workout_plan.creator, workout_plan.description, max(workout_date)
-	from workout_track inner join workout_plan on plan = workout_plan.id
-	where usr = ?
-	group by plan
-	order by max(workout_date) asc
-	` // Doesn't work because the workout_track table is empty at first
-
-	sql_query2 := `
+	query := `
 	select id, name, creator, description
 	from workout_plan inner join users_plans on id = plan
 	where usr = ?
 	order by date_added desc
 	`
 
-	_ = sql_query
-	_ = sql_query2
-
-	rows, err := Db.Data.Query(sql_query2, user_id)
+	rows, err := Db.Data.Query(query, user_id)
 	if err != nil {
 		return nil, err
 	}
@@ -295,6 +337,13 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 
 	defer stmt_wp.Close()
 
+	stmt_delete_pt, err := tx.Prepare("DELETE FROM plans_tags where plan = ?") // NOTE: big dum dum way of doing this, but it shouldn't matter at all
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt_delete_pt.Close()
+
 	stmt_ex, err := tx.Prepare("UPDATE exercise_day SET plan = ? WHERE id = ?")
 	if err != nil {
 		return false, err
@@ -303,6 +352,16 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 	defer stmt_wp.Close()
 
 	_, err = stmt_wp.Exec(wp.Name, wp.Description, wp.Id)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = stmt_delete_pt.Exec(wp.Name, wp.Description, wp.Id)
+	if err != nil {
+		return false, err
+	}
+
+	err = Db.AddTagsToPlan(wp) // NOTE: big dum dum way of doing this, but it shouldn't matter at all
 	if err != nil {
 		return false, err
 	}
@@ -342,7 +401,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 		return false, err
 	}
 
-	err = Db.CachePlanBasic(wp.Id)
+	err = CachePlanBasic(wp)
 	if err != nil {
 		return false, err
 	}
@@ -442,8 +501,20 @@ func (Db *DataBase) DeleteWorkoutPlans(plan_ids ...int) (bool, error) {
 
 	defer stmt_usr.Close()
 
+	stmt_tag, err := tx.Prepare("DELETE from plans_tags where plan = ?")
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt_tag.Close()
+
 	for _, p_id := range plan_ids {
 		_, err = stmt_usr.Exec(p_id)
+		if err != nil {
+			return false, err
+		}
+
+		_, err = stmt_tag.Exec(p_id)
 		if err != nil {
 			return false, err
 		}
