@@ -278,7 +278,7 @@
     <div class="container">
         <div class="header">
             <h1>Exercise Progress Tracking</h1>
-            <p>Monitor your intensity improvements over time</p>
+            <p>Monitor your progress over time</p>
         </div>
         
         <div class="content">
@@ -615,9 +615,6 @@
             document.getElementById('selectedExerciseType').textContent = `Type: ${selectedExercise.exercise_type}`;
             document.getElementById('selectedExerciseDifficulty').textContent = `Difficulty: ${selectedExercise.difficulty}/10`;
             
-            // Sort data by time_point
-            <!-- exerciseProgress.sort((a, b) => new Date(a.time_point) - new Date(b.time_point)); -->
-            
             // Prepare data for Chart.js
             const labels = exerciseProgress.map(item => {
                 const date = new Date(item.time_point);
@@ -633,17 +630,13 @@
             
             // Calculate statistics
             const totalSessions = exerciseProgress.length;
-            <!-- const avgIntensity = (intensityData.reduce((a, b) => a + b, 0) / totalSessions).toFixed(1); -->
-            <!-- const maxIntensity = Math.max(...intensityData).toFixed(1); -->
             const improvement = exerciseProgress.length > 1 
-                ? (intensityData[intensityData.length - 1] - intensityData[0]).toFixed(1)
+                ? ((intensityData[intensityData.length - 1] - intensityData[0])/intensityData[0]*100).toFixed(1)
                 : 0;
             
             // Update statistics
             document.getElementById('totalSessions').textContent = totalSessions;
-            <!-- document.getElementById('avgIntensity').textContent = avgIntensity; -->
-            <!-- document.getElementById('maxIntensity').textContent = maxIntensity; -->
-            document.getElementById('improvement').textContent = improvement > 0 ? `+${improvement}` : improvement;
+            document.getElementById('improvement').textContent = improvement >= 0 ? `+${improvement}%` : `-${improvement}%`;
             
             // Create the chart
             const ctx = document.getElementById('progressChart').getContext('2d');
