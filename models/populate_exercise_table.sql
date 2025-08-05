@@ -14,7 +14,7 @@ INSERT INTO workout_plan (name, creator, description) VALUES ('/', 1, '');
 DELETE from plan_tag;
 DELETE FROM sqlite_sequence WHERE name='plan_tag';
 
-INSERT INTO plan_tag (name) values ('hypertrophy', 'low volume', 'high volume', 'strength', 'powerlifting', 'mobility', 'beginner friendly', 'at home')
+INSERT INTO plan_tag (name) values ('hypertrophy', 'low volume', 'high volume', 'strength', 'powerlifting', 'mobility', 'beginner friendly', 'at home');
 
 -----------------
 --- EXERCISES ---

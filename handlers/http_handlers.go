@@ -454,19 +454,6 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
 
-		// user_id_param := c.Param("id")
-		// user_id, err := strconv.Atoi(user_id_param)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	c.Redirect(http.StatusSeeOther, "/error-page")
-		// 	return
-		// }
-		//
-		// if requesting_user_id != user_id {
-		// 	log.Println("You cannot edit other peoples profiles")
-		// 	c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(requesting_user_id))
-		// }
-
 		user, err := db.ReadUser(requesting_user_id)
 		if err != nil {
 			log.Println(err)
