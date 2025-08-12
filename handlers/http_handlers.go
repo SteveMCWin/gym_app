@@ -454,19 +454,6 @@ func HandlePostEditProfile(db *models.DataBase) func(c *gin.Context) {
 
 		requesting_user_id := GetUserId(c)
 
-		// user_id_param := c.Param("id")
-		// user_id, err := strconv.Atoi(user_id_param)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	c.Redirect(http.StatusSeeOther, "/error-page")
-		// 	return
-		// }
-		//
-		// if requesting_user_id != user_id {
-		// 	log.Println("You cannot edit other peoples profiles")
-		// 	c.Redirect(http.StatusSeeOther, "/user/"+strconv.Itoa(requesting_user_id))
-		// }
-
 		user, err := db.ReadUser(requesting_user_id)
 		if err != nil {
 			log.Println(err)
@@ -1364,7 +1351,8 @@ func HandleGetSearchForUser(db *models.DataBase) func(c *gin.Context) {
 			c.HTML(http.StatusOK, "search_users.html", gin.H{})
 		} else {
 			// return JSON results
-			results, err := db.SearchForUsers(query, SessionManager.GetInt(c.Request.Context(), "user_id"))
+			requesting_user_id := GetUserId(c)
+			results, err := db.SearchForUsers(query, requesting_user_id)
 			if err != nil {
 				log.Println(err)
 				c.Redirect(http.StatusPermanentRedirect, "/error-page")

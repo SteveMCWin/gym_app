@@ -11,6 +11,26 @@ CREATE TABLE workout_plan (
 
 
 
+DROP TABLE IF EXISTS plan_tag;
+
+CREATE TABLE plan_tag (
+    name TEXT PRIMARY KEY
+);
+
+
+
+DROP TABLE IF EXISTS plans_tags;
+
+CREATE TABLE plans_tags (
+    plan INTEGER,
+    tag TEXT,
+    PRIMARY KEY(plan, tag),
+    FOREIGN KEY (plan) REFERENCES workout_plan(id),
+    FOREIGN KEY (tag) REFERENCES plan_tag(name)
+);
+
+
+
 DROP TABLE IF EXISTS exercise_day;
 
 CREATE TABLE exercise_day (
