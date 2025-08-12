@@ -356,7 +356,7 @@ func (Db *DataBase) UpdateWorkoutPlan(wp *WorkoutPlan) (bool, error) {
 		return false, err
 	}
 
-	_, err = stmt_delete_pt.Exec(wp.Name, wp.Description, wp.Id)
+	_, err = stmt_delete_pt.Exec(wp.Id)
 	if err != nil {
 		return false, err
 	}

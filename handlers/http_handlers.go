@@ -1351,7 +1351,8 @@ func HandleGetSearchForUser(db *models.DataBase) func(c *gin.Context) {
 			c.HTML(http.StatusOK, "search_users.html", gin.H{})
 		} else {
 			// return JSON results
-			results, err := db.SearchForUsers(query, SessionManager.GetInt(c.Request.Context(), "user_id"))
+			requesting_user_id := GetUserId(c)
+			results, err := db.SearchForUsers(query, requesting_user_id)
 			if err != nil {
 				log.Println(err)
 				c.Redirect(http.StatusPermanentRedirect, "/error-page")
