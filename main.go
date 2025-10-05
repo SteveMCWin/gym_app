@@ -48,5 +48,5 @@ func main() {
 
 	handler := handlers.SetUpRouter(domain, csrf_key, db)
 
-	http.ListenAndServe(":8080", handler)
+	http.ListenAndServe(":5000", handler)
 }

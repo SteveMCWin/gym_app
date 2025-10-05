@@ -24,8 +24,8 @@ jobs:
     - name: Install SQLite and build spellfix extension
       run: |
         sudo apt-get update
-        sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
-        wget https://raw.githubusercontent.com/sqlite/sqlite/master/ext/misc/spellfix.c -O spellfix.c
+        sudo apt-get install -y sqlite3 libsqlite3-dev build-essential curl
+        curl -L https://raw.githubusercontent.com/sqlite/sqlite/version-3.46.0/ext/misc/spellfix.c -o spellfix.c
         gcc -shared -fPIC -I/usr/include -o models/spellfix.so spellfix.c -lsqlite3
         rm spellfix.c
 

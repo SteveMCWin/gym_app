@@ -373,7 +373,6 @@ func HandlePostSignupFromMail(db *models.DataBase) func(c *gin.Context) {
 		delete(signupTokens, token_val)
 
 		c.Redirect(http.StatusSeeOther, "/user/profile")
-		return
 	}
 }
 
@@ -1465,13 +1464,13 @@ func HandleGetSearchForGym() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// just render some html for the search page
 		all_gyms := models.FetchAllCachedGyms()
-		query := c.Query("name")
-		if query == "" {
+		gym_name := c.Query("name")
+		if gym_name == "" {
 			// render page
 			c.HTML(http.StatusOK, "search_gyms.html", gin.H{ "all_gyms": all_gyms })
 		} else {
 			// return JSON results
-			results := models.SearchForGym(query)
+			results := models.SearchForGym(gym_name)
 			c.JSON(200, results)
 		}
 	}
