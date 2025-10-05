@@ -31,7 +31,7 @@ func (Db *DataBase) CreateUser(usr User) (int, error) {
 	}
 
 	// used to check if the user already has an account
-	err := Db.Data.QueryRow("select id from users where email like ?", usr.Email).Scan(&usr.Id)
+	err := Db.Data.QueryRow("select id from users where email = ?", usr.Email).Scan(&usr.Id)
 
 	// user is signing up for the first time
 	if err != nil {

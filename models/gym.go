@@ -208,13 +208,21 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 		return err
 	}
 
-	statement = "insert into gyms_tags (gym, tag) values (?, ?)"
-	stmt_tags, err := tx.Prepare(statement)
+	statement = "insert or ignore into gym_tag (tag) values (?)"
+	stmt_tag, err := tx.Prepare(statement)
 	if err != nil {
 		return err
 	}
 
-	defer stmt_tags.Close()
+	defer stmt_tag.Close()
+
+	statement = "insert into gyms_tags (gym, tag) values (?, ?)"
+	stmt_gyms_tags, err := tx.Prepare(statement)
+	if err != nil {
+		return err
+	}
+
+	defer stmt_gyms_tags.Close()
 
 	statement = "insert into gym_equipment (gym_id, equipment) values (?, ?)"
 	stmt_eq, err := tx.Prepare(statement)
@@ -225,8 +233,12 @@ func (Db *DataBase) CreateGym(g *Gym) error {
 	defer stmt_eq.Close()
 
 	for _, tag := range g.Tags {
-		// WARNING: should check if the tag exists
-		_, err = stmt_tags.Exec(g.Id, tag)
+		_, err = stmt_tag.Exec(tag)
+		if err != nil {
+			return err
+		}
+
+		_, err = stmt_gyms_tags.Exec(g.Id, tag)
 		if err != nil {
 			return err
 		}

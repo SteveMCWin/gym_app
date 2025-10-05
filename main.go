@@ -36,13 +36,17 @@ func main() {
 	mail_pass := os.Getenv("GMAIL_APP_PASS")
 	mail_sender := os.Getenv("MAIL_SENDER")
 
+	if mail_pass == "" || mail_sender == "" {
+		log.Fatal("Couldn't load .env variables: mail")
+	}
+
 	mail.InitMail(mail_pass, mail_sender)
 
 	if domain == "" || csrf_key == "" {
-		log.Fatal("Couldn't load .env variables")
+		log.Fatal("Couldn't load .env variables: web")
 	}
 
 	handler := handlers.SetUpRouter(domain, csrf_key, db)
 
-	http.ListenAndServe(":8080", handler)
+	http.ListenAndServe(":5000", handler)
 }
